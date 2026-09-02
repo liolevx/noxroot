@@ -20,6 +20,7 @@ import { doctorRepository } from "./core/doctor.js";
 import { applyProposals } from "./core/init.js";
 import { previewRepository } from "./core/preview.js";
 import { buildProposals } from "./core/proposals.js";
+import { inspectRepositoryAdoption } from "./detection/adoption.js";
 import { applyLearning, proposeLearnings } from "./knowledge/learn.js";
 import type { PreviewResult } from "./model.js";
 import { effectiveAutonomy } from "./orchestration/autonomy.js";
@@ -117,7 +118,12 @@ async function selectModules(preview: PreviewResult, io: Io): Promise<PreviewRes
             reason: "Disabled during confirmed selection.",
           },
     );
-    return { ...preview, modules, proposedFiles: await buildProposals(preview.profile, modules) };
+    const adoption = await inspectRepositoryAdoption(preview.profile);
+    return {
+      ...preview,
+      modules,
+      proposedFiles: await buildProposals(preview.profile, modules, adoption),
+    };
   } finally {
     readline.close();
   }
@@ -332,6 +338,14 @@ export function createProgram(customIo?: Partial<Io>): Command {
           if (common.json) writeJson(io, preview);
           return;
         }
+        if (!preview.initializationAllowed) {
+          if (common.json) writeJson(io, { preview, applied: { created: [] }, refused: true });
+          process.exitCode = EXIT.refused;
+          io.stderr(
+            "Initialization refused; resolve the reported repository-development lifecycle conflict. No files were changed.\n",
+          );
+          return;
+        }
         if (preview.proposedFiles.length === 0) {
           if (common.json) writeJson(io, { preview, applied: { created: [] } });
           io.stderr("Noxroot is already initialized; no files were proposed.\n");
@@ -376,7 +390,19 @@ export function createProgram(customIo?: Partial<Io>): Command {
         }
         if (!common.json)
           io.stdout(renderPreview(preview, { diff: options.diff || !options.dryRun }));
-        if (options.dryRun || preview.proposedFiles.length === 0) {
+        if (options.dryRun) {
+          if (common.json) writeJson(io, { preview, applied: { created: [] } });
+          return;
+        }
+        if (!preview.initializationAllowed) {
+          if (common.json) writeJson(io, { preview, applied: { created: [] }, refused: true });
+          process.exitCode = EXIT.refused;
+          io.stderr(
+            "Synchronization refused; resolve the reported repository-development lifecycle conflict. No files were changed.\n",
+          );
+          return;
+        }
+        if (preview.proposedFiles.length === 0) {
           if (common.json) writeJson(io, { preview, applied: { created: [] } });
           return;
         }

@@ -26,11 +26,21 @@ contains the complete repository profile, limits, module reasons, proposal conte
 discovered-but-unrun commands, proposed context estimate, and zero-side-effect counters.
 `noxroot init --dry-run` is the concise aliasing experience.
 
+Preview classifies relevant setup capabilities as `create`, `reuse`, `conflict`, or `not-assessed`.
+`create` requires evidence that the capability is absent. `reuse` names the existing repository
+source. A repository-development orchestration conflict refuses initialization. When evidence is
+incomplete, `not-assessed` preserves that capability unchanged and explains what could not be
+established.
+
 ## `init` and `sync`
 
 `init` creates only files in the reviewed proposal. It checks every target again before writing,
 writes each file through a same-directory temporary file, and rolls back files it created if the
 operation fails. Existing files are never overwritten.
+
+Explicitly referenced project knowledge, task routes, Agent Skills, and documented verification
+wrappers are reused rather than copied. Noxroot does not automatically integrate with or replace an
+existing repository-development coordinator.
 
 `init --select` interactively accepts explicit module ids. `sync --dry-run` re-diagnoses an
 initialized repository; add `--diff` for patches. Mutating init and sync always show exact patches

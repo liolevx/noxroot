@@ -34,6 +34,12 @@ export function renderPreview(result: PreviewResult, options: { diff?: boolean }
     `Detected: ${detected.join(", ") || "No application architecture yet"}${manager}`,
     `Existing instructions: ${instructions.join(", ") || "none"}`,
     `Approved check candidates found: ${result.profile.candidateCommands.map((item) => item.id).join(", ") || "none"}`,
+    `Initialization allowed: ${result.initializationAllowed ? "yes" : "no"}`,
+    "Capabilities:",
+    ...result.capabilities.map(
+      (item) =>
+        `- ${item.label}: ${item.decision}${item.evidence.length ? ` (${item.evidence.join("; ")})` : ""}${item.missingEvidence.length ? `; missing evidence: ${item.missingEvidence.join("; ")}` : ""}`,
+    ),
     `Proposed (${result.proposedFiles.length}): ${actionSummary || "no setup changes"}`,
     `Files: ${result.proposedFiles.map((item) => `${item.action} ${item.path}`).join(", ") || "none"}`,
     `Applicable modules: ${applicableModules.map((item) => `${item.id} (${item.status})`).join(", ") || "none"}`,
@@ -61,11 +67,13 @@ export function renderPreview(result: PreviewResult, options: { diff?: boolean }
   lines.push(
     "",
     "No repository files changed. No project command, agent, or network request ran.",
-    result.proposedFiles.length === 0
-      ? 'Next: no setup changes are recommended; run noxroot context "<task>".'
-      : options.diff
-        ? "Next: noxroot init"
-        : "Next: noxroot preview --diff",
+    !result.initializationAllowed
+      ? "Next: resolve the reported repository-development lifecycle conflict; initialization is refused."
+      : result.proposedFiles.length === 0
+        ? 'Next: no setup changes are recommended; run noxroot context "<task>".'
+        : options.diff
+          ? "Next: noxroot init"
+          : "Next: noxroot preview --diff",
   );
   return `${lines.join("\n")}\n`;
 }

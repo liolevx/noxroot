@@ -6,6 +6,12 @@ uses bounded filesystem APIs, never project execution or an LLM. Proposal genera
 complete file contents and unified creation patches. Initialization is the only component that
 applies those proposals.
 
+Mature-repository adoption follows explicit repository-relative references from agent instructions.
+It recognizes thin forwarding files, existing Agent Skills, documented verification wrappers, and
+clear repository-development coordinator overlap. Proposal decisions are deliberately small: create
+a proven gap, reuse explicit evidence, refuse a conflict, or preserve a capability that could not be
+assessed. Noxroot does not interpret arbitrary route schemas or integrate coordinators.
+
 Verification configuration distinguishes candidate discovery from executable trust. The process
 adapter accepts an executable and argument array, validates the working directory, uses
 `shell: false`, inherits a small environment allowlist, bounds output, and records timeout/exit

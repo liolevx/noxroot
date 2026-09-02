@@ -2,6 +2,7 @@ import path from "node:path";
 import { ConfigurationError, loadConfig } from "../config/load.js";
 import type { PreviewResult } from "../model.js";
 import { scanRepository } from "../detection/scan.js";
+import { inspectRepositoryAdoption } from "../detection/adoption.js";
 import { canonicalDirectory } from "../security/paths.js";
 import { assessModules, buildProposals } from "./proposals.js";
 
@@ -21,8 +22,9 @@ export async function previewRepository(root = process.cwd()): Promise<PreviewRe
     else throw error;
   }
   const profile = await scanRepository(canonicalRoot, { sensitivePaths });
-  const modules = assessModules(profile, configuredModules);
-  const proposedFiles = await buildProposals(profile, modules);
+  const adoption = await inspectRepositoryAdoption(profile);
+  const modules = assessModules(profile, configuredModules, adoption);
+  const proposedFiles = await buildProposals(profile, modules, adoption);
   const existingSetup = profile.evidence
     .filter((item) => item.status === "confirmed")
     .map((item) => `${item.claim}: ${item.sources.join(", ")}`);
@@ -30,6 +32,7 @@ export async function previewRepository(root = process.cwd()): Promise<PreviewRe
     .filter((item) => item.status === "conflicting")
     .map((item) => `${item.claim}: ${item.sources.join(", ")}`);
   if (configurationConflict) conflicts.push(configurationConflict);
+  conflicts.push(...adoption.conflicts);
   if (profile.blockedSymlinks.length > 0) {
     conflicts.push(
       `${profile.blockedSymlinks.length} symbolic link(s) were not followed: ${profile.blockedSymlinks.join(", ")}`,
@@ -65,6 +68,8 @@ export async function previewRepository(root = process.cwd()): Promise<PreviewRe
     profile,
     modules,
     proposedFiles,
+    capabilities: adoption.capabilities,
+    initializationAllowed: adoption.initializationAllowed,
     existingSetup,
     conflicts,
     unknowns,

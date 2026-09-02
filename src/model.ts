@@ -94,12 +94,30 @@ export interface ProposedFile {
   expectedHash?: string;
 }
 
+export type CapabilityDecision = "create" | "reuse" | "conflict" | "not-assessed";
+
+export interface CapabilityAssessment {
+  id:
+    | "project-knowledge"
+    | "task-routes"
+    | "verification-policy"
+    | "verification-skill"
+    | "task-orchestration"
+    | "product-ux-guidance";
+  label: string;
+  decision: CapabilityDecision;
+  evidence: string[];
+  missingEvidence: string[];
+}
+
 export interface PreviewResult {
   kind: "preview";
   root: string;
   profile: RepositoryProfile;
   modules: ModuleAssessment[];
   proposedFiles: ProposedFile[];
+  capabilities: CapabilityAssessment[];
+  initializationAllowed: boolean;
   existingSetup: string[];
   conflicts: string[];
   unknowns: string[];
