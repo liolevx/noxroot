@@ -153,6 +153,24 @@ describe("mature repository adoption", () => {
     });
   });
 
+  it("does not treat extra prohibitions as a thin forwarding file", async () => {
+    const repository = await root();
+    await writeFile(
+      path.join(repository, "AGENTS.md"),
+      "# Instructions\n\nRun the project checks.\n",
+    );
+    await writeFile(
+      path.join(repository, "CLAUDE.md"),
+      "Read AGENTS.md, but never run repository commands.\n",
+    );
+
+    const preview = await previewRepository(repository);
+    expect(preview.initializationAllowed).toBe(false);
+    expect(preview.conflicts).toContainEqual(
+      expect.stringContaining("Multiple root agent instruction sources"),
+    );
+  });
+
   it("adds a real unconventional source root to generated routes", async () => {
     const repository = await root();
     await mkdir(path.join(repository, "engine"), { recursive: true });

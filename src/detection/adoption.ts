@@ -261,7 +261,11 @@ export async function inspectRepositoryAdoption(
     const targets = references.filter(
       (item) => item.from === file && INSTRUCTION_NAME.test(path.posix.basename(item.path)),
     );
-    if (targets.length === 1) forwarding.push({ from: file, to: targets[0]!.path });
+    const containsIndependentDirective =
+      /\b(?:do not|don't|must not|never|override|ignore|instead of|only follow)\b/i.test(source);
+    if (targets.length === 1 && !containsIndependentDirective) {
+      forwarding.push({ from: file, to: targets[0]!.path });
+    }
   }
 
   const rootInstructions = instructionFiles.filter((file) => !file.includes("/"));
@@ -277,11 +281,19 @@ export async function inspectRepositoryAdoption(
     );
 
   const referencedPaths = [...new Set(references.map((item) => item.path))].sort();
-  const referencedDocuments = referencedPaths
-    .filter(
-      (file) => /\.(?:md|mdx)$/i.test(file) && !INSTRUCTION_NAME.test(path.posix.basename(file)),
-    )
-    .map((file): RepositoryDocument => ({ path: file, kind: "ordinary", authoritative: true }));
+  const instructionSet = new Set(instructionFiles);
+  const referencedDocuments = [
+    ...new Set(
+      references
+        .filter(
+          (item) =>
+            instructionSet.has(item.from) &&
+            /\.(?:md|mdx)$/i.test(item.path) &&
+            !INSTRUCTION_NAME.test(path.posix.basename(item.path)),
+        )
+        .map((item) => item.path),
+    ),
+  ].map((file): RepositoryDocument => ({ path: file, kind: "ordinary", authoritative: true }));
   const routeReferences = references.filter(
     (item) =>
       /\broutes?\b/i.test(item.context) && !INSTRUCTION_NAME.test(path.posix.basename(item.path)),
