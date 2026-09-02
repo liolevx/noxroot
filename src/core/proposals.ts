@@ -4,11 +4,14 @@ import path from "node:path";
 import { stringify } from "yaml";
 import type {
   CandidateCommand,
+  CapabilityAssessment,
+  CapabilityDecision,
   ModuleAssessment,
   ProposedFile,
   RepositoryDocument,
   RepositoryProfile,
 } from "../model.js";
+import type { AdoptionInspection } from "../detection/adoption.js";
 
 const MANAGED_START = "<!-- noxroot:start -->";
 const MANAGED_END = "<!-- noxroot:end -->";
@@ -80,8 +83,8 @@ function createPatch(file: string, content: string): string {
 }
 
 function updatePatch(file: string, before: string, after: string): string {
-  const beforeLines = before.replace(/\n$/, "").split("\n");
-  const afterLines = after.replace(/\n$/, "").split("\n");
+  const beforeLines = before.replace(/\r?\n$/, "").split(/\r?\n/);
+  const afterLines = after.replace(/\r?\n$/, "").split(/\r?\n/);
   return [
     `--- a/${file}`,
     `+++ b/${file}`,
@@ -154,13 +157,27 @@ function verificationContent(commands: CandidateCommand[]): string {
   });
 }
 
-function usefulDocuments(profile: RepositoryProfile): RepositoryDocument[] {
-  return profile.documents.filter(
-    (document) => document.authoritative && document.kind !== "instructions",
+function usefulDocuments(
+  profile: RepositoryProfile,
+  adoption?: AdoptionInspection,
+): RepositoryDocument[] {
+  const documents = [
+    ...profile.documents.filter(
+      (document) => document.authoritative && document.kind !== "instructions",
+    ),
+    ...(adoption?.referencedDocuments ?? []),
+  ];
+  return documents.filter(
+    (document, index, all) =>
+      all.findIndex((candidate) => candidate.path === document.path) === index,
   );
 }
 
-function routesContent(profile: RepositoryProfile, skillPaths: string[]): string {
+function routesContent(
+  profile: RepositoryProfile,
+  skillPaths: string[],
+  adoption?: AdoptionInspection,
+): string {
   const projectRoots = [
     ...new Set(
       profile.files
@@ -181,6 +198,37 @@ function routesContent(profile: RepositoryProfile, skillPaths: string[]): string
   const sourceRoots = ["src/**", "app/**", "lib/**", "packages/**", "apps/**"].filter((glob) =>
     profile.files.some((file) => file.startsWith(glob.replace("/**", "/"))),
   );
+  const conventional = new Set(sourceRoots.map((glob) => glob.replace("/**", "")));
+  const excludedTopLevel = new Set([
+    "docs",
+    "test",
+    "tests",
+    "e2e",
+    "examples",
+    "fixtures",
+    "scripts",
+    "dist",
+    "build",
+    "coverage",
+  ]);
+  const discoveredSourceRoots = [
+    ...new Set(
+      profile.files
+        .filter((file) =>
+          /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php)$/.test(file),
+        )
+        .map((file) => file.split("/")[0] ?? "")
+        .filter(
+          (directory) =>
+            directory.length > 0 &&
+            fileHasDirectory(directory, profile.files) &&
+            !directory.startsWith(".") &&
+            !conventional.has(directory) &&
+            !excludedTopLevel.has(directory),
+        )
+        .map((directory) => `${directory}/**`),
+    ),
+  ];
   const testRoots = ["tests/**", "test/**", "e2e/**"].filter((glob) =>
     profile.files.some((file) => file.startsWith(glob.replace("/**", "/"))),
   );
@@ -193,16 +241,21 @@ function routesContent(profile: RepositoryProfile, skillPaths: string[]): string
         include: [
           "AGENTS.md",
           ".noxroot/knowledge/INDEX.md",
-          ...usefulDocuments(profile).map((document) => document.path),
+          ...usefulDocuments(profile, adoption).map((document) => document.path),
           ...skillPaths,
           ...projectRoots,
           ...sourceRoots,
+          ...discoveredSourceRoots,
           ...testRoots,
         ],
         exclude: ["dist/**", "coverage/**", "node_modules/**"],
       },
     ],
   });
+}
+
+function fileHasDirectory(directory: string, files: string[]): boolean {
+  return files.some((file) => file.startsWith(`${directory}/`));
 }
 
 function indexLink(document: RepositoryDocument): string {
@@ -223,8 +276,12 @@ function indexLink(document: RepositoryDocument): string {
   return `- [${label}](${relative}) — existing repository documentation; load only when relevant.`;
 }
 
-function indexContent(profile: RepositoryProfile, skillPaths: string[]): string {
-  const documents = usefulDocuments(profile);
+function indexContent(
+  profile: RepositoryProfile,
+  skillPaths: string[],
+  adoption?: AdoptionInspection,
+): string {
+  const documents = usefulDocuments(profile, adoption);
   const entries = profile.empty
     ? [
         "- Product intent and architecture are currently unknown. Add evidence before expanding this index.",
@@ -251,6 +308,8 @@ Active run state, application runtime sessions, application memory, user data, a
 }
 
 function integrateAgents(source: string): ProposedFile {
+  const newline = source.includes("\r\n") ? "\r\n" : "\n";
+  const managedBlock = MANAGED_BLOCK.replaceAll("\n", newline);
   if (source.includes(".noxroot/knowledge/INDEX.md") && !source.includes(MANAGED_START)) {
     return reference("AGENTS.md", "Reuse the existing equivalent Noxroot knowledge entrypoint.");
   }
@@ -265,10 +324,10 @@ function integrateAgents(source: string): ProposedFile {
   if (start !== -1 && end !== -1) {
     const afterEnd = end + MANAGED_END.length;
     const existingBlock = source.slice(start, afterEnd);
-    if (existingBlock === MANAGED_BLOCK) {
+    if (existingBlock === managedBlock) {
       return reference("AGENTS.md", "Reuse the existing idempotent Noxroot managed block.");
     }
-    const updated = `${source.slice(0, start)}${MANAGED_BLOCK}${source.slice(afterEnd)}`;
+    const updated = `${source.slice(0, start)}${managedBlock}${source.slice(afterEnd)}`;
     return patchProposal(
       "AGENTS.md",
       "Update only the delimited Noxroot-managed block; preserve surrounding user instructions.",
@@ -277,18 +336,23 @@ function integrateAgents(source: string): ProposedFile {
     );
   }
   const separator =
-    source.length === 0 || source.endsWith("\n\n") ? "" : source.endsWith("\n") ? "\n" : "\n\n";
+    source.length === 0 || source.endsWith(`${newline}${newline}`)
+      ? ""
+      : source.endsWith(newline)
+        ? newline
+        : `${newline}${newline}`;
   return patchProposal(
     "AGENTS.md",
     "Append a minimal delimited Noxroot entrypoint while preserving all existing instructions.",
     source,
-    `${source}${separator}${MANAGED_BLOCK}\n`,
+    `${source}${separator}${managedBlock}${newline}`,
   );
 }
 
 export function assessModules(
   profile: RepositoryProfile,
   enabledModules?: ReadonlySet<string>,
+  adoption?: AdoptionInspection,
 ): ModuleAssessment[] {
   const initialized = enabledModules !== undefined;
   const status = (
@@ -301,6 +365,9 @@ export function assessModules(
     (item) => item.claim === "User-facing web application",
   );
   const hasChecks = profile.candidateCommands.length > 0;
+  const orchestrationConflict = adoption?.capabilities.some(
+    (item) => item.id === "task-orchestration" && item.decision === "conflict",
+  );
   return [
     {
       id: "repository-profile",
@@ -341,9 +408,12 @@ export function assessModules(
     {
       id: "orchestration",
       label: "Orchestration",
-      status: status("orchestration", profile.empty ? "optional" : "recommended"),
-      reason:
-        "Manual mode is available; command execution requires an explicitly configured adapter.",
+      status: orchestrationConflict
+        ? "blocked"
+        : status("orchestration", profile.empty ? "optional" : "recommended"),
+      reason: orchestrationConflict
+        ? "An existing repository-development coordinator owns overlapping lifecycle behavior."
+        : "Manual mode is available; command execution requires an explicitly configured adapter.",
     },
     {
       id: "learning",
@@ -365,7 +435,9 @@ export function assessModules(
 export async function buildProposals(
   profile: RepositoryProfile,
   modules: ModuleAssessment[],
+  adoption?: AdoptionInspection,
 ): Promise<ProposedFile[]> {
+  if (adoption && !adoption.initializationAllowed) return [];
   const present = new Set(profile.files);
   const active = (id: ModuleAssessment["id"]): boolean =>
     modules.some(
@@ -373,13 +445,31 @@ export async function buildProposals(
         module.id === id && (module.status === "recommended" || module.status === "enabled"),
     );
   const proposals: ProposedFile[] = [];
+  const decision = (id: CapabilityAssessment["id"]): CapabilityDecision | undefined =>
+    adoption?.capabilities.find((item) => item.id === id)?.decision;
+  const generatedSkillPaths = [
+    ...(active("verification") &&
+    decision("verification-skill") !== "reuse" &&
+    decision("verification-skill") !== "not-assessed"
+      ? [".noxroot/skills/verify-change/SKILL.md"]
+      : []),
+    ...(active("orchestration") &&
+    decision("task-orchestration") !== "reuse" &&
+    decision("task-orchestration") !== "not-assessed"
+      ? [".noxroot/skills/independent-review/SKILL.md"]
+      : []),
+    ...(active("product-ux") &&
+    decision("product-ux-guidance") !== "reuse" &&
+    decision("product-ux-guidance") !== "not-assessed"
+      ? [".noxroot/skills/product-ux-review/SKILL.md"]
+      : []),
+  ];
   const skillPaths = [
-    ...(active("verification") ? [".noxroot/skills/verify-change/SKILL.md"] : []),
-    ...(active("orchestration") ? [".noxroot/skills/independent-review/SKILL.md"] : []),
-    ...(active("product-ux") ? [".noxroot/skills/product-ux-review/SKILL.md"] : []),
+    ...new Set([...generatedSkillPaths, ...(adoption?.verificationSkillPaths ?? [])]),
   ];
   const needsIndex =
     (active("agent-routing") || active("project-knowledge")) &&
+    decision("project-knowledge") !== "not-assessed" &&
     !present.has(".noxroot/knowledge/INDEX.md");
 
   if (active("agent-routing")) {
@@ -412,11 +502,11 @@ ${MANAGED_BLOCK}
       proposed(
         ".noxroot/knowledge/INDEX.md",
         "Create a progressive-disclosure index that links existing authoritative docs.",
-        indexContent(profile, skillPaths),
+        indexContent(profile, skillPaths, adoption),
       ),
     );
     proposals.push(
-      ...usefulDocuments(profile).map((document) =>
+      ...usefulDocuments(profile, adoption).map((document) =>
         reference(
           document.path,
           `Reference existing ${document.kind} documentation; do not copy it.`,
@@ -424,17 +514,25 @@ ${MANAGED_BLOCK}
       ),
     );
   }
-  if (active("agent-routing") && !profile.empty && !present.has(".noxroot/routes.yml")) {
+  if (
+    active("agent-routing") &&
+    decision("task-routes") !== "reuse" &&
+    decision("task-routes") !== "not-assessed" &&
+    !profile.empty &&
+    !present.has(".noxroot/routes.yml")
+  ) {
     proposals.push(
       proposed(
         ".noxroot/routes.yml",
         "Add evidence-backed candidate routes for source, tests, and existing docs.",
-        routesContent(profile, skillPaths),
+        routesContent(profile, skillPaths, adoption),
       ),
     );
   }
   if (
     active("verification") &&
+    decision("verification-policy") !== "reuse" &&
+    decision("verification-policy") !== "not-assessed" &&
     profile.candidateCommands.length > 0 &&
     !present.has(".noxroot/verification.yml")
   ) {
@@ -451,7 +549,7 @@ ${MANAGED_BLOCK}
     [".noxroot/skills/independent-review/SKILL.md", REVIEW_SKILL],
     [".noxroot/skills/product-ux-review/SKILL.md", PRODUCT_UX_SKILL],
   ]);
-  for (const skillPath of skillPaths) {
+  for (const skillPath of generatedSkillPaths) {
     if (!present.has(skillPath)) {
       proposals.push(
         proposed(

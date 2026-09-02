@@ -722,17 +722,6 @@ export async function scanRepository(
       detail: "Preview does not execute Git commands.",
     });
   }
-  const instructionFiles = ["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md"].filter(
-    (file) => files.includes(file),
-  );
-  if (instructionFiles.length > 1) {
-    evidence.push({
-      status: "conflicting",
-      claim: "Multiple root agent instruction sources require reconciliation",
-      sources: instructionFiles,
-      detail: "Noxroot does not silently choose one vendor instruction file as authoritative.",
-    });
-  }
   const applicationFiles = files.filter(
     (file) =>
       !file.startsWith(".noxroot/") &&

@@ -29,6 +29,11 @@ function writableProposal(
 }
 
 export async function applyProposals(preview: PreviewResult): Promise<ApplyResult> {
+  if (!preview.initializationAllowed) {
+    throw new Error(
+      "Initialization stopped because initialization is refused by the reviewed preview.",
+    );
+  }
   const writable = preview.proposedFiles.filter(writableProposal);
   const references = preview.proposedFiles
     .filter((proposal) => proposal.action === "reference")

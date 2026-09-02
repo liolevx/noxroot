@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig, loadRoutes, loadVerification } from "../config/load.js";
 import { scanRepository } from "../detection/scan.js";
+import { inspectRepositoryAdoption } from "../detection/adoption.js";
 import type { CandidateCommand, ContextPackage, ContextSelection } from "../model.js";
 import { resolveWithin } from "../security/paths.js";
 import { parseTaskIntent, relevantIntentText } from "./intent.js";
@@ -309,6 +310,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const profile = await scanRepository(canonicalRoot, {
     sensitivePaths: config?.sensitivePaths ?? [],
   });
+  const adoption = await inspectRepositoryAdoption(profile);
   const routes = await loadRoutes(canonicalRoot);
   const verification = await loadVerification(canonicalRoot);
   const budget = config?.context.budgetBytes ?? DEFAULT_CONTEXT_BUDGET;
@@ -357,6 +359,10 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     }
     const candidate = baseScore(file, rankingTerms, activeRouteIds);
     candidate.bytes = profile.fileSizes[file] ?? 0;
+    if (adoption.referencedPaths.includes(file)) {
+      candidate.score += 26;
+      candidate.reasons.push("explicitly referenced by repository instructions");
+    }
     candidates.push(candidate);
   }
 
@@ -365,10 +371,11 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   candidates.sort((left, right) => right.score - left.score || left.file.localeCompare(right.file));
 
   const selectionFileLimit = Math.min(8_000, Math.floor(budget * 0.55));
+  const directlyMatchedOwner = (item: RankedCandidate): boolean =>
+    item.category === "source" &&
+    item.reasons.some((reason) => reason.startsWith("basename matches task term"));
   const fitsSelection = (item: RankedCandidate): boolean =>
-    item.bytes <= selectionFileLimit ||
-    (item.bytes <= Math.floor(budget * 0.75) &&
-      item.reasons.some((reason) => reason.startsWith("basename matches task term")));
+    item.bytes <= selectionFileLimit || (item.bytes <= budget && directlyMatchedOwner(item));
   const topOwner = candidates.find(
     (item) =>
       item.category === "source" &&
@@ -467,7 +474,9 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       path: item.file,
       bytes: item.bytes,
       estimatedTokens: Math.ceil(item.bytes / 4),
-      reasons: [...new Set(item.reasons)],
+      reasons: [
+        ...new Set(item.reasons.length ? item.reasons : ["selected by bounded relevance ranking"]),
+      ],
     });
     selectedBytes += item.bytes;
     categoryCounts[item.category] += 1;
