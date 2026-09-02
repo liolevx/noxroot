@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { AgentAdapter, AgentResult, ReviewerResponse } from "../adapters/agents.js";
@@ -33,9 +32,7 @@ function policyHash(policy: VerificationCommand[]): string {
 
 function samePath(left: string, right: string): boolean {
   const normalize = (value: string): string =>
-    process.platform === "win32"
-      ? realpathSync(path.resolve(value)).toLowerCase()
-      : realpathSync(path.resolve(value));
+    process.platform === "win32" ? path.resolve(value).toLowerCase() : path.resolve(value);
   return normalize(left) === normalize(right);
 }
 
@@ -112,7 +109,8 @@ export async function finishGuidedRun(input: {
 }): Promise<GuidedRunRecord> {
   const { record } = input;
   if (record.mode !== "guided") throw new Error("The task is not a guided run record.");
-  if (!samePath(input.root, record.repository.root)) {
+  const currentRepository = await captureRepositoryBaseline(input.root);
+  if (!samePath(currentRepository.root, record.repository.root)) {
     throw new Error("The task belongs to a different repository identity.");
   }
   if (policyHash(record.trustedVerificationPolicy) !== record.verificationPolicyHash) {
