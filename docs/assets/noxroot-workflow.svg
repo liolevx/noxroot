@@ -1,24 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-labelledby="workflow-title workflow-desc">
-  <title id="workflow-title">How Noxroot works with a coding agent</title>
-  <desc id="workflow-desc">Four steps move left to right: repository and task, Noxroot selects relevant context, the existing coding agent builds, and Noxroot checks the change and retains useful project knowledge.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 790" role="img" aria-labelledby="workflow-title workflow-desc">
+  <title id="workflow-title">How Noxroot works around a coding agent</title>
+  <desc id="workflow-desc">You describe a change. Before coding, Noxroot supplies project memory, relevant context, and approved checks. Your coding agent builds. After coding, Noxroot checks the result and carries useful project knowledge forward.</desc>
   <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-      <path d="M0 0 10 5 0 10Z" fill="#8B5CF6"/>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8B5CF6"/>
     </marker>
     <style>
-      .card{fill:#120B20;stroke:#4C386E;stroke-width:3}.agent{fill:#191724;stroke:#DDD6FE}.title{fill:#F5F3FF;font:700 42px ui-sans-serif,system-ui,sans-serif;text-anchor:middle}.flow{stroke:#8B5CF6;stroke-width:5;marker-end:url(#arrow)}
+      .card { fill: #11101A; stroke: #4D376F; stroke-width: 3; }
+      .accent { fill: #171520; stroke: #B9A7E8; stroke-width: 4; }
+      .eyebrow { fill: #D3C7F4; font: 700 20px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 2px; }
+      .heading { fill: #FFFFFF; font: 800 34px Inter, Segoe UI, Arial, sans-serif; }
+      .body { fill: #CFC9DB; font: 500 23px Inter, Segoe UI, Arial, sans-serif; }
+      .gold { fill: #F4C928; }
+      .line { stroke: #8B5CF6; stroke-width: 5; }
     </style>
   </defs>
-  <rect width="1200" height="300" rx="22" fill="#090612"/>
-  <rect class="card" x="28" y="48" width="250" height="204" rx="18"/>
-  <text class="title" x="153" y="135">Repo</text><text class="title" x="153" y="188">+ task</text>
-  <path class="flow" d="M287 150h42"/>
-  <rect class="card" x="340" y="48" width="250" height="204" rx="18"/>
-  <text class="title" x="465" y="135">Relevant</text><text class="title" x="465" y="188">context</text>
-  <path class="flow" d="M599 150h42"/>
-  <rect class="card agent" x="652" y="48" width="250" height="204" rx="18"/>
-  <text class="title" x="777" y="135">Your agent</text><text class="title" x="777" y="188">builds</text>
-  <path class="flow" d="M911 150h42"/>
-  <rect class="card" x="964" y="48" width="208" height="204" rx="18"/>
-  <text class="title" x="1068" y="135">Check</text><text class="title" x="1068" y="188">+ retain</text>
+
+  <rect class="card" x="55" y="28" width="690" height="106" rx="24"/>
+  <text class="eyebrow" x="88" y="66">YOU ASK</text>
+  <text class="heading" x="88" y="108">“Add saved restaurants.”</text>
+  <line class="line" x1="400" y1="134" x2="400" y2="164" marker-end="url(#arrow)"/>
+
+  <rect class="accent" x="55" y="174" width="690" height="142" rx="24"/>
+  <text class="eyebrow gold" x="88" y="214">NOXROOT · BEFORE CODING</text>
+  <text class="heading" x="88" y="258">Prepares the agent</text>
+  <text class="body" x="88" y="292">project memory · relevant files · approved checks</text>
+  <line class="line" x1="400" y1="316" x2="400" y2="346" marker-end="url(#arrow)"/>
+
+  <rect class="card" x="55" y="356" width="690" height="118" rx="24"/>
+  <text class="eyebrow" x="88" y="396">YOUR CODING AGENT</text>
+  <text class="heading" x="88" y="442">Builds the change</text>
+  <line class="line" x1="400" y1="474" x2="400" y2="504" marker-end="url(#arrow)"/>
+
+  <rect class="accent" x="55" y="514" width="690" height="142" rx="24"/>
+  <text class="eyebrow gold" x="88" y="554">NOXROOT · AFTER CODING</text>
+  <text class="heading" x="88" y="598">Checks and remembers</text>
+  <text class="body" x="88" y="632">tests · review when needed · durable knowledge</text>
+  <line class="line" x1="400" y1="656" x2="400" y2="686" marker-end="url(#arrow)"/>
+
+  <rect class="card" x="55" y="696" width="690" height="84" rx="20"/>
+  <text class="eyebrow" x="88" y="727">YOU SEE</text>
+  <text class="heading" x="88" y="765" font-size="28">Done, incomplete, or one decision</text>
 </svg>

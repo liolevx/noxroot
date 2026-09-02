@@ -72,8 +72,7 @@ try {
     "docs/configuration.md",
     "docs/architecture.md",
     "docs/adapters.md",
-    "docs/assets/noxroot-banner.svg",
-    "docs/assets/noxroot-mark.svg",
+    "docs/assets/noxroot-wordmark.svg",
     "docs/assets/noxroot-workflow.svg",
   ]) {
     await readFile(path.join(installedPackage, requiredFile), "utf8");
