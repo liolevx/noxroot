@@ -343,9 +343,12 @@ export async function inspectRepositoryAdoption(
   }
 
   const incomplete = profile.stats.incompleteReasons.length > 0;
+  const authoritativeKnowledge = profile.documents.filter(
+    (item) => item.authoritative && item.kind !== "instructions",
+  );
   const capabilities: CapabilityAssessment[] = [];
   capabilities.push(
-    knowledgeReferences.length > 0 || profile.documents.some((document) => document.authoritative)
+    knowledgeReferences.length > 0 || authoritativeKnowledge.length > 0
       ? assessment(
           "project-knowledge",
           "Project knowledge",
@@ -353,7 +356,7 @@ export async function inspectRepositoryAdoption(
           [
             ...new Set([
               ...knowledgeReferences.map((item) => item.path),
-              ...profile.documents.filter((item) => item.authoritative).map((item) => item.path),
+              ...authoritativeKnowledge.map((item) => item.path),
             ]),
           ].sort(),
         )

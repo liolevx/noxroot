@@ -68,6 +68,9 @@ describe("mature repository adoption", () => {
     expect(
       preview.capabilities.find((item) => item.id === "verification-policy")?.evidence,
     ).toContain("project-check --changed (docs/quality.md)");
+    expect(
+      preview.capabilities.find((item) => item.id === "project-knowledge")?.evidence,
+    ).not.toContain("CLAUDE.md");
     expect(preview.proposedFiles.map((item) => item.path)).not.toContain(
       ".noxroot/verification.yml",
     );
