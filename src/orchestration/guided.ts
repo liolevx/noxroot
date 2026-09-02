@@ -28,6 +28,19 @@ export interface GuidedRunRecord extends RunRecord {
   reviewAssessment?: ReviewAssessment;
 }
 
+export type ContinuationVerificationStatus =
+  "not-run" | "current-passed" | "current-incomplete" | "current-failed" | "stale";
+
+export interface GuidedContinuationState {
+  changedPaths: string[];
+  verification: {
+    status: ContinuationVerificationStatus;
+    current: boolean;
+    summary: string;
+  };
+  nextAction: string;
+}
+
 function policyHash(policy: VerificationCommand[]): string {
   return createHash("sha256").update(JSON.stringify(policy)).digest("hex");
 }
@@ -36,6 +49,76 @@ function samePath(left: string, right: string): boolean {
   const normalize = (value: string): string =>
     process.platform === "win32" ? path.resolve(value).toLowerCase() : path.resolve(value);
   return normalize(left) === normalize(right);
+}
+
+function continuationNextAction(
+  record: GuidedRunRecord,
+  changedPaths: string[],
+  verification: ContinuationVerificationStatus,
+): string {
+  if (changedPaths.length === 0) {
+    return "Make the requested change, then run noxroot finish.";
+  }
+  if (verification === "not-run" || verification === "stale") {
+    return "Run noxroot finish when the change is ready to check.";
+  }
+  if (verification === "current-failed") {
+    return "Repair the failing check, then run noxroot finish again.";
+  }
+  if (verification === "current-incomplete") {
+    return "Resolve the verification gap, then run noxroot finish again.";
+  }
+  if (record.status === "review-pending") {
+    return "Obtain the required fresh review, then run noxroot finish with its result.";
+  }
+  if (record.status === "changes-requested") {
+    return "Address the review findings, then run noxroot finish again.";
+  }
+  if (record.status === "blocked") {
+    return "Resolve the blocked result, then run noxroot finish again.";
+  }
+  return "Continue from the recorded result; rerun noxroot finish after any edit.";
+}
+
+export async function inspectGuidedContinuation(
+  root: string,
+  record: GuidedRunRecord,
+  sensitivePaths: string[] = [],
+): Promise<GuidedContinuationState> {
+  const changedPaths = await changedFiles(root, record.baseline.revision);
+  const currentDiff = await diffFromRevision(root, record.baseline.revision, sensitivePaths);
+  const currentDiffHash = createHash("sha256").update(currentDiff).digest("hex");
+  const latestChecks = record.verification.at(-1) ?? [];
+  let status: ContinuationVerificationStatus;
+  let summary: string;
+  if (!record.diffHash) {
+    status = "not-run";
+    summary = "Not run for the current diff.";
+  } else if (record.diffHash !== currentDiffHash) {
+    status = "stale";
+    summary = "Stale because the diff changed afterward.";
+  } else if (
+    latestChecks.length === 0 ||
+    latestChecks.some((result) => result.status === "unavailable")
+  ) {
+    status = "current-incomplete";
+    summary = "Current but incomplete for this diff.";
+  } else if (latestChecks.some((result) => result.status !== "passed")) {
+    status = "current-failed";
+    summary = "Current; at least one affected check did not pass.";
+  } else {
+    status = "current-passed";
+    summary = `Current; ${latestChecks.length} affected check${latestChecks.length === 1 ? "" : "s"} passed.`;
+  }
+  return {
+    changedPaths,
+    verification: {
+      status,
+      current: status.startsWith("current-"),
+      summary,
+    },
+    nextAction: continuationNextAction(record, changedPaths, status),
+  };
 }
 
 function guidedHandoff(

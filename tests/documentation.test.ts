@@ -13,7 +13,7 @@ describe("documentation examples", () => {
       true,
     );
     expect(readme).toContain(
-      "Project memory and orchestration for the coding agent you already use.",
+      "Focused repository context, verification, and durable project memory for the coding agent you",
     );
     const output = renderPreview(await previewRepository(path.join(fixtures, "typescript")));
     for (const line of [
@@ -52,6 +52,19 @@ describe("documentation examples", () => {
     const readme = await readFile(path.resolve("README.md"), "utf8");
     expect(readme).toContain("Application-agent frameworks are detected project architectures");
     expect(readme).toMatch(/runtime sessions,\s+state, memory, and\s+user data/);
+  });
+
+  it("separates durable knowledge, temporary task state, and external work ledgers", async () => {
+    const architecture = await readFile(path.resolve("docs", "architecture.md"), "utf8");
+    const prose = architecture.replace(/\s+/g, " ");
+    expect(prose).toContain("Project memory is durable repository knowledge.");
+    expect(prose).toContain(
+      "Noxroot neither imports their logs into project memory nor treats them as repository-development coordinators.",
+    );
+    expect(prose).toContain("preview its exact configuration");
+    expect(prose).toContain("remove only Noxroot-owned entries");
+    expect(prose).toContain("fail open");
+    expect(prose).toContain("let `doctor` verify");
   });
 
   it("keeps the README focused and every relative link or image resolvable", async () => {

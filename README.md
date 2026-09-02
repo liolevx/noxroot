@@ -4,13 +4,15 @@
 
 # Noxroot
 
-**Project memory and orchestration for the coding agent you already use.**
+**Focused repository context, verification, and durable project memory for the coding agent you
+already use.**
 
-Your coding agent changes. Your project memory should not.
+Set it up once. Then keep talking to your coding agent normally.
 
-Noxroot is a local, open-source layer that prepares an agent before it codes, checks the result
-afterward, and carries useful project knowledge into the next task. It works with your existing
-agent and repository. It does not provide a model, replace Git, or take ownership of your project.
+Noxroot prepares code-changing tasks with the relevant files, rules, decisions, and approved checks.
+Afterward it checks the actual diff and proposes durable documentation only when a reusable lesson
+was validated. It is local and open source. It does not provide a model, replace Git, or take
+ownership of your workflow.
 
 ## What Noxroot changes
 
@@ -117,11 +119,11 @@ This example is produced from Noxroot's own repository and locked to the documen
 ```text
 $ noxroot context "improve reviewer decision safety"
 
-Selected 6 of 111 repository files · ~3,230 tokens
+Selected 6 of 115 repository files · ~3,230 tokens
 Likely owner: src/adapters/agents.ts
 Likely tests: tests/agent-review.test.ts
 Approved checks: format-check, lint, typecheck, test, build
-Deliberately excluded: 105 unrelated files
+Deliberately excluded: 109 unrelated files
 ```
 
 Selection is advisory and explainable. It is not permission to edit a file, and a request such as

@@ -8,9 +8,11 @@ applies those proposals.
 
 Mature-repository adoption follows explicit repository-relative references from agent instructions.
 It recognizes thin forwarding files, existing Agent Skills, documented verification wrappers, and
-clear repository-development coordinator overlap. Proposal decisions are deliberately small: create
-a proven gap, reuse explicit evidence, refuse a conflict, or preserve a capability that could not be
-assessed. Noxroot does not interpret arbitrary route schemas or integrate coordinators.
+clear repository-development coordinator overlap. Behavioral ownership determines the boundary: a
+coordination ledger, session journal, or issue tracker does not satisfy Noxroot task orchestration.
+Proposal decisions are deliberately small: create a proven gap, reuse explicit evidence, refuse a
+conflict, or preserve a capability that could not be assessed. Noxroot does not interpret arbitrary
+route schemas or integrate coordinators.
 
 Verification configuration distinguishes candidate discovery from executable trust. The process
 adapter accepts an executable and argument array, validates the working directory, uses
@@ -33,6 +35,10 @@ relevant fresh review. `completed` means applicable checks passed without a requ
 `approved` is reserved for a schema-valid independent reviewer. Incomplete verification can be
 handed off locally but cannot become approved.
 
+Project memory is durable repository knowledge. Task state is temporary evidence for one bounded
+change. External work ledgers may preserve cross-session coordination, but Noxroot neither imports
+their logs into project memory nor treats them as repository-development coordinators.
+
 Committed knowledge is stable, medium-grained Markdown/YAML. Active coordination state is local and
 retained separately. Application-agent frameworks remain application architecture: their sessions,
 state, memory, and user data are not Noxroot project knowledge. The MVP uses generic repository
@@ -46,3 +52,10 @@ procedures selected through ordinary routing, not a new skill runtime or vendor-
 
 Trust boundaries are described in [security.md](security.md). Public behavior belongs in tests
 before it is claimed in the README.
+
+## Post-MVP client integration
+
+Native lifecycle integration is deferred. Any client adapter must preview its exact configuration
+changes, mark every owned entry, install idempotently, remove only Noxroot-owned entries, fail open
+when unavailable, and let `doctor` verify that the integration actually runs. The CLI, Markdown,
+JSON, and generic command adapter remain the universal contract.
