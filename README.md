@@ -74,6 +74,11 @@ Run `init` once per repository, not once per chat or day. It shows a read-only d
 existing documentation, and proposes a thin managed entrypoint without replacing a good `AGENTS.md`
 or copying documentation into a Noxroot-only format.
 
+Before setup, preview labels each capability `create`, `reuse`, `conflict`, or `not-assessed`.
+Noxroot creates only a confirmed gap. Existing project systems are reused, an overlapping
+repository-development coordinator stops initialization, and missing evidence leaves that part of
+the repository unchanged.
+
 For code-changing work, compatible agents are instructed to run `start` before editing and `finish`
 when the change is ready to check. Questions, explanations, reviews, and other read-only work do not
 create tasks. If a new conversation starts the same task in the same repository, branch, and
@@ -81,7 +86,7 @@ worktree, `start` reuses the active baseline instead of creating a duplicate. `f
 applicable active task; genuine ambiguity requires an explicit task id. Native instruction discovery
 still varies by coding tool, so the commands remain available for manual use.
 
-### What setup adds
+### What setup can add
 
 | Surface                           | Actual path or command                                                                                      | Purpose                                                                    |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -92,6 +97,9 @@ still varies by coding tool, so the commands remain available for manual use.
 | Review skills                     | `.noxroot/skills/independent-review/SKILL.md`, `.noxroot/skills/product-ux-review/SKILL.md` when applicable | Provide fresh review procedures when the change requires them              |
 | Learning procedure after finish   | `noxroot finish`, then `noxroot learn`                                                                      | Propose a small knowledge update when something reusable was validated     |
 | Local task state created by start | `.git/noxroot/runs/*.json` in a standard checkout                                                           | Store baselines and results without treating them as project documentation |
+
+Only missing capabilities are proposed. A mature repository may need only a small entrypoint and
+configuration, or no setup changes at all.
 
 `SKILL.md` files are portable, on-demand instructions. The generated verification skill tells an
 agent how to check a change; the independent-review and optional product/UX skills describe their
@@ -109,11 +117,11 @@ This example is produced from Noxroot's own repository and locked to the documen
 ```text
 $ noxroot context "improve reviewer decision safety"
 
-Selected 6 of 109 repository files · ~3,230 tokens
+Selected 6 of 111 repository files · ~3,230 tokens
 Likely owner: src/adapters/agents.ts
 Likely tests: tests/agent-review.test.ts
 Approved checks: format-check, lint, typecheck, test, build
-Deliberately excluded: 103 unrelated files
+Deliberately excluded: 105 unrelated files
 ```
 
 Selection is advisory and explainable. It is not permission to edit a file, and a request such as
@@ -160,6 +168,14 @@ The fixture produces this abbreviated output:
 NOXROOT PREVIEW
 Detected: Node.js project, TypeScript (npm)
 Approved check candidates found: lint, typecheck, test, build
+Initialization allowed: yes
+Capabilities:
+- Project knowledge: create
+- Task routes: create
+- Verification: create
+- Verification skill: create
+- Task orchestration: create
+- Product and UX guidance: not-assessed; missing evidence: No user-facing product surface was detected.
 Proposed (7): create 7
 Unknown: Continuous integration
 Trust: files changed 0; repository commands 0; agent calls 0; network requests 0.
