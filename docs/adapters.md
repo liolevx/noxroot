@@ -22,6 +22,12 @@ printed only on standard error all block approval. Diagnostics remain separate o
 Every invocation is a fresh process. Noxroot does not use a shell, interpolate repository text into
 arguments, bypass permissions, or promise undocumented vendor flags.
 
+Before delegated implementation, preflight resolves the configured executable, validates literal
+arguments, checks repository write access and a committed Git baseline, and confirms executables for
+the captured verification policy. A `healthCheck` may be configured as another literal command
+array. Noxroot does not guess vendor authentication flags. A failed preflight preserves bounded
+standard error, explains the failed prerequisite and exits before creating a worktree or run record.
+
 The application itself may use an agent framework. That framework is analyzed as repository
 architecture and can expose native tests/evals through `.noxroot/verification.yml`; it is not
 installed or controlled as a Noxroot dependency. Project knowledge never absorbs the framework's

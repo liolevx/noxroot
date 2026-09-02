@@ -1,4 +1,4 @@
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildContext } from "../src/core/context.js";
@@ -9,9 +9,8 @@ import { fixtures } from "./helpers.js";
 describe("documentation examples", () => {
   it("keeps the README opening and preview excerpt synchronized with a real fixture", async () => {
     const readme = await readFile(path.resolve("README.md"), "utf8");
-    expect(readme.startsWith("# Noxroot\n\nGive coding agents the right repository context")).toBe(
-      true,
-    );
+    expect(readme.startsWith("# Noxroot\n\n![Noxroot — quiet project intelligence")).toBe(true);
+    expect(readme).toContain("Make your coding agent repo-aware—and keep it that way.");
     const output = renderPreview(await previewRepository(path.join(fixtures, "typescript")));
     for (const line of [
       "NOXROOT PREVIEW",
@@ -72,9 +71,18 @@ describe("documentation examples", () => {
       if (/^(?:https?:|mailto:|#)/.test(target)) continue;
       await expect(access(path.resolve(target.split("#")[0]!))).resolves.toBeUndefined();
     }
-    const svg = await readFile(path.resolve("docs/assets/noxroot-workflow.svg"), "utf8");
-    expect(svg).toContain('viewBox="0 0 1200 430"');
-    expect(svg).toContain("<title");
-    expect(svg).toContain("<desc");
+    const assets = ["noxroot-banner.svg", "noxroot-mark.svg", "noxroot-workflow.svg"];
+    expect((await readdir(path.resolve("docs", "assets"))).sort()).toEqual(assets);
+    expect(readme).toContain("This transcript illustrates the stable information hierarchy");
+    for (const asset of assets) {
+      const svg = await readFile(path.resolve("docs", "assets", asset), "utf8");
+      expect(svg).toContain("<svg");
+      expect(svg).toContain('role="img"');
+      expect(svg).toContain("aria-labelledby=");
+      expect(svg).toContain("<title");
+      expect(svg).toContain("<desc");
+    }
+    const workflow = await readFile(path.resolve("docs/assets/noxroot-workflow.svg"), "utf8");
+    expect(workflow).toContain('viewBox="0 0 1200 300"');
   });
 });

@@ -31,7 +31,7 @@ import {
 
 const VERSION = "0.1.0";
 const DESCRIPTION =
-  "Local CLI for task-specific coding-agent context, approved verification, independent review, and validated project knowledge.";
+  "A repo-aware workflow that helps coding agents build with the right context, checks, and project knowledge.";
 
 export const EXIT = {
   success: 0,

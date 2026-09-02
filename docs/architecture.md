@@ -21,6 +21,12 @@ bounded context, effective autonomy, and a hash of the approved verification pol
 the real diff and affected checks from that snapshot, then emits a portable reviewer package or a
 strict decision. Local state is never treated as application runtime state.
 
+Review applicability is recomputed from the actual diff after affected checks pass. Routine bounded
+changes can complete without review; user-facing, security-sensitive, or broad changes request the
+relevant fresh review. `completed` means applicable checks passed without a required reviewer;
+`approved` is reserved for a schema-valid independent reviewer. Incomplete verification can be
+handed off locally but cannot become approved.
+
 Committed knowledge is stable, medium-grained Markdown/YAML. Active coordination state is local and
 retained separately. Application-agent frameworks remain application architecture: their sessions,
 state, memory, and user data are not Noxroot project knowledge. The MVP uses generic repository

@@ -1,42 +1,107 @@
 # Noxroot
 
-Give coding agents the right repository context, checks, and review loop—without loading the whole
-codebase.
+![Noxroot — quiet project intelligence for coding agents](docs/assets/noxroot-banner.svg)
 
-Noxroot is a local CLI that sits between a task, a repository, and the coding agent you already use.
-It diagnoses the project without executing it, selects a bounded set of relevant instructions,
-source, tests, and approved checks, then helps close the task with verification, independent review,
-and optional validated learning. The default adapter is manual: Noxroot prepares an inspectable
-package and invokes no model. A configured command adapter can automate more of the same workflow
-within explicit autonomy limits.
+Make your coding agent repo-aware—and keep it that way.
 
-What changes in practice:
+Noxroot is a lightweight, local workflow around the coding agent you already use. It maps the code,
+documentation, tests, and conventions your agent needs; prepares a small task-specific context;
+checks the actual change with the project’s own tools; and preserves only reusable project
+knowledge. Noxroot contains no model and does not take ownership of your repository.
 
-- task-specific context replaces repeated repository archaeology;
-- affected, owner-approved checks replace agent-invented commands;
-- a fresh reviewer replaces worker self-approval;
-- proposed validated project knowledge replaces raw chat memory;
-- explicit autonomy replaces automatic merge or deployment.
+The goal is simple: repeat yourself less, catch more avoidable mistakes, and let a project remain
+understandable as it grows. Experienced developers get inspectable paths, commands, policies, and
+JSON without another ceremony. Intent-driven builders can describe an outcome in ordinary language
+without first learning context budgets, worktrees, reviewer schemas, or architecture vocabulary.
+Both use the same workflow; advanced detail appears only when requested.
 
-This compact result comes from Noxroot's own repository and is checked by the documentation tests:
+By default, the output answers three questions: what changed, what was checked, and what needs
+attention next. Paths, exact commands, exit codes, selection reasons, and policy remain one explicit
+command away.
+
+## See the useful part first
+
+This example is produced from Noxroot’s own repository and locked to the documentation tests:
 
 ```text
 $ noxroot context "improve reviewer decision safety"
-Selected 7 of 101 repository files · ~3,365 tokens
+
+Selected 6 of 110 repository files · ~3,272 tokens
 Likely owner: src/adapters/agents.ts
 Likely tests: tests/agent-review.test.ts (+1 related)
 Approved checks: format-check, lint, typecheck, test, build
-Deliberately excluded: 94 unrelated files
+Deliberately excluded: 104 unrelated files
 ```
 
-![Noxroot workflow: repository evidence feeds bounded context, an existing coding agent, approved checks, independent review, and proposed validated learning](docs/assets/noxroot-workflow.svg)
+The selected package contains relevant instructions, source, tests, accepted decisions, and approved
+checks—not a copy of the whole repository. Selection is advisory and explainable. It never becomes
+permission to edit a file, and a phrase such as “do not deploy” remains an exclusion rather than
+activating deployment work.
 
-Code, existing docs and instructions, tests, and verification policy feed the workflow. Noxroot
-coordinates evidence around your coding agent; it does not contain the coding model.
+![Four steps: repository and task, relevant context, your coding agent builds, then Noxroot checks and retains useful knowledge](docs/assets/noxroot-workflow.svg)
 
-## Try it safely
+Noxroot works with your existing coding agent. It does not provide the model.
 
-Noxroot is not published to npm yet. Try the current source with Node.js `>=22.12 <27`:
+## One quiet workflow
+
+Initialize once, then let a compatible coding agent use the repository instructions—or run the same
+commands yourself:
+
+```bash
+npx noxroot init
+noxroot start "add a page where users can save favourite restaurants"
+# your existing coding agent performs the work
+noxroot finish
+```
+
+`init` begins with a read-only diagnosis. It shows what was detected, which existing documentation
+will be reused, every proposed file or patch, candidate commands that may later run, and four
+zero-side-effect counters. Nothing changes until you confirm. Existing `AGENTS.md` content and good
+project documentation are preserved; Noxroot adds a small managed entrypoint and references the
+authoritative files instead of building a parallel wiki.
+
+`start` records a clean baseline and reports the interpreted outcome, explicit exclusions, selected
+context, estimated tokens, likely area, approved checks, whether an agent was invoked, and one next
+action. Manual mode invokes no model. `run` remains available when an experienced user explicitly
+configures a connected command adapter.
+
+`finish` inspects the real Git diff and runs only approved checks that apply to changed paths. A
+routine checked change can complete without an unnecessary reviewer. User-facing,
+security-sensitive, or unusually broad diffs request fresh review. Missing or unavailable checks
+produce an honest `incomplete` result: local handoff may continue, but the result is never approved
+and Noxroot never turns the gap into permission to merge.
+
+The completion step also performs a lightweight documentation and learning assessment. It reuses
+structured reviewer candidates when review already happened and deterministic verification gaps when
+they are genuinely reusable. Otherwise it says no update is needed. It does not call another model
+merely to manufacture a lesson, save raw task text, or create a session summary.
+
+The exact values vary by repository. A normal human-readable completion is intentionally compact:
+
+```text
+Changed
+  3 navigation files
+
+Checked
+  TypeScript       passed
+  Navigation tests passed
+
+Review
+  Not required for this bounded change
+
+Learning
+  No project-knowledge update needed
+
+Next
+  Review the resulting change.
+```
+
+This transcript illustrates the stable information hierarchy; repository-specific commands and
+counts come from the recorded run rather than fixed example data.
+
+## Try the read-only diagnosis
+
+Noxroot is not published to npm yet. From the source repository, use Node.js `>=22.12 <27`:
 
 ```bash
 git clone https://github.com/liolevx/noxroot.git
@@ -46,7 +111,7 @@ npm run build
 node dist/cli.js preview --root tests/fixtures/typescript
 ```
 
-The stable TypeScript fixture produces this abbreviated preview:
+The fixture produces this abbreviated output:
 
 ```text
 NOXROOT PREVIEW
@@ -60,114 +125,45 @@ No repository files changed. No project command, agent, or network request ran.
 Next: noxroot preview --diff
 ```
 
-`preview` is read-only and concise. Add `--diff` to inspect every exact proposed patch, then run
-`init` only after reviewing it. In a real repository, Noxroot adopts useful existing instructions
-and docs by reference or by a hash-guarded managed block; it does not overwrite them to create a
-parallel documentation system.
+Use `preview --diff` to inspect exact setup patches. The intended public-beta entry point is
+`npx noxroot@latest preview`; npm distributes the CLI, but Noxroot can inspect repositories using
+other languages and build systems.
 
-## How a task flows
+## Works with your tools in layers
 
-After initialization, ask for bounded context:
+The universal contract is the CLI, generated Markdown/JSON, and a portable task package. Any coding
+agent that can execute the CLI or read those files can use that baseline. A generic connected mode
+accepts an explicit executable plus literal argument array, reads one bounded JSON package on
+standard input, and uses no shell interpolation or guessed vendor flags.
 
-```bash
-node /path/to/noxroot/dist/cli.js context "fix reviewer approval parsing" --root /path/to/project
-```
-
-At autonomy level 1, `run "task" --guided` records a clean Git baseline, routed context, effective
-authority, and the trusted verification policy. Use that portable package with Codex, Claude,
-Cursor, or another coding agent. When the change is ready, `finish --task ID` computes the actual
-diff, chooses only affected checks from the captured policy, runs them, and builds a reviewer
-package. It accepts a strict external reviewer JSON file or invokes a configured reviewer only at
-review level 3.
-
-At implementation level 2, an explicitly configured command adapter may run a worker in an isolated
-Git worktree. Repair and review calls remain bounded. Level 3 permits independent review. Merge and
-delivery are disabled in the MVP regardless of configuration; Noxroot does not push, merge, or
-deploy.
-
-After a completed run, `learn --task ID` may propose a typed, evidenced, deduplicated lesson.
-Nothing is applied without confirmation. Noxroot prefers executable tests, lint rules, schemas, or
-verification policy over prose and keeps runtime sessions, reasoning traces, application memory, and
-user data out of project knowledge.
-
-## Commands
-
-| Command                   | Purpose                                               | Default side effect            |
-| ------------------------- | ----------------------------------------------------- | ------------------------------ |
-| `preview [--diff]`        | Diagnose; optionally show exact setup patches         | None                           |
-| `init`                    | Apply the reviewed minimum setup                      | Confirmed project files        |
-| `sync --dry-run [--diff]` | Report evidence-backed drift                          | None                           |
-| `doctor`                  | Explain configuration, knowledge, and safety problems | None                           |
-| `context "task"`          | Build bounded, explainable task context               | None                           |
-| `verify --plan`           | Show approved checks without running them             | None                           |
-| `verify --changed`        | Run checks affected by the current diff               | Approved processes             |
-| `run "task" --guided`     | Start a portable external-agent lifecycle             | Local run record               |
-| `finish --task ID`        | Verify and review the guided change                   | Checks and local evidence      |
-| `run "task"`              | Use an authorized command adapter                     | Isolated worktree and evidence |
-| `learn --task ID`         | Propose controlled durable knowledge                  | None unless confirmed          |
-
-Every data command supports `--json`; diagnostics stay on standard error. See
-[the command reference](docs/commands.md) for confirmation rules and exit codes.
-
-## Works with your agent and stack
-
-The manual adapter is vendor-neutral. The generic command adapter receives one JSON package on
-standard input and uses a literal executable/argument array—no shell interpolation and no guessed
-vendor flags. Noxroot detects npm, pnpm, Yarn, or Bun only from authoritative package-manager
-evidence and uses the repository's native scripts. Other stacks use their existing manifests, CI,
-tests, evals, and tools.
+Native instruction discovery varies by client. Codex and several other tools read `AGENTS.md`;
+Claude Code primarily uses `CLAUDE.md`; other clients have their own conventions. Noxroot reuses
+standard project files where supported and falls back to the universal package. It does not claim
+equal native integration with Codex, Claude Code, Cursor, OpenCode, or every future tool.
 
 Application-agent frameworks are detected project architectures, not Noxroot competitors or required
-dependencies. Their native tests and evals can become approved checks, and their tools can use the
-generic adapter protocol. The MVP does not hard-code or install Agno, PydanticAI, Google ADK, or
-another application-agent framework. Framework-specific semantic detectors may be added later as
-ordinary built-in analysis modules.
+dependencies. Their native tests and evals may become approved checks, but the MVP does not install
+or control Agno, PydanticAI, Google ADK, LangGraph, or another application runtime. Noxroot project
+knowledge remains strictly separate from application runtime sessions, state, memory, and user data.
 
-Generated verification and review procedures use the standard `.noxroot/skills/<name>/SKILL.md`
-shape. Product/UX review is generated only when applicable or explicitly enabled. Agents without
-native Agent Skills discovery can read the same ordinary repository paths.
+JavaScript package-manager evidence supports npm, pnpm, Yarn, and Bun. Explicit verification arrays
+support Python, Go, Rust, and other stacks. CI tests Node 24 on Windows, macOS, and Linux, plus Node
+22 and 26 package smokes on Linux.
 
-The committed setup stays small and inspectable. `AGENTS.md` contains a thin entrypoint;
-`.noxroot/config.yml` records modules, budgets, autonomy, adapters, and retention;
-`.noxroot/routes.yml` describes eligible context paths; `.noxroot/verification.yml` contains only
-confirmed command arrays; and `.noxroot/knowledge/INDEX.md` links accepted medium-grained knowledge.
-Existing architecture, product, security, testing, contribution, and UX documents are referenced
-where they already live. Noxroot does not generate duplicate `.claude`, `.agents`, `.cursor`, or
-framework-specific skill trees.
+## Inspect more when you want it
 
-Removal is equally ordinary: remove the thin entrypoint reference and Noxroot-owned configuration,
-routes, policy, and skills. Preserve or relocate accepted project knowledge unless its owner chooses
-to remove it. Review local run evidence and any active worktree separately; never delete dirty work
-as part of uninstalling repository metadata. There is no hosted account, remote knowledge store, or
-hidden repository service to dismantle.
+The beginner path is `init`, `start`, and `finish`. Advanced surfaces remain ordinary commands:
+`preview --diff` shows proposed writes; `context` explains selection; `verify --plan` shows approved
+commands without running them; `verify --changed` runs applicable checks; `run --dry-run` exposes a
+connected execution plan; `doctor` explains configuration problems; and `learn --task ID` shows
+confirmable durable proposals. Every data command supports `--json`, with progress and diagnostics
+kept on standard error.
 
-## Trust boundaries
+Read the [command reference](docs/commands.md), [configuration](docs/configuration.md),
+[architecture](docs/architecture.md), [adapter protocol](docs/adapters.md), and
+[security boundaries](docs/security.md) for the complete contracts. The documentation stays as
+GitHub-native Markdown for now; the current set is too small to justify a separate site framework.
 
-During `preview`, Noxroot performs bounded filesystem inspection only: no repository writes, Git or
-project commands, agent calls, network requests, telemetry, symlink traversal, or suspected-secret
-reads. JSON reports confirmed, unknown, conflicting, and incomplete evidence instead of filling gaps
-with guesses.
-
-Execution uses repository-contained working directories, direct argument arrays, timeouts,
-cancellation, a minimal environment, and bounded output. Verification trust is captured before a
-worker runs, so a worker-created policy cannot authorize itself. No matching or available approved
-check means blocked, not approved. Automated reviewers must return one schema-valid JSON object;
-prose and ambiguous output are blocked.
-
-Noxroot project knowledge is strictly separate from application runtime sessions, state, memory, and
-user data. Local run evidence lives under Git's common directory (or a per-user state directory for
-non-Git projects), not in committed knowledge. Read the exact boundaries in
-[security](docs/security.md), [architecture](docs/architecture.md),
-[configuration](docs/configuration.md), and [adapters](docs/adapters.md).
-
-## Status, help, and contribution
-
-Version 0.1 is an experimental MVP. Context routing is deterministic rather than embedding-based;
-framework-specific semantics and vendor adapter profiles are deferred; delegated isolation requires
-Git and a commit. Supported Node versions are tested with Node 24 across Linux, macOS, and Windows,
-plus Node 22 and 26 package smokes on Linux.
-
-Run `noxroot doctor` for repository-specific problems or open a
-[GitHub issue](https://github.com/liolevx/noxroot/issues). Read [CONTRIBUTING.md](CONTRIBUTING.md)
-before contributing and report vulnerabilities through [SECURITY.md](SECURITY.md). Apache-2.0; see
-[LICENSE](LICENSE).
+Noxroot is an experimental v0.1 MVP. It does not push, merge, publish, deploy, store conversations,
+run a daemon, add telemetry, or silently authorize worker-created checks. Apache-2.0; see
+[CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [LICENSE](LICENSE).

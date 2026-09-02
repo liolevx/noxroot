@@ -1,7 +1,7 @@
 {
   "name": "noxroot",
   "version": "0.1.0",
-  "description": "Local CLI for task-specific coding-agent context, approved verification, independent review, and validated project knowledge.",
+  "description": "A repo-aware workflow that helps coding agents build with the right context, checks, and project knowledge.",
   "type": "module",
   "bin": {
     "noxroot": "dist/cli.js"
