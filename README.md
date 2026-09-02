@@ -22,78 +22,82 @@ agent and repository. It does not provide a model, replace Git, or take ownershi
 | Decisions and fixes disappear into old chats            | Useful lessons are proposed as plain Markdown and carried forward            |
 | Agent workflows depend on one vendor                    | The core contract stays portable: CLI, Markdown, JSON, and a command adapter |
 
-Set it up once. After that, compatible coding agents discover Noxroot through the repository's
-native instruction file and use it around normal work. You keep asking for changes in ordinary
-language; Noxroot stays in the background unless it finds a failure, an incomplete check, or a
-decision that genuinely needs you.
+New chats do not require another `init`. Ordinary questions need no Noxroot task. Noxroot stays in
+the background until code-changing work needs it.
 
-![The Noxroot toolkit connects project memory, task context, your coding agent, verification, and a learning loop](docs/assets/noxroot-toolkit.svg)
+<p align="center">
+  <img src="docs/assets/noxroot-workflow.svg" alt="Noxroot prepares focused context, supports your coding agent, verifies the change, and keeps useful project knowledge" width="900">
+</p>
 
-Five components form one loop. Project memory prepares task context. Your agent builds with it.
-Noxroot checks the result, then returns only useful lessons to project memory.
+This loop is Noxroot's orchestration. It prepares the task, gives your chosen coding agent focused
+repository context, runs the relevant verification, and proposes any reusable learning. Noxroot does
+not replace your coding agent or run a permanent agent team.
 
 ## Memory that compounds
 
-Noxroot builds **project memory**, not chat memory. It starts with the truth already in your
-repository: `AGENTS.md`, README files, architecture notes, security rules, tests, and source code.
-Its knowledge index routes an agent to the few documents relevant to the current task instead of
-turning every session into another tour of the codebase.
+Project memory is the versioned repository knowledge future agents should reuse: architecture,
+conventions, decisions, procedures, and validated lessons. It is stored as ordinary Markdown, not
+model memory or chat history.
 
-After a change, Noxroot asks whether the project learned anything durable: a confirmed constraint, a
-recurring verification gap, an architectural decision, or a procedure future agents should know.
-When it finds something useful, it proposes the smallest update for review. When it finds nothing,
-it writes nothing. It does not create a diary entry for every task or call another model merely to
-invent a lesson.
+Noxroot starts with the documentation and source already in the repository. Its knowledge index
+routes agents to relevant material instead of copying it into a parallel wiki. Noxroot keeps useful
+knowledge. Validated lessons keep project documentation current; when no reusable lesson exists,
+nothing is added.
 
-Accepted knowledge remains plain, versioned Markdown. You can read and edit it in GitHub, VS Code,
-or Obsidian; there is no proprietary memory database to export later. Raw prompts, hidden reasoning,
-application sessions, credentials, and customer data do not become project knowledge.
-
-That loop is the point: each useful iteration leaves the repository a little easier for the next
-agent to understand, without producing a second wiki you have to maintain.
+Because project knowledge is plain Markdown, you can inspect it in GitHub, your editor, or
+optionally Obsidian. Raw prompts, application sessions, credentials, and user data do not become
+project memory.
 
 ## Verification that matches the change
 
-During setup, Noxroot detects the checks your repository already knows how to run, such as linting,
-type checks, tests, builds, or native evals. You approve the policy. Noxroot does not invent
-commands during a task and silently trust them.
+During setup, Noxroot detects the checks the repository already knows how to run, such as linting,
+type checks, tests, builds, or native evals. You approve the policy. At finish, Noxroot applies the
+relevant approved checks to the changed paths. Wider or sensitive changes can also require
+independent review.
 
-At finish, Noxroot looks at the changed paths and runs the applicable approved checks. A small
-documentation edit should stay small. A user-facing, security-sensitive, or unusually broad change
-can trigger wider verification and independent review. You can inspect the exact plan before
-anything runs with `noxroot verify --plan`.
-
-The result is evidence, not a confidence performance: `approved`, `completed` with stated limits, or
-`incomplete`. If a relevant check is missing or unavailable, Noxroot says so and never upgrades the
-gap into approval.
+Noxroot shows which files changed, which commands ran, what passed or failed, and anything it could
+not verify. A missing relevant check produces `incomplete`, never `approved`. Inspect the exact plan
+before it runs with `noxroot verify --plan`.
 
 ## One quiet workflow
 
 ```bash
 npx noxroot init
 
-# Later, normally invoked by a compatible coding agent:
+# Later, for a code-changing task:
 noxroot start "add a page where users can save favourite restaurants"
 # your existing coding agent builds the change
 noxroot finish
 ```
 
-`init` is the one explicit setup step. It first shows a read-only diagnosis, reuses existing
-documentation, and proposes a thin managed entrypoint. It never silently replaces a good `AGENTS.md`
-or copies your documentation into a Noxroot-only format.
+Run `init` once per repository, not once per chat or day. It shows a read-only diagnosis, reuses
+existing documentation, and proposes a thin managed entrypoint without replacing a good `AGENTS.md`
+or copying documentation into a Noxroot-only format.
 
-`start` records a clean committed baseline, interprets the requested outcome and exclusions, and
-builds a bounded task package: relevant instructions, likely source and tests, known decisions, and
-approved checks. In manual mode it invokes no model. A generic command adapter is available when you
-explicitly configure a connected workflow.
+For code-changing work, `start` and `finish` define the lifecycle. An agent may run them when its
+client workflow supports it; otherwise use the CLI. v0.1 can infer one active task at `finish`, but
+`start` does not resume an unfinished task from a new conversation.
 
-`finish` inspects the real Git diff, runs the applicable approved checks, requests independent
-review only when the risk justifies it, and looks for durable project learning. It reports a short
-outcome with evidence and one next action. Routine work does not gain a mandatory review ceremony.
+### What setup adds
 
-An unavailable relevant check produces `incomplete`, never `approved`. An incomplete result can be
-handed off locally, but it cannot qualify for a future automatic merge. Noxroot itself does not
-push, merge, publish, or deploy.
+| Surface                           | Actual path or command                                                                                      | Purpose                                                                    |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Agent entrypoint and config       | `AGENTS.md`, `.noxroot/config.yml`                                                                          | Connect compatible agents to the project workflow                          |
+| Project-memory index              | `.noxroot/knowledge/INDEX.md`                                                                               | Route agents to relevant existing documentation                            |
+| Task-context routes               | `.noxroot/routes.yml`                                                                                       | Select relevant files, rules, tests, decisions, and skills                 |
+| Verification policy and skill     | `.noxroot/verification.yml`, `.noxroot/skills/verify-change/SKILL.md`                                       | Define approved checks and the procedure for checking a change             |
+| Review skills                     | `.noxroot/skills/independent-review/SKILL.md`, `.noxroot/skills/product-ux-review/SKILL.md` when applicable | Provide fresh review procedures when the change requires them              |
+| Learning procedure after finish   | `noxroot finish`, then `noxroot learn`                                                                      | Propose a small knowledge update when something reusable was validated     |
+| Local task state created by start | `.git/noxroot/runs/*.json` in a standard checkout                                                           | Store baselines and results without treating them as project documentation |
+
+`SKILL.md` files are portable, on-demand instructions. The generated verification skill tells an
+agent how to check a change; the independent-review and optional product/UX skills describe their
+reviews. Context loading comes from `AGENTS.md`, the knowledge index, and context routes, not a
+generated context skill. Learning comes from `finish` and `learn`, not a generated learning skill.
+
+Skills do not prove that code works. The actual tests, type checks, builds, evals, and review
+results do. An incomplete result can be handed off locally, but it cannot become approved or qualify
+for a future automatic merge. Noxroot does not push, merge, publish, or deploy.
 
 ## See what the agent gets
 

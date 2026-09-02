@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1040" role="img" aria-labelledby="title desc">
+  <title id="title">Noxroot workflow</title>
+  <desc id="desc">Noxroot understands project memory, prepares focused task context, supports an existing coding agent, verifies the actual change, and keeps useful knowledge in project documentation.</desc>
+  <defs>
+    <linearGradient id="arrowGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <marker id="returnArrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1 10 6 1 11Z" fill="#8B5CF6"/>
+    </marker>
+  </defs>
+
+  <!-- The SVG intentionally has no page background so it sits naturally in a README. -->
+
+  <!-- Learning returns to project memory. -->
+  <path d="M150 940H74c-24 0-44-20-44-44V123c0-24 20-44 44-44h60"
+        fill="none" stroke="#8B5CF6" stroke-width="4" stroke-dasharray="10 10"
+        marker-end="url(#returnArrow)"/>
+  <text x="48" y="600" transform="rotate(-90 48 600)"
+        fill="#A78BFA" font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+        font-size="16" font-weight="750" letter-spacing="2.2">PROJECT MEMORY</text>
+
+  <!-- 1 / Project memory -->
+  <g>
+    <path d="M172 20H1028L1050 42V158L1028 180H172L150 158V42Z"
+          fill="#12101A" stroke="#A78BFA" stroke-width="4"/>
+    <text x="195" y="59" fill="#C4B5FD"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="18" font-weight="800" letter-spacing="2.4">1 / PROJECT MEMORY</text>
+    <text x="195" y="111" fill="#F8F7FC"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="33" font-weight="800">Noxroot understands your repository</text>
+    <text x="195" y="151" fill="#B9B2C2"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="23">Docs + decisions + conventions + skills</text>
+  </g>
+
+  <path d="M600 188V218" stroke="url(#arrowGradient)" stroke-width="6"/>
+  <path d="M584 212 600 232 616 212Z" fill="#8B5CF6"/>
+
+  <!-- 2 / Task context -->
+  <g>
+    <path d="M172 230H1028L1050 252V368L1028 390H172L150 368V252Z"
+          fill="#12101A" stroke="#4F76B8" stroke-width="3"/>
+    <text x="195" y="269" fill="#7DB4FF"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="18" font-weight="800" letter-spacing="2.4">2 / TASK CONTEXT</text>
+    <text x="195" y="321" fill="#F8F7FC"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="33" font-weight="800">Only what this task needs</text>
+    <text x="195" y="361" fill="#B9B2C2"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="23">Relevant files + rules + checks</text>
+  </g>
+
+  <path d="M600 398V428" stroke="url(#arrowGradient)" stroke-width="6"/>
+  <path d="M584 422 600 442 616 422Z" fill="#8B5CF6"/>
+
+  <!-- 3 / Coding agent -->
+  <g>
+    <path d="M172 440H1028L1050 462V578L1028 600H172L150 578V462Z"
+          fill="#151020" stroke="#8B5CF6" stroke-width="4"/>
+    <text x="195" y="479" fill="#A78BFA"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="18" font-weight="800" letter-spacing="2.4">3 / YOUR CODING AGENT</text>
+    <text x="195" y="531" fill="#F8F7FC"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="33" font-weight="800">Builds with the right context</text>
+    <text x="195" y="571" fill="#C4B5FD"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="23">Codex + Claude + Cursor + others</text>
+  </g>
+
+  <path d="M600 608V638" stroke="url(#arrowGradient)" stroke-width="6"/>
+  <path d="M584 632 600 652 616 632Z" fill="#8B5CF6"/>
+
+  <!-- 4 / Verification -->
+  <g>
+    <path d="M172 650H1028L1050 672V788L1028 810H172L150 788V672Z"
+          fill="#12101A" stroke="#D5AA27" stroke-width="4"/>
+    <text x="195" y="689" fill="#FACC15"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="18" font-weight="800" letter-spacing="2.4">4 / VERIFICATION</text>
+    <text x="195" y="741" fill="#F8F7FC"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="33" font-weight="800">Noxroot checks the actual change</text>
+    <text x="195" y="781" fill="#CFC6A5"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="23">Tests + types + builds + review when useful</text>
+  </g>
+
+  <path d="M600 818V848" stroke="url(#arrowGradient)" stroke-width="6"/>
+  <path d="M584 842 600 862 616 842Z" fill="#8B5CF6"/>
+
+  <!-- 5 / Learning loop -->
+  <g>
+    <path d="M172 860H1028L1050 882V998L1028 1020H172L150 998V882Z"
+          fill="#12101A" stroke="#329E7A" stroke-width="4"/>
+    <text x="195" y="899" fill="#4ADE80"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="18" font-weight="800" letter-spacing="2.4">5 / LEARNING LOOP</text>
+    <text x="195" y="951" fill="#F8F7FC"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="33" font-weight="800">Noxroot keeps useful knowledge</text>
+    <text x="195" y="991" fill="#ACCEBD"
+          font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+          font-size="23">Validated lessons keep project documentation current</text>
+  </g>
+</svg>

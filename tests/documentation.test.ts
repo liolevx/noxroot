@@ -77,7 +77,7 @@ describe("documentation examples", () => {
       if (/^(?:https?:|mailto:|#)/.test(target)) continue;
       await expect(access(path.resolve(target.split("#")[0]!))).resolves.toBeUndefined();
     }
-    const assets = ["noxroot-logo.svg", "noxroot-toolkit.svg"];
+    const assets = ["noxroot-logo.svg", "noxroot-workflow.svg"];
     expect((await readdir(path.resolve("docs", "assets"))).sort()).toEqual(assets);
     expect(readme).toContain("This transcript illustrates the stable information hierarchy");
     for (const asset of assets) {
@@ -88,8 +88,8 @@ describe("documentation examples", () => {
       expect(svg).toContain("<title");
       expect(svg).toContain("<desc");
     }
-    const workflow = await readFile(path.resolve("docs/assets/noxroot-toolkit.svg"), "utf8");
-    expect(workflow).toContain('viewBox="0 0 800 870"');
+    const workflow = await readFile(path.resolve("docs/assets/noxroot-workflow.svg"), "utf8");
+    expect(workflow).toContain('viewBox="0 0 1100 1040"');
     expect(workflow).toContain("PROJECT MEMORY");
     expect(workflow).toContain("TASK CONTEXT");
     expect(workflow).toContain("YOUR CODING AGENT");
@@ -98,5 +98,13 @@ describe("documentation examples", () => {
     const logo = await readFile(path.resolve("docs/assets/noxroot-logo.svg"), "utf8");
     expect(logo).toContain('viewBox="0 0 1600 440"');
     expect(logo).toContain("Noxroot owl mark");
+    expect(readme).toContain('src="docs/assets/noxroot-workflow.svg"');
+    expect(readme).toContain('width="900"');
+    expect(readme).toContain(".noxroot/skills/verify-change/SKILL.md");
+    expect(readme).toContain(".git/noxroot/runs/*.json");
+    expect(readme).not.toContain("—");
+    expect(readme).not.toMatch(
+      /auto-documenting|self-training|autonomous team|Obsidian integration|vault system|self-improving AI/i,
+    );
   });
 });
