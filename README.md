@@ -27,7 +27,10 @@ native instruction file and use it around normal work. You keep asking for chang
 language; Noxroot stays in the background unless it finds a failure, an incomplete check, or a
 decision that genuinely needs you.
 
-![Noxroot prepares a coding agent with project memory and context, then checks the result and preserves useful knowledge](docs/assets/noxroot-workflow.svg)
+![The Noxroot toolkit connects project memory, task context, your coding agent, verification, and a learning loop](docs/assets/noxroot-workflow.svg)
+
+Five components form one loop. Project memory prepares task context. Your agent builds with it.
+Noxroot checks the result, then returns only useful lessons to project memory.
 
 ## Memory that compounds
 

@@ -89,10 +89,12 @@ describe("documentation examples", () => {
       expect(svg).toContain("<desc");
     }
     const workflow = await readFile(path.resolve("docs/assets/noxroot-workflow.svg"), "utf8");
-    expect(workflow).toContain('viewBox="0 0 800 790"');
-    expect(workflow).toContain("NOXROOT · BEFORE CODING");
+    expect(workflow).toContain('viewBox="0 0 800 870"');
+    expect(workflow).toContain("PROJECT MEMORY");
+    expect(workflow).toContain("TASK CONTEXT");
     expect(workflow).toContain("YOUR CODING AGENT");
-    expect(workflow).toContain("NOXROOT · AFTER CODING");
+    expect(workflow).toContain("VERIFICATION");
+    expect(workflow).toContain("LEARNING LOOP");
     const wordmark = await readFile(path.resolve("docs/assets/noxroot-wordmark.svg"), "utf8");
     expect(wordmark).not.toContain("<rect width=");
     expect(wordmark).toContain("NOXROOT");

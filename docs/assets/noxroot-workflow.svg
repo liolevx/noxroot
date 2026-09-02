@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 790" role="img" aria-labelledby="workflow-title workflow-desc">
-  <title id="workflow-title">How Noxroot works around a coding agent</title>
-  <desc id="workflow-desc">You describe a change. Before coding, Noxroot supplies project memory, relevant context, and approved checks. Your coding agent builds. After coding, Noxroot checks the result and carries useful project knowledge forward.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 870" role="img" aria-labelledby="workflow-title workflow-desc">
+  <title id="workflow-title">The Noxroot toolkit and learning loop</title>
+  <desc id="workflow-desc">Five connected components: project memory, task context, your coding agent, verification, and a learning loop that returns useful knowledge to project memory.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#8B5CF6"/>
@@ -8,37 +8,46 @@
     <style>
       .card { fill: #11101A; stroke: #4D376F; stroke-width: 3; }
       .accent { fill: #171520; stroke: #B9A7E8; stroke-width: 4; }
-      .eyebrow { fill: #D3C7F4; font: 700 20px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 2px; }
-      .heading { fill: #FFFFFF; font: 800 34px Inter, Segoe UI, Arial, sans-serif; }
-      .body { fill: #CFC9DB; font: 500 23px Inter, Segoe UI, Arial, sans-serif; }
+      .step { fill: #D3C7F4; font: 700 18px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 2px; }
+      .heading { fill: #FFFFFF; font: 800 32px Inter, Segoe UI, Arial, sans-serif; }
+      .body { fill: #CFC9DB; font: 500 24px Inter, Segoe UI, Arial, sans-serif; }
       .gold { fill: #F4C928; }
-      .line { stroke: #8B5CF6; stroke-width: 5; }
+      .line { fill: none; stroke: #8B5CF6; stroke-width: 5; }
+      .loop { fill: none; stroke: #8B5CF6; stroke-width: 4; stroke-dasharray: 9 9; }
     </style>
   </defs>
 
-  <rect class="card" x="55" y="28" width="690" height="106" rx="24"/>
-  <text class="eyebrow" x="88" y="66">YOU ASK</text>
-  <text class="heading" x="88" y="108">“Add saved restaurants.”</text>
-  <line class="line" x1="400" y1="134" x2="400" y2="164" marker-end="url(#arrow)"/>
+  <rect class="accent" x="70" y="24" width="660" height="140" rx="24"/>
+  <text class="step gold" x="105" y="61">1 / PROJECT MEMORY</text>
+  <text class="heading" x="105" y="104">What the project already knows</text>
+  <text class="body" x="105" y="139">Existing docs + accepted Markdown</text>
 
-  <rect class="accent" x="55" y="174" width="690" height="142" rx="24"/>
-  <text class="eyebrow gold" x="88" y="214">NOXROOT · BEFORE CODING</text>
-  <text class="heading" x="88" y="258">Prepares the agent</text>
-  <text class="body" x="88" y="292">project memory · relevant files · approved checks</text>
-  <line class="line" x1="400" y1="316" x2="400" y2="346" marker-end="url(#arrow)"/>
+  <line class="line" x1="400" y1="164" x2="400" y2="194" marker-end="url(#arrow)"/>
 
-  <rect class="card" x="55" y="356" width="690" height="118" rx="24"/>
-  <text class="eyebrow" x="88" y="396">YOUR CODING AGENT</text>
-  <text class="heading" x="88" y="442">Builds the change</text>
-  <line class="line" x1="400" y1="474" x2="400" y2="504" marker-end="url(#arrow)"/>
+  <rect class="card" x="70" y="204" width="660" height="124" rx="24"/>
+  <text class="step" x="105" y="241">2 / TASK CONTEXT</text>
+  <text class="heading" x="105" y="284">Only what this task needs</text>
+  <text class="body" x="105" y="313">Code + rules + tests + decisions</text>
 
-  <rect class="accent" x="55" y="514" width="690" height="142" rx="24"/>
-  <text class="eyebrow gold" x="88" y="554">NOXROOT · AFTER CODING</text>
-  <text class="heading" x="88" y="598">Checks and remembers</text>
-  <text class="body" x="88" y="632">tests · review when needed · durable knowledge</text>
-  <line class="line" x1="400" y1="656" x2="400" y2="686" marker-end="url(#arrow)"/>
+  <line class="line" x1="400" y1="328" x2="400" y2="358" marker-end="url(#arrow)"/>
 
-  <rect class="card" x="55" y="696" width="690" height="84" rx="20"/>
-  <text class="eyebrow" x="88" y="727">YOU SEE</text>
-  <text class="heading" x="88" y="765" font-size="28">Done, incomplete, or one decision</text>
+  <rect class="card" x="70" y="368" width="660" height="110" rx="24"/>
+  <text class="step" x="105" y="405">3 / YOUR CODING AGENT</text>
+  <text class="heading" x="105" y="449">Builds with the prepared package</text>
+
+  <line class="line" x1="400" y1="478" x2="400" y2="508" marker-end="url(#arrow)"/>
+
+  <rect class="accent" x="70" y="518" width="660" height="140" rx="24"/>
+  <text class="step gold" x="105" y="555">4 / VERIFICATION</text>
+  <text class="heading" x="105" y="598">Checks the actual diff</text>
+  <text class="body" x="105" y="633">Approved checks + risk-based review</text>
+
+  <line class="line" x1="400" y1="658" x2="400" y2="688" marker-end="url(#arrow)"/>
+
+  <rect class="accent" x="70" y="698" width="660" height="148" rx="24"/>
+  <text class="step gold" x="105" y="735">5 / LEARNING LOOP</text>
+  <text class="heading" x="105" y="778">Keeps durable lessons</text>
+  <text class="body" x="105" y="813">Useful lessons improve the next task</text>
+
+  <path class="loop" d="M 70 772 H 40 Q 18 772 18 750 V 94 Q 18 72 40 72 H 58" marker-end="url(#arrow)"/>
 </svg>
