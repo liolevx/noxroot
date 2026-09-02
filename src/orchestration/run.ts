@@ -10,7 +10,14 @@ export interface RunBudgets {
 export interface RunRecord {
   id: string;
   task: string;
-  status: "approved" | "changes-requested" | "failed" | "blocked" | "manual";
+  status:
+    | "running"
+    | "review-pending"
+    | "approved"
+    | "changes-requested"
+    | "failed"
+    | "blocked"
+    | "manual";
   branch?: string;
   worktree?: string;
   calls: Array<{ role: "worker" | "reviewer" | "repair"; result: AgentResult }>;
@@ -28,6 +35,7 @@ export interface OrchestrationRequest {
   repositoryRoot: string;
   adapter: AgentAdapter;
   budgets: RunBudgets;
+  reviewAuthorized?: boolean;
   branch?: string;
   signal?: AbortSignal;
 }
@@ -221,6 +229,23 @@ export async function orchestrateRun(
       calls,
       verification,
       verificationGaps: [...verificationGaps, "Reviewer-call budget is zero."],
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
+
+  if (request.reviewAuthorized === false) {
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "review-pending",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps: [
+        ...verificationGaps,
+        "Independent reviewer execution is not authorized; use a fresh external review.",
+      ],
     };
     return { ...partial, handoff: handoff(partial) };
   }

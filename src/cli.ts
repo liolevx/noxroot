@@ -16,9 +16,11 @@ import { previewRepository } from "./core/preview.js";
 import { buildProposals } from "./core/proposals.js";
 import { applyLearning, proposeLearnings } from "./knowledge/learn.js";
 import type { PreviewResult } from "./model.js";
+import { effectiveAutonomy } from "./orchestration/autonomy.js";
+import { finishGuidedRun, startGuidedRun, type GuidedRunRecord } from "./orchestration/guided.js";
 import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import { renderContext, renderPreview, renderVerification } from "./output.js";
-import { readRunRecord, writeRunRecord } from "./state/local.js";
+import { readRunRecord, replaceRunRecord, writeRunRecord } from "./state/local.js";
 import {
   changedFiles,
   executeVerification,
@@ -302,7 +304,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .command("run")
     .description("coordinate a bounded worker, verification, and independent-review flow")
     .argument("<task>", "bounded task description")
-    .option("--guided", "emit the task/context/verification package without an agent call")
+    .option("--guided", "record a portable task package for an external coding agent")
     .option("--dry-run", "show the exact run plan with no commands, agents, or writes")
     .option("--yes", "confirm the displayed delegated run plan non-interactively")
     .action(
@@ -317,6 +319,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         const config = await loadConfig(root);
         const adapter = options.guided ? new ManualAgentAdapter() : configuredAgent(config);
         const checks = await planVerification(root);
+        const autonomy = effectiveAutonomy(config);
         const id = createId();
         const plan = {
           id,
@@ -333,9 +336,15 @@ export function createProgram(customIo?: Partial<Io>): Command {
                 },
           contextBudgetBytes: context.budget.maximumBytes,
           verification: checks,
-          writableScope: adapter.mode === "manual" ? "none" : "new isolated Git worktree",
-          sideEffects:
-            adapter.mode === "manual"
+          autonomy,
+          writableScope: options.guided
+            ? "local Noxroot run evidence only"
+            : adapter.mode === "manual"
+              ? "none"
+              : "new isolated Git worktree",
+          sideEffects: options.guided
+            ? ["write one bounded local run record"]
+            : adapter.mode === "manual"
               ? []
               : [
                   "create branch and worktree",
@@ -350,29 +359,76 @@ export function createProgram(customIo?: Partial<Io>): Command {
             "discard dirty work",
             "authorize worker-added checks",
           ],
-          executes: !options.dryRun && !options.guided && adapter.mode !== "manual",
+          executes:
+            !options.dryRun &&
+            !options.guided &&
+            adapter.mode !== "manual" &&
+            autonomy.worker.authorized,
         };
-        const planningOnly = options.dryRun || options.guided || adapter.mode === "manual";
-        if (common.json && !planningOnly && !options.yes) {
-          throw new Error(
-            "Delegated run with --json requires --yes after a separate reviewed --dry-run.",
-          );
-        }
-        if (planningOnly) {
+
+        if (options.dryRun) {
           emit(
             io,
             common.json,
             { plan, context },
             `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context)}`,
           );
-        } else if (!common.json) {
+          return;
+        }
+        if (options.guided) {
+          if (!autonomy.guided.authorized) {
+            emit(
+              io,
+              common.json,
+              { plan, refused: autonomy.guided },
+              `${autonomy.guided.reason}\n`,
+            );
+            process.exitCode = EXIT.refused;
+            return;
+          }
+          const record = await startGuidedRun({
+            id,
+            task,
+            root,
+            context,
+            effectiveAutonomy: autonomy,
+            trustedVerificationPolicy: checks,
+          });
+          const recordPath = await writeRunRecord(root, id, record);
+          emit(
+            io,
+            common.json,
+            { plan, context, record, recordPath },
+            `NOXROOT GUIDED TASK\nTask id: ${id}\nSelected context: ${context.selected.length} files (~${context.budget.estimatedTokens} tokens)\nApproved checks captured: ${checks.length}\nNo agent was invoked.\nNext: noxroot finish --task ${id}\nEvidence: ${recordPath}\n`,
+          );
+          return;
+        }
+        if (adapter.mode === "manual") {
+          emit(
+            io,
+            common.json,
+            { plan, context },
+            `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context)}Next: rerun with --guided to record a completable task.\n`,
+          );
+          return;
+        }
+        if (!autonomy.worker.authorized) {
+          emit(io, common.json, { plan, refused: autonomy.worker }, `${autonomy.worker.reason}\n`);
+          process.exitCode = EXIT.refused;
+          return;
+        }
+        if (common.json && !options.yes) {
+          throw new Error(
+            "Delegated run with --json requires --yes after a separate reviewed --dry-run.",
+          );
+        }
+        if (!common.json) {
           io.stdout(
             `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context)}`,
           );
         } else {
           io.stderr(`NOXROOT RUN PLAN ${JSON.stringify(plan)}\n`);
         }
-        if (planningOnly) return;
         if (!(await confirm(io, "Start this delegated run?", options.yes))) {
           process.exitCode = EXIT.refused;
           io.stderr("Run cancelled; no branch, worktree, agent call, or check was created.\n");
@@ -398,6 +454,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
                 repairIterations: 1,
                 outputBytes: 65_536,
               },
+              reviewAuthorized: autonomy.reviewer.authorized,
               branch: worktree.branch,
               signal: controller.signal,
             },
@@ -427,6 +484,50 @@ export function createProgram(customIo?: Partial<Io>): Command {
         }
       },
     );
+
+  program
+    .command("finish")
+    .description("close a guided task with affected checks and independent review")
+    .requiredOption("--task <task-id>", "guided task id")
+    .option(
+      "--review-file <path>",
+      "repository-relative file containing one strict reviewer JSON response",
+    )
+    .action(async (options: { task: string; reviewFile?: string }, command: Command) => {
+      const common = globals(command);
+      const root = path.resolve(common.root);
+      const record = await readRunRecord<GuidedRunRecord>(root, options.task);
+      const config = await loadConfig(root);
+      const autonomy = effectiveAutonomy(config);
+      const adapter = configuredAgent(config);
+      const controller = new AbortController();
+      const interrupt = (): void => controller.abort();
+      process.once("SIGINT", interrupt);
+      process.once("SIGTERM", interrupt);
+      try {
+        const finished = await finishGuidedRun({
+          root,
+          record,
+          adapter,
+          reviewAuthorized: autonomy.reviewer.authorized,
+          ...(options.reviewFile === undefined ? {} : { reviewFile: options.reviewFile }),
+          signal: controller.signal,
+        });
+        const recordPath = await replaceRunRecord(root, options.task, finished);
+        emit(
+          io,
+          common.json,
+          { record: finished, recordPath },
+          `${finished.handoff}\n\nEvidence: ${recordPath}\n`,
+        );
+        if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
+        else if (!["approved", "review-pending"].includes(finished.status))
+          process.exitCode = EXIT.agent;
+      } finally {
+        process.removeListener("SIGINT", interrupt);
+        process.removeListener("SIGTERM", interrupt);
+      }
+    });
 
   program
     .command("learn")

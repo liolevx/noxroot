@@ -42,6 +42,7 @@ describe("CLI contracts", () => {
       "context",
       "verify",
       "run",
+      "finish",
       "learn",
     ]) {
       expect(stdout).toContain(command);
