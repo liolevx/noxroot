@@ -20,7 +20,7 @@ describe("documentation examples", () => {
       "Network requests made by Noxroot: 0",
       "✓ [confirmed] Node.js project — package.json",
       "✓ [confirmed] TypeScript source — tsconfig.json",
-      "Proposed changes: 5 files",
+      "Proposed changes: 7 files",
       "No repository changes were made.",
     ]) {
       expect(output).toContain(line);

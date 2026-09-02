@@ -211,6 +211,80 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
       "utf8",
     );
     expect(written).toContain("No approved deterministic checks matched the change.");
+    expect(await readFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "utf8")).toContain(
+      "[Validated learnings](learnings.md)",
+    );
     expect((await proposeLearnings(root, run)).proposals).toEqual([]);
+  });
+
+  it("accepts only structured reviewer candidates and protects external documentation", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const run: RunRecord = {
+      id: "task-structured",
+      task: "raw prose must not become memory",
+      status: "approved",
+      verification: [],
+      verificationGaps: [],
+      handoff: "",
+      calls: [
+        {
+          role: "reviewer",
+          result: {
+            invoked: true,
+            status: "completed",
+            summary: "review complete",
+            output: "structured JSON was parsed earlier",
+            exitCode: 0,
+            reviewDecision: "approved",
+            review: {
+              decision: "approved",
+              summary: "review complete",
+              findings: [],
+              learningCandidates: [
+                {
+                  kind: "decision",
+                  destination: ".noxroot/knowledge/learnings.md",
+                  evidence: ["tests/decision.test.ts proves the boundary"],
+                  expectedValue: "Prevents accidental reversal of the boundary.",
+                  content: "Keep project knowledge separate from runtime session state.",
+                  whyNotExecutable: "The boundary is also tested; this note records the rationale.",
+                },
+                {
+                  kind: "knowledge",
+                  destination: "docs/architecture.md",
+                  evidence: ["source module boundary"],
+                  expectedValue: "Would alter user-authored docs.",
+                  content: "Do not apply this automatically.",
+                  whyNotExecutable: "Architecture rationale is not fully executable.",
+                },
+                {
+                  kind: "none",
+                  destination: ".noxroot/knowledge/learnings.md",
+                  evidence: ["routine session detail"],
+                  expectedValue: "none",
+                  content: "Do not persist.",
+                  whyNotExecutable: "No durable value.",
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+    const result = await proposeLearnings(root, run);
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0]).toMatchObject({
+      kind: "decision",
+      conflict: "none",
+      duplication: "not-found",
+    });
+    expect(result.proposals[0]?.content).not.toContain(run.task);
+    expect(result.rejected).toEqual([
+      {
+        destination: "docs/architecture.md",
+        reason: "Learning may update only a Noxroot-owned Markdown file under .noxroot/knowledge/.",
+      },
+    ]);
   });
 });

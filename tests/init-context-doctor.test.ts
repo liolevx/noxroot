@@ -1,6 +1,7 @@
 import { mkdir, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import { buildContext } from "../src/core/context.js";
 import { doctorRepository } from "../src/core/doctor.js";
 import { applyProposals } from "../src/core/init.js";
@@ -115,6 +116,58 @@ describe("initialization, sync safety, context, and doctor", () => {
     expect((await buildProposals(preview.profile, modules)).map((item) => item.path)).toEqual([
       ".noxroot/config.yml",
     ]);
+  });
+
+  it("generates short canonical skills and routes product UX only for applicable work", async () => {
+    const fixture = await fixtureCopy("browser");
+    cleanup.push(fixture.cleanup);
+    const preview = await previewRepository(fixture.root);
+    const modules = preview.modules.map((module) => ({
+      ...module,
+      status:
+        module.id === "product-ux" || module.status === "recommended"
+          ? ("enabled" as const)
+          : module.status,
+    }));
+    const proposedFiles = await buildProposals(preview.profile, modules);
+    const skillPaths = proposedFiles
+      .map((item) => item.path)
+      .filter((item) => item.endsWith("/SKILL.md"));
+    expect(skillPaths).toEqual([
+      ".noxroot/skills/verify-change/SKILL.md",
+      ".noxroot/skills/independent-review/SKILL.md",
+      ".noxroot/skills/product-ux-review/SKILL.md",
+    ]);
+    for (const skillPath of skillPaths) {
+      const content = proposedFiles.find((item) => item.path === skillPath)?.content ?? "";
+      const frontmatter = /^---\n([\s\S]+?)\n---\n/.exec(content)?.[1];
+      expect(frontmatter).toBeDefined();
+      expect(parse(frontmatter!)).toMatchObject({
+        name: path.basename(path.dirname(skillPath)),
+      });
+      expect(content.length).toBeLessThan(3_500);
+    }
+    await applyProposals({ ...preview, modules, proposedFiles });
+    const backend = await buildContext("repair backend database transaction", fixture.root);
+    expect(backend.selected.some((item) => item.path.includes("product-ux-review"))).toBe(false);
+    const userInterface = await buildContext("review product UI responsive UX", fixture.root);
+    expect(
+      userInterface.selected.some(
+        (item) => item.path === ".noxroot/skills/product-ux-review/SKILL.md",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not generate a product UX skill for a backend-only repository", async () => {
+    const fixture = await fixtureCopy("typescript");
+    cleanup.push(fixture.cleanup);
+    const preview = await previewRepository(fixture.root);
+    expect(preview.proposedFiles.map((item) => item.path)).not.toContain(
+      ".noxroot/skills/product-ux-review/SKILL.md",
+    );
+    expect(preview.proposedFiles.map((item) => item.path)).toContain(
+      ".noxroot/skills/verify-change/SKILL.md",
+    );
   });
 
   it("selects relevant context under the configured budget", async () => {

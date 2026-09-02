@@ -16,7 +16,55 @@ const MANAGED_BLOCK = `${MANAGED_START}
 ## Noxroot workflow
 
 Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant routes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge.
+
+When \`.noxroot/skills/\` exists, load only the task-relevant \`SKILL.md\`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.
 ${MANAGED_END}`;
+
+const VERIFY_SKILL = `---
+name: verify-change
+description: Verify an actual repository change with approved evidence; use after implementation and before handoff or review.
+---
+
+# Verify a change
+
+1. Inspect the actual diff and the task acceptance criteria.
+2. Use Noxroot's approved verification plan. Do not invent commands, install tools, or change policy merely to pass.
+3. Exercise the real product surface only when a relevant repository adapter already exists and is approved.
+4. Record each exact command, status, and bounded evidence. Identify unavailable or unmatched checks as gaps.
+5. Never treat one passing check as proof of total correctness.
+
+Return a concise structured result with changed surfaces, checks and statuses, evidence, gaps, residual risks, and the next required action.
+`;
+
+const REVIEW_SKILL = `---
+name: independent-review
+description: Independently review a verified repository diff; use for fresh-context approval, change requests, or a blocked decision.
+---
+
+# Independent review
+
+Inspect the diff independently of worker rationale. Check acceptance criteria, correctness, security, regression risk, architecture boundaries, and test adequacy. Cite specific evidence and severity; block when evidence is insufficient. Propose learning candidates only for reusable lessons.
+
+For automated mode, emit exactly one JSON object and no prose:
+
+\`\`\`json
+{"decision":"approved|changes-requested|blocked","summary":"factual summary","findings":[{"severity":"critical|high|medium|low","path":"optional/path","evidence":"specific evidence","requiredOutcome":"required result"}],"learningCandidates":[]}
+\`\`\`
+`;
+
+const PRODUCT_UX_SKILL = `---
+name: product-ux-review
+description: Review an applicable user-facing product change for intent and usability; use only for UI, interaction, responsive, or product-copy work.
+---
+
+# Product and UX review
+
+Identify the user's primary job before visual polish. Check information hierarchy, progressive disclosure, direct minimal language, accessibility, keyboard behavior, responsive intent, and loading, empty, error, partial, disabled, and success states where relevant.
+
+Reuse the repository's accepted product intent, vocabulary, design system, tokens, primitives, spacing, typography, and interaction patterns. Do not expose internal policy, engine state, confidence machinery, or compliance explanations unless users need them.
+
+Use only existing approved browser/mobile tooling and justified viewports or states. Capture supported evidence without uncontrolled screenshot matrices. Distinguish visual difference from product-intent failure. Return concrete findings with evidence, surface, severity, and required outcome. This generic procedure never supplies project-specific product decisions.
+`;
 
 function createPatch(file: string, content: string): string {
   const lines = content.replace(/\n$/, "").split("\n");
@@ -110,7 +158,7 @@ function usefulDocuments(profile: RepositoryProfile): RepositoryDocument[] {
   );
 }
 
-function routesContent(profile: RepositoryProfile): string {
+function routesContent(profile: RepositoryProfile, skillPaths: string[]): string {
   const sourceRoots = ["src/**", "app/**", "lib/**", "packages/**", "apps/**"].filter((glob) =>
     profile.files.some((file) => file.startsWith(glob.replace("/**", "/"))),
   );
@@ -127,6 +175,7 @@ function routesContent(profile: RepositoryProfile): string {
           "AGENTS.md",
           ".noxroot/knowledge/INDEX.md",
           ...usefulDocuments(profile).map((document) => document.path),
+          ...skillPaths,
           ...sourceRoots,
           ...testRoots,
         ],
@@ -145,7 +194,7 @@ function indexLink(document: RepositoryDocument): string {
   return `- [${label}](${relative}) — existing repository documentation; load only when relevant.`;
 }
 
-function indexContent(profile: RepositoryProfile): string {
+function indexContent(profile: RepositoryProfile, skillPaths: string[]): string {
   const documents = usefulDocuments(profile);
   const entries = profile.empty
     ? [
@@ -154,6 +203,13 @@ function indexContent(profile: RepositoryProfile): string {
     : [
         ...documents.map(indexLink),
         "- Verification policy is stored in `../verification.yml` when confirmed.",
+        ...(skillPaths.length
+          ? [
+              `- Task procedures live under \`../skills/\`; load only a relevant \`SKILL.md\`: ${skillPaths.join(
+                ", ",
+              )}.`,
+            ]
+          : []),
       ];
   return `# Noxroot knowledge index
 
@@ -285,6 +341,11 @@ export async function buildProposals(
         module.id === id && (module.status === "recommended" || module.status === "enabled"),
     );
   const proposals: ProposedFile[] = [];
+  const skillPaths = [
+    ...(active("verification") ? [".noxroot/skills/verify-change/SKILL.md"] : []),
+    ...(active("orchestration") ? [".noxroot/skills/independent-review/SKILL.md"] : []),
+    ...(active("product-ux") ? [".noxroot/skills/product-ux-review/SKILL.md"] : []),
+  ];
   const needsIndex =
     (active("agent-routing") || active("project-knowledge")) &&
     !present.has(".noxroot/knowledge/INDEX.md");
@@ -319,7 +380,7 @@ ${MANAGED_BLOCK}
       proposed(
         ".noxroot/knowledge/INDEX.md",
         "Create a progressive-disclosure index that links existing authoritative docs.",
-        indexContent(profile),
+        indexContent(profile, skillPaths),
       ),
     );
     proposals.push(
@@ -336,7 +397,7 @@ ${MANAGED_BLOCK}
       proposed(
         ".noxroot/routes.yml",
         "Add evidence-backed candidate routes for source, tests, and existing docs.",
-        routesContent(profile),
+        routesContent(profile, skillPaths),
       ),
     );
   }
@@ -352,6 +413,22 @@ ${MANAGED_BLOCK}
         verificationContent(profile.candidateCommands),
       ),
     );
+  }
+  const skills = new Map([
+    [".noxroot/skills/verify-change/SKILL.md", VERIFY_SKILL],
+    [".noxroot/skills/independent-review/SKILL.md", REVIEW_SKILL],
+    [".noxroot/skills/product-ux-review/SKILL.md", PRODUCT_UX_SKILL],
+  ]);
+  for (const skillPath of skillPaths) {
+    if (!present.has(skillPath)) {
+      proposals.push(
+        proposed(
+          skillPath,
+          "Add a short standards-compatible procedure at the canonical Noxroot skill path.",
+          skills.get(skillPath)!,
+        ),
+      );
+    }
   }
   return proposals;
 }

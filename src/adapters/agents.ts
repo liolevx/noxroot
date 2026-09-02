@@ -46,9 +46,9 @@ export const reviewerResponseSchema = z
           .object({
             kind: z.enum(["knowledge", "decision", "procedure", "verification", "none"]),
             destination: z.string().min(1),
-            evidence: z.array(z.string().min(1)).min(1),
+            evidence: z.array(z.string().min(1).max(1_000)).min(1).max(20),
             expectedValue: z.string().min(1),
-            content: z.string(),
+            content: z.string().min(1).max(4_000),
             whyNotExecutable: z.string().min(1),
           })
           .strict(),

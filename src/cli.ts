@@ -558,7 +558,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
       }
       const applied: string[] = [];
       for (const proposal of result.proposals) {
-        applied.push(await applyLearning(common.root, proposal));
+        applied.push(...(await applyLearning(common.root, proposal)));
       }
       if (common.json) writeJson(io, { ...result, applied });
       else io.stdout(`Applied ${result.proposals.length} proposal(s).\n`);
