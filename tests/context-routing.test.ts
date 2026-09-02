@@ -10,7 +10,7 @@ describe("bounded relevance routing", () => {
 
     expect(first).toEqual(second);
     expect(selected.slice(0, 6)).toContain("src/adapters/agents.ts");
-    expect(first.likelyTests).toContain("tests/orchestration-learning-vcs.test.ts");
+    expect(first.likelyTests).toContain("tests/agent-review.test.ts");
     expect(first.budget.maximumBytes).toBe(16_000);
     expect(first.budget.selectedBytes).toBeLessThan(15_000);
     expect(selected.filter((item) => item.includes("tests/fixtures/"))).toHaveLength(0);

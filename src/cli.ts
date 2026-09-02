@@ -19,7 +19,12 @@ import type { PreviewResult } from "./model.js";
 import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import { renderContext, renderPreview, renderVerification } from "./output.js";
 import { readRunRecord, writeRunRecord } from "./state/local.js";
-import { changedFiles, executeVerification, planVerification } from "./verification/index.js";
+import {
+  changedFiles,
+  executeVerification,
+  planVerification,
+  selectVerification,
+} from "./verification/index.js";
 
 const VERSION = "0.1.0";
 const DESCRIPTION =
@@ -284,7 +289,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           });
           emit(io, common.json, results, renderVerification(results));
           if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
-          else if (results.some((result) => result.status !== "passed"))
+          else if (results.length === 0 || results.some((result) => result.status !== "passed"))
             process.exitCode = EXIT.verification;
         } finally {
           process.removeListener("SIGINT", interrupt);
@@ -397,8 +402,13 @@ export function createProgram(customIo?: Partial<Io>): Command {
               signal: controller.signal,
             },
             {
-              verify: () =>
-                executeVerification(worktree.path, checks, { signal: controller.signal }),
+              verify: async () => {
+                const actualChanged = await changedFiles(worktree.path, worktree.baseRevision);
+                const affectedChecks = selectVerification(checks, actualChanged);
+                return executeVerification(worktree.path, affectedChecks, {
+                  signal: controller.signal,
+                });
+              },
               diff: () => boundedDiff(worktree),
             },
           );

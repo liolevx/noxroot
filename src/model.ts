@@ -159,5 +159,5 @@ export interface ProcessEvidence {
 export interface VerificationResult {
   command: VerificationCommand;
   evidence: ProcessEvidence;
-  status: "passed" | "failed" | "timed-out";
+  status: "passed" | "failed" | "timed-out" | "unavailable";
 }

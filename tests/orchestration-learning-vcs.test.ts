@@ -97,6 +97,25 @@ class FakeAdapter implements AgentAdapter {
 }
 
 describe("orchestration, worktree isolation, and controlled learning", () => {
+  it("blocks before review when no approved deterministic check matched", async () => {
+    const adapter = new FakeAdapter();
+    const record = await orchestrateRun(
+      {
+        id: "task-no-checks",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      { verify: async () => [], diff: async () => "diff" },
+    );
+    expect(record.status).toBe("blocked");
+    expect(adapter.roles).toEqual(["worker"]);
+    expect(record.handoff).toContain("No approved deterministic checks matched");
+  });
+
   it("runs worker, deterministic verification, and a separate reviewer", async () => {
     const adapter = new FakeAdapter();
     let verifies = 0;

@@ -2,7 +2,11 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { runProcess } from "../src/adapters/process.js";
-import { executeVerification, planVerification } from "../src/verification/index.js";
+import {
+  executeVerification,
+  planVerification,
+  selectVerification,
+} from "../src/verification/index.js";
 import { temporaryDirectory } from "./helpers.js";
 
 const cleanup: Array<() => Promise<void>> = [];
@@ -125,5 +129,59 @@ commands:
       JSON.stringify({ scripts: { test: "node -e \"throw new Error('must not run')\"" } }),
     );
     expect(await planVerification(root)).toEqual([]);
+  });
+
+  it("records an unavailable approved executable as blocked evidence", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const command = {
+      id: "missing",
+      executable: "definitely-not-installed-noxroot-fixture",
+      args: [],
+      cwd: ".",
+      timeoutMs: 1_000,
+      appliesTo: ["**/*"],
+    };
+    const results = await executeVerification(root, [command]);
+    expect(results[0]?.status).toBe("unavailable");
+    expect(results[0]?.evidence.stderr).toContain("ENOENT");
+  });
+
+  it("selects affected checks from the pre-work policy snapshot", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, ".noxroot"));
+    const policy = path.join(root, ".noxroot", "verification.yml");
+    await writeFile(
+      policy,
+      `version: 1
+commands:
+  - id: trusted-source
+    executable: node
+    args: ["--version"]
+    cwd: .
+    timeoutMs: 1000
+    appliesTo: [src/**]
+`,
+    );
+    const trustedSnapshot = await planVerification(root);
+    await writeFile(
+      policy,
+      `version: 1
+commands:
+  - id: worker-added
+    executable: node
+    args: ["-e", "process.exit(0)"]
+    cwd: .
+    timeoutMs: 1000
+    appliesTo: ["**/*"]
+`,
+    );
+    expect(
+      selectVerification(trustedSnapshot, ["src/index.ts", ".noxroot/verification.yml"]).map(
+        (command) => command.id,
+      ),
+    ).toEqual(["trusted-source"]);
+    expect(selectVerification(trustedSnapshot, ["docs/readme.md"])).toEqual([]);
   });
 });
