@@ -1,0 +1,194 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import type { AgentAdapter, AgentRequest, AgentResult } from "../src/adapters/agents.js";
+import { prepareIsolatedWorktree } from "../src/adapters/vcs.js";
+import { applyLearning, proposeLearnings } from "../src/knowledge/learn.js";
+import type { ContextPackage, VerificationResult } from "../src/model.js";
+import { orchestrateRun, type RunRecord } from "../src/orchestration/run.js";
+import { temporaryDirectory } from "./helpers.js";
+
+const exec = promisify(execFile);
+const cleanup: Array<() => Promise<void>> = [];
+afterEach(async () => Promise.all(cleanup.splice(0).map((operation) => operation())));
+
+const context: ContextPackage = {
+  task: "change greeting",
+  interpretation: "bounded greeting change",
+  applicableAreas: ["src"],
+  selected: [],
+  likelyOwningSource: ["src/greet.ts"],
+  likelyTests: ["tests/greet.test.ts"],
+  constraints: [],
+  requiredVerification: [],
+  conflicts: [],
+  unknowns: [],
+  excluded: [],
+  budget: { maximumBytes: 1000, selectedBytes: 0, estimatedTokens: 0 },
+};
+
+function check(status: "passed" | "failed"): VerificationResult {
+  return {
+    command: {
+      id: "test",
+      executable: "node",
+      args: ["test.js"],
+      cwd: ".",
+      timeoutMs: 1000,
+      appliesTo: ["src/**"],
+    },
+    evidence: {
+      executable: "node",
+      args: ["test.js"],
+      cwd: ".",
+      startedAt: "2026-01-01T00:00:00.000Z",
+      endedAt: "2026-01-01T00:00:00.001Z",
+      durationMs: 1,
+      exitCode: status === "passed" ? 0 : 1,
+      signal: null,
+      timedOut: false,
+      stdout: "",
+      stderr: "",
+      outputTruncated: false,
+    },
+    status,
+  };
+}
+
+class FakeAdapter implements AgentAdapter {
+  readonly id = "fake";
+  readonly mode = "command" as const;
+  readonly roles: AgentRequest["role"][] = [];
+  private reviews = 0;
+
+  constructor(private readonly requestRepair = false) {}
+
+  async availability() {
+    return { available: true, reason: "deterministic fixture" };
+  }
+
+  async invoke(request: AgentRequest): Promise<AgentResult> {
+    this.roles.push(request.role);
+    if (request.role === "reviewer") {
+      this.reviews += 1;
+      const decision = this.requestRepair && this.reviews === 1 ? "changes-requested" : "approved";
+      return {
+        invoked: true,
+        status: "completed",
+        summary: `review ${decision}`,
+        output: JSON.stringify({ decision }),
+        exitCode: 0,
+        reviewDecision: decision,
+      };
+    }
+    return {
+      invoked: true,
+      status: "completed",
+      summary: `${request.role} complete`,
+      output: "ok",
+      exitCode: 0,
+    };
+  }
+}
+
+describe("orchestration, worktree isolation, and controlled learning", () => {
+  it("runs worker, deterministic verification, and a separate reviewer", async () => {
+    const adapter = new FakeAdapter();
+    let verifies = 0;
+    const record = await orchestrateRun(
+      {
+        id: "task-1",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => {
+          verifies += 1;
+          return [check("passed")];
+        },
+        diff: async () => "diff --git a/src/greet.ts b/src/greet.ts",
+      },
+    );
+    expect(adapter.roles).toEqual(["worker", "reviewer"]);
+    expect(verifies).toBe(1);
+    expect(record.status).toBe("approved");
+    expect(record.handoff).toContain("Noxroot did not merge or push it");
+  });
+
+  it("bounds one reviewer-requested repair and re-verifies before re-review", async () => {
+    const adapter = new FakeAdapter(true);
+    let verifies = 0;
+    const record = await orchestrateRun(
+      {
+        id: "task-2",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => {
+          verifies += 1;
+          return [check("passed")];
+        },
+        diff: async () => "diff",
+      },
+    );
+    expect(adapter.roles).toEqual(["worker", "reviewer", "repair", "reviewer"]);
+    expect(verifies).toBe(2);
+    expect(record.status).toBe("approved");
+  });
+
+  it("preserves a dirty source checkout while creating isolation", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await exec("git", ["init"], { cwd: root });
+    await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+    await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+    await writeFile(path.join(root, "README.md"), "# Fixture\n");
+    await exec("git", ["add", "README.md"], { cwd: root });
+    await exec("git", ["commit", "-m", "initial"], { cwd: root });
+    await writeFile(path.join(root, "dirty.txt"), "preserve me");
+    const isolated = await prepareIsolatedWorktree(root, "change greeting", "20260101-abcdef12");
+    expect(isolated.branch).toMatch(/^noxroot\/change-greeting-/);
+    expect(isolated.dirtySourceWorktree).toBe(true);
+    expect(await readFile(path.join(root, "dirty.txt"), "utf8")).toBe("preserve me");
+    await expect(readFile(path.join(isolated.path, "dirty.txt"), "utf8")).rejects.toThrow();
+  });
+
+  it("proposes only evidence-backed gaps, deduplicates, and requires a separate apply call", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const run: RunRecord = {
+      id: "task-3",
+      task: "private task text is not persisted",
+      status: "approved",
+      calls: [],
+      verification: [],
+      verificationGaps: ["No approved deterministic checks matched the change."],
+      handoff: "",
+    };
+    const result = await proposeLearnings(root, run);
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0]?.content).not.toContain(run.task);
+    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
+    expect(
+      await readFile(path.join(root, ".noxroot", "knowledge")).catch(() => undefined),
+    ).toBeUndefined();
+    await applyLearning(root, result.proposals[0]!);
+    const written = await readFile(
+      path.join(root, ".noxroot", "knowledge", "learnings.md"),
+      "utf8",
+    );
+    expect(written).toContain("No approved deterministic checks matched the change.");
+    expect((await proposeLearnings(root, run)).proposals).toEqual([]);
+  });
+});

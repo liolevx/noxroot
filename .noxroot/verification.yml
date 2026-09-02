@@ -1,0 +1,48 @@
+version: 1
+commands:
+  - id: format-check
+    executable: npm
+    args:
+      - run
+      - format:check
+    cwd: .
+    timeoutMs: 120000
+    appliesTo:
+      - "**/*"
+  - id: lint
+    executable: npm
+    args:
+      - run
+      - lint
+    cwd: .
+    timeoutMs: 120000
+    appliesTo:
+      - "**/*"
+  - id: typecheck
+    executable: npm
+    args:
+      - run
+      - typecheck
+    cwd: .
+    timeoutMs: 120000
+    appliesTo:
+      - "**/*"
+  - id: test
+    executable: npm
+    args:
+      - run
+      - test
+    cwd: .
+    timeoutMs: 120000
+    appliesTo:
+      - src/**
+      - tests/**
+  - id: build
+    executable: npm
+    args:
+      - run
+      - build
+    cwd: .
+    timeoutMs: 120000
+    appliesTo:
+      - "**/*"

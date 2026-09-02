@@ -1,0 +1,67 @@
+{
+  "name": "noxroot",
+  "version": "0.1.0",
+  "description": "CLI that builds repository context for coding agents, coordinates implementation and review, runs relevant checks, and preserves validated learnings.",
+  "type": "module",
+  "bin": {
+    "noxroot": "dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "dev": "tsx src/cli.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:built": "node tests/built-safety.mjs",
+    "test:watch": "vitest",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run test:built",
+    "package:check": "npm pack --dry-run --json"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liolevx/noxroot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liolevx/noxroot/issues"
+  },
+  "homepage": "https://github.com/liolevx/noxroot#readme",
+  "keywords": [
+    "coding-agents",
+    "cli",
+    "repository-context",
+    "verification"
+  ],
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "yaml": "^2.9.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@vitest/coverage-v8": "^4.1.11",
+    "eslint": "^10.9.1",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.69.0",
+    "vitest": "^4.1.11"
+  }
+}
