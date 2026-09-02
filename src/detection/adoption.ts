@@ -27,6 +27,12 @@ interface Entrypoint {
   declaredIn: string;
 }
 
+interface CoordinatorEvidence {
+  name: string;
+  declaredIn: string;
+  evidence: string[];
+}
+
 export interface AdoptionInspection {
   capabilities: CapabilityAssessment[];
   initializationAllowed: boolean;
@@ -207,6 +213,67 @@ function skillMetadata(source: string): { name?: string; description?: string } 
   }
 }
 
+const COORDINATOR_BEHAVIORS = [
+  {
+    label: "Git/worktree control",
+    patterns: [
+      /\b(?:create|manage|control|own|prepare|checkout|commit|merge)\w*\b.{0,100}\b(?:git|branches?|worktrees?|commits?|merges?|pull requests?)\b/i,
+      /\b(?:git|branches?|worktrees?|commits?|merges?|pull requests?)\b.{0,100}\b(?:create|manage|control|own|prepare|checkout|commit|merge)\w*\b/i,
+    ],
+  },
+  {
+    label: "code-change execution",
+    patterns: [
+      /\b(?:invoke|run|spawn|coordinate|dispatch|direct)\w*\b.{0,100}\b(?:coding|implementation)\s+(?:agents?|workers?)\b/i,
+      /\b(?:agents?|workers?)\b.{0,100}\b(?:implement|edit|modify|write|change)\w*\b.{0,60}\b(?:code|repository)\b/i,
+    ],
+  },
+  {
+    label: "verification",
+    patterns: [
+      /\b(?:run|execute|select|perform|coordinate)\w*\b.{0,100}\b(?:verification|tests?|checks?|builds?|evals?)\b/i,
+    ],
+  },
+  {
+    label: "independent review",
+    patterns: [
+      /\b(?:invoke|run|request|perform|coordinate|require)\w*\b.{0,100}\b(?:independent\s+)?review(?:er|ers| cycle)?\b/i,
+    ],
+  },
+] as const;
+
+function declaredCoordinatorBehaviors(source: string): string[] {
+  const statements = source
+    .replace(/\r?\n(?=\s*(?:[-*+]\s+|\d+[.)]\s+))/g, ". ")
+    .replace(/\r?\n/g, " ")
+    .split(/(?<=[.!?])\s+/)
+    .map((statement) => statement.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .filter(
+      (statement) =>
+        !/\b(?:does not|doesn't|do not|don't|never|without|cannot|can't|will not|won't)\b/i.test(
+          statement,
+        ),
+    );
+  return COORDINATOR_BEHAVIORS.filter((behavior) =>
+    statements.some((statement) => behavior.patterns.some((pattern) => pattern.test(statement))),
+  ).map((behavior) => behavior.label);
+}
+
+function implementationCoordinatorBehaviors(source: string): string[] {
+  return [
+    { label: "Git/worktree control", match: /\b(?:git|worktree|commit|merge|pull request)\b/i },
+    {
+      label: "code-change execution",
+      match: /\b(?:worker|implementation|code changes?|owned.paths|writable)\b/i,
+    },
+    { label: "verification", match: /\bverif(?:y|ication|ied)\b/i },
+    { label: "independent review", match: /\breviewer?|review cycle\b/i },
+  ]
+    .filter((marker) => marker.match.test(source))
+    .map((marker) => marker.label);
+}
+
 function assessment(
   id: CapabilityAssessment["id"],
   label: string,
@@ -332,26 +399,31 @@ export async function inspectRepositoryAdoption(
 
   const declaredEntrypoints = await entrypoints(profile);
   const verificationWrappers = documentedWrappers(sources, declaredEntrypoints);
-  const coordinators: Array<{ entrypoint: Entrypoint; evidence: string[] }> = [];
+  const coordinators: CoordinatorEvidence[] = [];
   for (const entrypoint of declaredEntrypoints) {
     if (!entrypoint.source || !fileSet.has(entrypoint.source)) continue;
     const source = await readableText(profile, entrypoint.source);
     if (!source) continue;
-    const markers = [
-      { label: "Git/worktree control", match: /\b(?:git|worktree|commit|merge|pull request)\b/i },
-      {
-        label: "code-change execution",
-        match: /\b(?:worker|implementation|code changes?|owned.paths|writable)\b/i,
-      },
-      { label: "verification", match: /\bverif(?:y|ication|ied)\b/i },
-      { label: "independent review", match: /\breviewer?|review cycle\b/i },
-    ].filter((marker) => marker.match.test(source));
+    const markers = implementationCoordinatorBehaviors(source);
     if (markers.length === 4) {
       coordinators.push({
-        entrypoint,
-        evidence: markers.map((marker) => marker.label),
+        name: entrypoint.command,
+        declaredIn: entrypoint.declaredIn,
+        evidence: markers,
       });
     }
+  }
+  const declaredBehaviorSurfaces = references.filter(
+    (reference) => instructionSet.has(reference.from) && sources.has(reference.path),
+  );
+  for (const surface of declaredBehaviorSurfaces) {
+    const source = sources.get(surface.path);
+    if (!source) continue;
+    const evidence = declaredCoordinatorBehaviors(source);
+    if (evidence.length !== COORDINATOR_BEHAVIORS.length) continue;
+    const key = `${surface.path}\0${surface.from}`;
+    if (coordinators.some((item) => `${item.name}\0${item.declaredIn}` === key)) continue;
+    coordinators.push({ name: surface.path, declaredIn: surface.from, evidence });
   }
 
   const incomplete = profile.stats.incompleteReasons.length > 0;
@@ -456,8 +528,7 @@ export async function inspectRepositoryAdoption(
           "Task orchestration",
           "conflict",
           coordinators.map(
-            ({ entrypoint, evidence }) =>
-              `${entrypoint.command} (${entrypoint.declaredIn}; ${evidence.join(", ")})`,
+            ({ name, declaredIn, evidence }) => `${name} (${declaredIn}; ${evidence.join(", ")})`,
           ),
         )
       : incomplete
@@ -510,8 +581,8 @@ export async function inspectRepositoryAdoption(
         ]
       : []),
     ...coordinators.map(
-      ({ entrypoint, evidence }) =>
-        `Existing repository-development coordinator overlaps Noxroot orchestration: ${entrypoint.command} (${evidence.join(", ")})`,
+      ({ name, evidence }) =>
+        `Existing repository-development coordinator overlaps Noxroot orchestration: ${name} (${evidence.join(", ")})`,
     ),
   ];
   const initializationAllowed =

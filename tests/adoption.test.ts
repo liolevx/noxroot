@@ -3,7 +3,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { applyProposals } from "../src/core/init.js";
 import { previewRepository } from "../src/core/preview.js";
-import { hashTree, temporaryDirectory } from "./helpers.js";
+import { fixtureCopy, hashTree, temporaryDirectory } from "./helpers.js";
 
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => Promise.all(cleanup.splice(0).map((operation) => operation())));
@@ -115,6 +115,38 @@ describe("mature repository adoption", () => {
     expect(preview.proposedFiles).toEqual([]);
     await expect(applyProposals(preview)).rejects.toThrow("initialization is refused");
     expect(await hashTree(repository)).toBe(before);
+  });
+
+  it("keeps an adjacent coordination ledger compatible without reusing task orchestration", async () => {
+    const fixture = await fixtureCopy("adjacent-ledger");
+    cleanup.push(fixture.cleanup);
+
+    const before = await hashTree(fixture.root);
+    const preview = await previewRepository(fixture.root);
+
+    expect(await hashTree(fixture.root)).toBe(before);
+    expect(preview.initializationAllowed).toBe(true);
+    expect(preview.capabilities.find((item) => item.id === "task-orchestration")).toEqual(
+      expect.objectContaining({ decision: "create", evidence: [] }),
+    );
+    expect(preview.conflicts).not.toContainEqual(
+      expect.stringContaining("repository-development coordinator"),
+    );
+  });
+
+  it("detects coordinator behavior without relying on a filename or implementation language", async () => {
+    const fixture = await fixtureCopy("behavioral-coordinator");
+    cleanup.push(fixture.cleanup);
+
+    const preview = await previewRepository(fixture.root);
+    const orchestration = preview.capabilities.find((item) => item.id === "task-orchestration");
+
+    expect(preview.initializationAllowed).toBe(false);
+    expect(orchestration).toMatchObject({ decision: "conflict" });
+    expect(orchestration?.evidence).toContain(
+      "docs/automation.md (AGENTS.md; Git/worktree control, code-change execution, verification, independent review)",
+    );
+    expect(preview.proposedFiles).toEqual([]);
   });
 
   it("preserves an uncertain capability instead of generating a parallel system", async () => {
