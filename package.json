@@ -1,7 +1,7 @@
 {
   "name": "noxroot",
   "version": "0.1.0",
-  "description": "CLI that builds repository context for coding agents, coordinates implementation and review, runs relevant checks, and preserves validated learnings.",
+  "description": "Local CLI for task-specific coding-agent context, approved verification, independent review, and validated project knowledge.",
   "type": "module",
   "bin": {
     "noxroot": "dist/cli.js"
@@ -11,7 +11,10 @@
   },
   "files": [
     "dist",
+    "docs",
     "README.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {
@@ -23,12 +26,13 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:built": "node tests/built-safety.mjs",
+    "test:package": "npm run build && node tests/package-smoke.mjs",
     "test:watch": "vitest",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run test:built",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run test:built && npm run test:package",
     "package:check": "npm pack --dry-run --json"
   },
   "engines": {
-    "node": ">=24 <25"
+    "node": ">=22.12 <27"
   },
   "repository": {
     "type": "git",

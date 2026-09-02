@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline/promises";
 import { stdin as defaultStdin, stdout as defaultStdout } from "node:process";
@@ -21,7 +23,7 @@ import { changedFiles, executeVerification, planVerification } from "./verificat
 
 const VERSION = "0.1.0";
 const DESCRIPTION =
-  "CLI that builds repository context for coding agents, coordinates implementation and review, runs relevant checks, and preserves validated learnings.";
+  "Local CLI for task-specific coding-agent context, approved verification, independent review, and validated project knowledge.";
 
 export const EXIT = {
   success: 0,
