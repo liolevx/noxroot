@@ -37,7 +37,6 @@ interface Candidate {
 }
 
 const KNOWLEDGE_ROOT = ".noxroot/knowledge/";
-const DEFAULT_DESTINATION = `${KNOWLEDGE_ROOT}learnings.md`;
 
 function boundedLine(value: string): string {
   return value.replace(/\s+/g, " ").trim().slice(0, 500);
@@ -90,33 +89,6 @@ async function knowledgeCorpus(root: string): Promise<string> {
   }
 }
 
-function verificationCandidate(run: RunRecord): Candidate | undefined {
-  const failed = run.verification
-    .flat()
-    .filter((result) => result.status !== "passed")
-    .map((result) => `${result.command.id}: ${result.status}`);
-  const deterministicGaps = run.verificationGaps.filter((gap) =>
-    /^(?:No approved deterministic check|Approved check .+ was unavailable|At least one affected approved deterministic check)/.test(
-      gap,
-    ),
-  );
-  const evidence = [...new Set([...deterministicGaps, ...failed].map(boundedLine))]
-    .filter(Boolean)
-    .sort();
-  if (evidence.length === 0) return undefined;
-  return {
-    kind: "verification",
-    destination: DEFAULT_DESTINATION,
-    evidence,
-    expectedFutureValue:
-      "Makes a recurring verification limitation visible until an owner confirms an executable guardrail.",
-    content:
-      "Project owner should decide whether an approved deterministic check can close this gap.",
-    executableDestination:
-      "An approved test, lint rule, schema, or verification-policy change is preferred; prose only records the evidenced gap and does not authorize a command.",
-  };
-}
-
 function structuredCandidates(run: RunRecord): ReviewerResponse["learningCandidates"] {
   const direct = (
     run as RunRecord & {
@@ -160,10 +132,9 @@ ${candidate.content.trim()}
 }
 
 export async function proposeLearnings(root: string, run: RunRecord): Promise<LearnResult> {
-  const candidates = [
-    verificationCandidate(run),
-    ...structuredCandidates(run).map(fromReviewer),
-  ].filter((candidate): candidate is Candidate => candidate !== undefined);
+  const candidates = structuredCandidates(run)
+    .map(fromReviewer)
+    .filter((candidate): candidate is Candidate => candidate !== undefined);
   const corpus = await knowledgeCorpus(root);
   const proposals: LearningProposal[] = [];
   const rejected: LearnResult["rejected"] = [];

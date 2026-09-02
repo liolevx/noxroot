@@ -15,6 +15,7 @@ export interface RepositoryBaseline {
   root: string;
   revision: string;
   status: string;
+  branch: string;
 }
 
 function taskSlug(task: string): string {
@@ -40,8 +41,14 @@ async function git(root: string, args: string[], outputLimitBytes = 65_536) {
 export async function captureRepositoryBaseline(root: string): Promise<RepositoryBaseline> {
   const topLevel = await git(root, ["rev-parse", "--show-toplevel"]);
   const revision = await git(root, ["rev-parse", "HEAD"]);
+  const branch = await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
   const status = await git(root, ["status", "--porcelain=v1", "--untracked-files=all"]);
-  if (topLevel.exitCode !== 0 || revision.exitCode !== 0 || status.exitCode !== 0) {
+  if (
+    topLevel.exitCode !== 0 ||
+    revision.exitCode !== 0 ||
+    branch.exitCode !== 0 ||
+    status.exitCode !== 0
+  ) {
     throw new Error("Guided completion requires a Git repository with at least one commit.");
   }
   const repositoryRoot = await realpath(path.resolve(topLevel.stdout.trim()));
@@ -49,7 +56,18 @@ export async function captureRepositoryBaseline(root: string): Promise<Repositor
   if (requestedRoot.toLowerCase() !== repositoryRoot.toLowerCase()) {
     throw new Error(`Guided tasks must start at the Git repository root: ${repositoryRoot}`);
   }
-  return { root: repositoryRoot, revision: revision.stdout.trim(), status: status.stdout };
+  return {
+    root: repositoryRoot,
+    revision: revision.stdout.trim(),
+    status: status.stdout,
+    branch: branch.stdout.trim(),
+  };
+}
+
+export async function revisionInCurrentHistory(root: string, revision: string): Promise<boolean> {
+  if (!/^[a-f0-9]{40}$/i.test(revision)) return false;
+  const result = await git(root, ["merge-base", "--is-ancestor", revision, "HEAD"]);
+  return result.exitCode === 0;
 }
 
 function matchesSensitivePath(relative: string, patterns: string[]): boolean {

@@ -13,7 +13,7 @@ import { assessReviewNeed, type ReviewAssessment } from "./review.js";
 
 export interface GuidedRunRecord extends RunRecord {
   mode: "guided";
-  repository: { root: string };
+  repository: { root: string; branch?: string };
   baseline: { revision: string; status: string };
   context: ContextPackage;
   effectiveAutonomy: EffectiveAutonomy;
@@ -43,6 +43,15 @@ function guidedHandoff(
   checks: VerificationResult[],
   review?: ReviewerResponse,
 ): string {
+  const checked = checks.map((result) => {
+    const invocation = [result.command.executable, ...result.command.args].join(" ");
+    const detail = (result.evidence.stderr || result.evidence.stdout)
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 300);
+    return `${result.command.id}: ${result.status} | ${invocation} | cwd ${result.command.cwd} | exit ${result.evidence.exitCode ?? "not started"}${detail ? ` | ${detail}` : ""}`;
+  });
+  const unavailable = checks.find((result) => result.status === "unavailable");
   return [
     "TASK",
     record.task,
@@ -54,8 +63,7 @@ function guidedHandoff(
     record.changedPaths?.join("\n") || "No changed paths were detected.",
     "",
     "CHECKED",
-    checks.map((result) => `${result.command.id}: ${result.status}`).join("\n") ||
-      "Verification incomplete: no applicable approved checks ran.",
+    checked.join("\n") || "Verification incomplete: no applicable approved checks ran.",
     "",
     "REVIEW",
     review
@@ -73,7 +81,9 @@ function guidedHandoff(
     record.status === "review-pending"
       ? `Have a fresh reviewer return the strict JSON contract, then run noxroot finish --task ${record.id} --review-file <repository-relative-json>.`
       : record.status === "incomplete"
-        ? "Review the unverified change and add or approve an applicable project check if one exists."
+        ? unavailable
+          ? `Make the approved check runnable (${unavailable.command.executable} from ${unavailable.command.cwd}: ${unavailable.evidence.stderr || "could not start"}), then rerun noxroot finish --task ${record.id}.`
+          : "Review the unverified change and add or approve an applicable project check if one exists."
         : "Review the resulting change; apply any learning only after confirmation.",
   ].join("\n");
 }
@@ -97,7 +107,7 @@ export async function startGuidedRun(input: {
     task: input.task,
     mode: "guided",
     status: "running",
-    repository: { root: baseline.root },
+    repository: { root: baseline.root, branch: baseline.branch },
     baseline: { revision: baseline.revision, status: baseline.status },
     context: input.context,
     effectiveAutonomy: input.effectiveAutonomy,

@@ -12,6 +12,7 @@ import { createProgram } from "../src/cli.js";
 const cleanup: string[] = [];
 afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+  process.exitCode = 0;
 });
 
 async function git(root: string, args: string[]): Promise<void> {
@@ -191,6 +192,98 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     );
   });
 
+  it("continues the same active task without creating a duplicate record", async () => {
+    const root = await repository();
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      `version: 1
+modules: [repository-profile, agent-routing, orchestration]
+autonomy: {default: 0, implementation: 1, review: 0, merge: 0, delivery: 0}
+agents: {default: manual, adapters: {manual: {type: manual}}}
+`,
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "noxroot fixture"]);
+
+    const first = JSON.parse(
+      (await cli(["start", "Change the value safely", "--json", "--root", root])).stdout,
+    ) as { record: { id: string } };
+    await writeFile(path.join(root, "src", "value.ts"), "export const value = 2;\n");
+    const second = JSON.parse(
+      (await cli(["start", "  change the VALUE safely. ", "--json", "--root", root])).stdout,
+    ) as { record: { id: string }; continued: boolean };
+
+    expect(second.record.id).toBe(first.record.id);
+    expect(second.continued).toBe(true);
+    const records = await (
+      await import("node:fs/promises")
+    ).readdir(path.join(root, ".git", "noxroot", "runs"));
+    expect(records.filter((name) => name.endsWith(".json"))).toHaveLength(1);
+  });
+
+  it("does not continue a task record from another branch", async () => {
+    const root = await repository();
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      `version: 1
+modules: [repository-profile, agent-routing, orchestration]
+autonomy: {default: 0, implementation: 1, review: 0, merge: 0, delivery: 0}
+agents: {default: manual, adapters: {manual: {type: manual}}}
+`,
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "noxroot fixture"]);
+    const first = JSON.parse(
+      (await cli(["start", "change value", "--json", "--root", root])).stdout,
+    ) as { record: { id: string } };
+    await git(root, ["switch", "-c", "other-task-branch"]);
+    const second = JSON.parse(
+      (await cli(["start", "change value", "--json", "--root", root])).stdout,
+    ) as { record: { id: string }; continued?: boolean };
+    expect(second.record.id).not.toBe(first.record.id);
+    expect(second.continued).toBeUndefined();
+
+    await writeFile(path.join(root, "src", "value.ts"), "export const value = 8;\n");
+    const finished = JSON.parse((await cli(["finish", "--json", "--root", root])).stdout) as {
+      record: { id: string; status: string };
+    };
+    expect(finished.record.id).toBe(second.record.id);
+    expect(finished.record.status).toBe("incomplete");
+  });
+
+  it("refuses to reuse stale task state from incompatible branch history", async () => {
+    const root = await repository();
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      `version: 1
+modules: [repository-profile, agent-routing, orchestration]
+autonomy: {default: 0, implementation: 1, review: 0, merge: 0, delivery: 0}
+agents: {default: manual, adapters: {manual: {type: manual}}}
+`,
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "noxroot fixture"]);
+    const started = JSON.parse(
+      (await cli(["start", "change value", "--json", "--root", root])).stdout,
+    ) as { record: { id: string } };
+    const recordPath = path.join(root, ".git", "noxroot", "runs", `${started.record.id}.json`);
+    const persisted = JSON.parse(await readFile(recordPath, "utf8")) as {
+      baseline: { revision: string };
+    };
+    persisted.baseline.revision = "0000000000000000000000000000000000000000";
+    await writeFile(recordPath, `${JSON.stringify(persisted, null, 2)}\n`);
+
+    await expect(cli(["start", "change value", "--json", "--root", root])).rejects.toThrow(
+      "baseline is not in the current branch history",
+    );
+    await expect(cli(["finish", "--json", "--root", root])).rejects.toThrow(
+      "incompatible with the current branch history",
+    );
+  });
+
   it("records a clean baseline, verifies the actual diff, then accepts strict external review", async () => {
     const root = await repository();
     const command = {
@@ -304,5 +397,45 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(finished.verificationGaps).toContain(
       "No approved deterministic checks matched the actual change.",
     );
+  });
+
+  it("shows an unavailable command, cwd, failure, and retry in the human handoff", async () => {
+    const root = await repository();
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      `version: 1
+modules: [repository-profile, verification, orchestration, learning]
+autonomy: {default: 0, implementation: 1, review: 0, merge: 0, delivery: 0}
+agents: {default: manual, adapters: {manual: {type: manual}}}
+`,
+    );
+    await writeFile(
+      path.join(root, ".noxroot", "verification.yml"),
+      `version: 1
+commands:
+  - id: missing-check
+    executable: definitely-not-installed-noxroot-check
+    args: [--verify]
+    cwd: .
+    timeoutMs: 1000
+    appliesTo: [src/**]
+`,
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "noxroot verification fixture"]);
+    await cli(["start", "change value", "--root", root]);
+    await writeFile(path.join(root, "src", "value.ts"), "export const value = 9;\n");
+
+    const result = await cli(["finish", "--root", root]);
+    expect(result.stdout).toContain(
+      "missing-check: unavailable | definitely-not-installed-noxroot-check --verify | cwd . | exit not started",
+    );
+    expect(result.stdout).toContain("Make the approved check runnable");
+    expect(result.stdout).toContain("rerun noxroot finish --task");
+    expect(result.stderr).toContain("Inspecting changed files and running affected checks");
+    expect(result.stderr).toContain("Assessing reusable learning");
+    expect(result.stderr).toContain("Preparing handoff");
+    expect(process.exitCode).toBe(4);
   });
 });

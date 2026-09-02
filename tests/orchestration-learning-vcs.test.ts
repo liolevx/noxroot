@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AgentAdapter, AgentRequest, AgentResult } from "../src/adapters/agents.js";
 import { boundedDiff, prepareIsolatedWorktree } from "../src/adapters/vcs.js";
-import { applyLearning, proposeLearnings } from "../src/knowledge/learn.js";
+import { proposeLearnings } from "../src/knowledge/learn.js";
 import type { ContextPackage, VerificationResult } from "../src/model.js";
 import { orchestrateRun, type RunRecord } from "../src/orchestration/run.js";
 import { temporaryDirectory } from "./helpers.js";
@@ -282,7 +282,7 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
     expect(diff).not.toContain('"user":"new"');
   });
 
-  it("proposes only evidence-backed gaps, deduplicates, and requires a separate apply call", async () => {
+  it("does not turn a one-off verification gap into project knowledge", async () => {
     const root = await temporaryDirectory();
     cleanup.push(() => rm(root, { recursive: true, force: true }));
     const run: RunRecord = {
@@ -295,22 +295,9 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
       handoff: "",
     };
     const result = await proposeLearnings(root, run);
-    expect(result.proposals).toHaveLength(1);
-    expect(result.proposals[0]?.content).not.toContain(run.task);
-    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
-    expect(
-      await readFile(path.join(root, ".noxroot", "knowledge")).catch(() => undefined),
-    ).toBeUndefined();
-    await applyLearning(root, result.proposals[0]!);
-    const written = await readFile(
-      path.join(root, ".noxroot", "knowledge", "learnings.md"),
-      "utf8",
-    );
-    expect(written).toContain("No approved deterministic checks matched the change.");
-    expect(await readFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "utf8")).toContain(
-      "[Validated learnings](learnings.md)",
-    );
-    expect((await proposeLearnings(root, run)).proposals).toEqual([]);
+    expect(result.proposals).toEqual([]);
+    expect(result.message).toBe("No durable learning identified");
+    await expect(readFile(path.join(root, ".noxroot", "knowledge"))).rejects.toThrow();
   });
 
   it("accepts only structured reviewer candidates and protects external documentation", async () => {

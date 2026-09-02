@@ -8,7 +8,12 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { Command, CommanderError, Option } from "commander";
 import { configuredAgent, ManualAgentAdapter } from "./adapters/agents.js";
-import { boundedDiff, prepareIsolatedWorktree } from "./adapters/vcs.js";
+import {
+  boundedDiff,
+  captureRepositoryBaseline,
+  prepareIsolatedWorktree,
+  revisionInCurrentHistory,
+} from "./adapters/vcs.js";
 import { loadConfig } from "./config/load.js";
 import { buildContext } from "./core/context.js";
 import { doctorRepository } from "./core/doctor.js";
@@ -21,7 +26,13 @@ import { effectiveAutonomy } from "./orchestration/autonomy.js";
 import { finishGuidedRun, startGuidedRun, type GuidedRunRecord } from "./orchestration/guided.js";
 import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import { renderContext, renderPreview, renderVerification } from "./output.js";
-import { listRunRecords, readRunRecord, replaceRunRecord, writeRunRecord } from "./state/local.js";
+import {
+  listRunRecords,
+  localStateRoot,
+  readRunRecord,
+  replaceRunRecord,
+  writeRunRecord,
+} from "./state/local.js";
 import {
   changedFiles,
   executeVerification,
@@ -140,23 +151,105 @@ const RETRYABLE_GUIDED_STATUSES = new Set<RunRecord["status"]>([
   "incomplete",
 ]);
 
+function samePath(left: string, right: string): boolean {
+  const normalize = (value: string): string =>
+    process.platform === "win32" ? path.resolve(value).toLowerCase() : path.resolve(value);
+  return normalize(left) === normalize(right);
+}
+
+function normalizedTask(task: string): string {
+  return task
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function isGuidedRecord(value: unknown): value is GuidedRunRecord {
+  const record = value as Partial<GuidedRunRecord> | undefined;
+  return Boolean(
+    record &&
+    record.mode === "guided" &&
+    typeof record.id === "string" &&
+    typeof record.task === "string" &&
+    typeof record.status === "string" &&
+    typeof record.repository?.root === "string" &&
+    typeof record.baseline?.revision === "string",
+  );
+}
+
+async function activeGuidedRecords(root: string): Promise<GuidedRunRecord[]> {
+  const current = await captureRepositoryBaseline(root);
+  const records = await listRunRecords<unknown>(root);
+  return records.filter(
+    (value): value is GuidedRunRecord =>
+      isGuidedRecord(value) &&
+      RETRYABLE_GUIDED_STATUSES.has(value.status) &&
+      samePath(value.repository.root, current.root) &&
+      (value.repository.branch === undefined || value.repository.branch === current.branch),
+  );
+}
+
+async function findGuidedContinuation(
+  root: string,
+  task: string,
+): Promise<GuidedRunRecord | undefined> {
+  const matching = (await activeGuidedRecords(root)).filter(
+    (record) => normalizedTask(record.task) === normalizedTask(task),
+  );
+  const compatible: GuidedRunRecord[] = [];
+  const stale: GuidedRunRecord[] = [];
+  for (const record of matching) {
+    if (await revisionInCurrentHistory(root, record.baseline.revision)) compatible.push(record);
+    else stale.push(record);
+  }
+  if (compatible.length > 1) {
+    throw new Error(
+      `Multiple active guided tasks match this request: ${compatible.map((record) => record.id).join(", ")}. Finish with --task <id> before starting again.`,
+    );
+  }
+  if (compatible.length === 1) return compatible[0];
+  if (stale.length > 0) {
+    throw new Error(
+      `Active task ${stale.map((record) => record.id).join(", ")} matches this request but its baseline is not in the current branch history. Return to its recorded branch or finish it explicitly with --task <id>.`,
+    );
+  }
+  return undefined;
+}
+
 async function inferGuidedTaskId(root: string, explicit?: string): Promise<string> {
   if (explicit) return explicit;
-  const canonicalRoot = path.resolve(root);
-  const records = await listRunRecords<GuidedRunRecord>(canonicalRoot);
-  const eligible = records.filter(
-    (record) =>
-      record.mode === "guided" &&
-      RETRYABLE_GUIDED_STATUSES.has(record.status) &&
-      path.resolve(record.repository.root) === canonicalRoot,
-  );
+  const active = await activeGuidedRecords(root);
+  const eligible: GuidedRunRecord[] = [];
+  const stale: GuidedRunRecord[] = [];
+  for (const record of active) {
+    if (await revisionInCurrentHistory(root, record.baseline.revision)) eligible.push(record);
+    else stale.push(record);
+  }
   if (eligible.length === 1) return eligible[0]!.id;
   if (eligible.length === 0) {
+    if (stale.length > 0) {
+      throw new Error(
+        `Active guided task state is incompatible with the current branch history: ${stale.map((record) => record.id).join(", ")}. Return to the recorded branch or select a compatible task explicitly with --task <id>.`,
+      );
+    }
     throw new Error('No active guided task was found. Start one with noxroot start "<task>".');
   }
   throw new Error(
     `Multiple active guided tasks need an explicit --task id: ${eligible.map((record) => record.id).join(", ")}`,
   );
+}
+
+function renderContinuation(record: GuidedRunRecord, recordPath: string): string {
+  return `${[
+    "Continuing active task",
+    `  Outcome: ${record.context.intent.requiredOutcomes[0] ?? record.context.interpretation}`,
+    `  Task: ${record.id}`,
+    `  Baseline: ${record.baseline.revision.slice(0, 12)}`,
+    "  No duplicate task was created.",
+    "Next: continue the change, then run noxroot finish.",
+    `Local record: ${recordPath}`,
+  ].join("\n")}\n`;
 }
 
 function renderStart(
@@ -371,6 +464,23 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .action(async (task: string, _options: unknown, command: Command) => {
       const common = globals(command);
       const root = path.resolve(common.root);
+      const continuation = await findGuidedContinuation(root, task);
+      if (continuation) {
+        const recordPath = path.join(await localStateRoot(root), "runs", `${continuation.id}.json`);
+        emit(
+          io,
+          common.json,
+          {
+            context: continuation.context,
+            record: continuation,
+            recordPath,
+            agentInvoked: false,
+            continued: true,
+          },
+          renderContinuation(continuation, recordPath),
+        );
+        return;
+      }
       const context = await buildContext(task, root);
       const config = await loadConfig(root);
       const autonomy = effectiveAutonomy(config);
@@ -633,6 +743,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
       process.once("SIGINT", interrupt);
       process.once("SIGTERM", interrupt);
       try {
+        progress(io, "Inspecting changed files and running affected checks");
         const finished = await finishGuidedRun({
           root,
           record,
@@ -643,6 +754,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           signal: controller.signal,
         });
         const recordPath = await replaceRunRecord(root, taskId, finished);
+        progress(io, "Assessing reusable learning");
         const learning = await proposeLearnings(root, finished);
         const completion = {
           documentation: {
@@ -655,6 +767,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             proposals: learning.proposals.length,
           },
         };
+        progress(io, "Preparing handoff");
         emit(
           io,
           common.json,
