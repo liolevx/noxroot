@@ -1,5 +1,6 @@
 import { lstat, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { parse as parseYaml } from "yaml";
 import type {
   CandidateCommand,
   Evidence,
@@ -86,7 +87,10 @@ function classifyDocument(file: string): RepositoryDocument | undefined {
   if (
     basename === "architecture.md" ||
     basename === "architecture.mdx" ||
-    /(?:^|\/)docs?\/(?:system-)?architecture\.(?:md|mdx)$/.test(lower)
+    /(?:^|\/)docs?\/(?:system-)?architecture\.(?:md|mdx)$/.test(lower) ||
+    /(?:^|\/)architecture\/readme\.(?:md|mdx)$/.test(lower) ||
+    (/(?:^|\/)architecture\//.test(lower) &&
+      /^(?:ai|backend|contracts|data-coverage|frontend|infrastructure)\.(?:md|mdx)$/.test(basename))
   ) {
     return { path: file, kind: "architecture", authoritative: true };
   }
@@ -164,15 +168,18 @@ function commandFromScript(
   manager: NonNullable<PackageManagerEvidence["name"]>,
   id: string,
   scriptName = id,
+  cwd = ".",
+  manifestPath = "package.json",
 ): CandidateCommand {
   const args = manager === "yarn" ? [scriptName] : ["run", scriptName];
+  const scope = cwd === "." ? "" : `${path.posix.basename(cwd)}-`;
   return {
-    id,
+    id: `${scope}${id}`,
     executable: manager,
     args,
-    cwd: ".",
-    source: `package.json scripts.${scriptName}`,
-    appliesTo: id === "test" ? ["src/**", "tests/**"] : ["**/*"],
+    cwd,
+    source: `${manifestPath} scripts.${scriptName}`,
+    appliesTo: cwd === "." ? (id === "test" ? ["src/**", "tests/**"] : ["**/*"]) : [`${cwd}/**`],
   };
 }
 
@@ -180,7 +187,11 @@ function packageManagerEvidence(
   files: string[],
   contents: ContentMap,
   manifest: { packageManager?: unknown } | undefined,
+  directory = ".",
+  manifestPath = "package.json",
 ): PackageManagerEvidence {
+  const located = (name: string): string => (directory === "." ? name : `${directory}/${name}`);
+  const declarationSource = `${manifestPath} packageManager`;
   const declared =
     typeof manifest?.packageManager === "string"
       ? /^(npm|pnpm|yarn|bun)@[^\s]+$/i.exec(manifest.packageManager)?.[1]?.toLowerCase()
@@ -193,7 +204,7 @@ function packageManagerEvidence(
   ]
     .map((candidate) => ({
       name: candidate.name,
-      source: candidate.files.find((file) => files.includes(file)),
+      source: candidate.files.map(located).find((file) => files.includes(file)),
     }))
     .filter((candidate): candidate is { name: "npm" | "pnpm" | "yarn" | "bun"; source: string } =>
       Boolean(candidate.source),
@@ -201,7 +212,7 @@ function packageManagerEvidence(
   if (typeof manifest?.packageManager === "string" && !declared) {
     return {
       status: "conflicting",
-      sources: ["package.json packageManager"],
+      sources: [declarationSource],
       detail: "packageManager must name npm, pnpm, yarn, or bun with a version.",
     };
   }
@@ -211,17 +222,14 @@ function packageManagerEvidence(
     if (incompatibleLocks.length > 0) {
       return {
         status: "conflicting",
-        sources: [
-          "package.json packageManager",
-          ...lockEvidence.map((candidate) => candidate.source),
-        ],
+        sources: [declarationSource, ...lockEvidence.map((candidate) => candidate.source)],
         detail: `Declared ${name} conflicts with ${incompatibleLocks.map((item) => item.source).join(", ")}.`,
       };
     }
     return {
       name,
       status: "confirmed",
-      sources: ["package.json packageManager"],
+      sources: [declarationSource],
       detail: `Declared package manager is ${name}.`,
     };
   }
@@ -271,37 +279,129 @@ function packageManagerEvidence(
   };
 }
 
+type PackageManifest = {
+  packageManager?: unknown;
+  scripts?: Record<string, string>;
+  workspaces?: unknown;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+};
+
+function commandTokens(source: string): string[] | undefined {
+  const trimmed = source.trim();
+  if (!trimmed || /[;&|><`$()#\r\n]/.test(trimmed)) return undefined;
+  const matches = trimmed.match(/"[^"]*"|'[^']*'|\S+/g);
+  return matches?.map((token) => token.replace(/^(?:"([\s\S]*)"|'([\s\S]*)')$/, "$1$2"));
+}
+
+function workingDirectory(value: unknown, fallback = "."): string | undefined {
+  if (value === undefined) return fallback;
+  if (typeof value !== "string") return undefined;
+  const cwd = value.replaceAll("\\", "/").replace(/^\.\//, "");
+  if (!cwd || /[`$*?{}\r\n]/.test(cwd) || path.posix.isAbsolute(cwd)) return undefined;
+  if (cwd.split("/").includes("..")) return undefined;
+  return cwd;
+}
+
+function ciVerificationCommands(contents: ContentMap): CandidateCommand[] {
+  const commands: CandidateCommand[] = [];
+  for (const [workflowPath, source] of Object.entries(contents)
+    .filter(([file]) => /^\.github\/workflows\/.*\.ya?ml$/i.test(file))
+    .sort(([left], [right]) => left.localeCompare(right))) {
+    let workflow: unknown;
+    try {
+      workflow = parseYaml(source);
+    } catch {
+      continue;
+    }
+    const jobs = (workflow as { jobs?: unknown } | undefined)?.jobs;
+    if (!jobs || typeof jobs !== "object" || Array.isArray(jobs)) continue;
+    for (const [jobId, rawJob] of Object.entries(jobs)) {
+      if (!rawJob || typeof rawJob !== "object" || Array.isArray(rawJob)) continue;
+      const job = rawJob as {
+        defaults?: { run?: { "working-directory"?: unknown } };
+        steps?: unknown;
+      };
+      const cwd = workingDirectory(job.defaults?.run?.["working-directory"]);
+      if (cwd === undefined) continue;
+      if (!Array.isArray(job.steps)) continue;
+      for (const [stepIndex, rawStep] of job.steps.entries()) {
+        if (!rawStep || typeof rawStep !== "object" || Array.isArray(rawStep)) continue;
+        const step = rawStep as { name?: unknown; run?: unknown; "working-directory"?: unknown };
+        if (typeof step.run !== "string") continue;
+        const stepCwd = workingDirectory(step["working-directory"], cwd);
+        if (stepCwd === undefined) continue;
+        const tokens = commandTokens(step.run);
+        if (!tokens || tokens.length < 2) continue;
+        const [executable, ...args] = tokens;
+        const supported =
+          (executable === "uv" &&
+            args[0] === "run" &&
+            ["ruff", "mypy", "pytest"].includes(args[1] ?? "")) ||
+          (executable === "python" && args[0] === "-m" && args[1] === "pytest") ||
+          (executable === "cargo" && ["test", "check", "clippy"].includes(args[0] ?? "")) ||
+          (executable === "go" && args[0] === "test");
+        if (!supported || !executable) continue;
+        const rawName = typeof step.name === "string" ? step.name : `${jobId}-${stepIndex + 1}`;
+        const commandName =
+          executable === "uv" ? args[1]! : executable === "python" ? args[1]! : args[0]!;
+        const name =
+          rawName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") || commandName;
+        const scope = stepCwd === "." ? "" : `${path.posix.basename(stepCwd)}-`;
+        commands.push({
+          id: `${scope}${name}`,
+          executable,
+          args,
+          cwd: stepCwd,
+          source: `${workflowPath} jobs.${jobId}.steps[${stepIndex}].run`,
+          appliesTo: stepCwd === "." ? ["**/*"] : [`${stepCwd}/**`],
+        });
+      }
+    }
+  }
+  return commands;
+}
+
 function detectEvidence(
   files: string[],
   contents: ContentMap,
 ): {
   evidence: Evidence[];
   commands: CandidateCommand[];
+  packageManager: PackageManagerEvidence;
 } {
   const evidence: Evidence[] = [];
   const commands: CandidateCommand[] = [];
   const fileSet = new Set(files);
-  const packageText = contents["package.json"];
-  let packageManifest:
-    | {
-        packageManager?: unknown;
-        scripts?: Record<string, string>;
-        workspaces?: unknown;
-        dependencies?: Record<string, string>;
-        devDependencies?: Record<string, string>;
-      }
-    | undefined;
+  const packageManagers: Array<{ path: string; evidence: PackageManagerEvidence }> = [];
+  const projectManifest = (file: string): boolean =>
+    !/(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?)(?:\/|$)/.test(file);
+  const packagePaths = files
+    .filter((file) => path.posix.basename(file) === "package.json" && projectManifest(file))
+    .sort();
 
-  if (packageText) {
+  for (const packagePath of packagePaths) {
+    const packageText = contents[packagePath];
+    if (!packageText) continue;
+    const directory = path.posix.dirname(packagePath);
+    let packageManifest: PackageManifest | undefined;
     try {
-      const manifest = JSON.parse(packageText) as NonNullable<typeof packageManifest>;
+      const manifest = JSON.parse(packageText) as PackageManifest;
       packageManifest = manifest;
-      evidence.push({ status: "confirmed", claim: "Node.js project", sources: ["package.json"] });
-      if (manifest.workspaces || fileSet.has("pnpm-workspace.yaml")) {
+      evidence.push({ status: "confirmed", claim: "Node.js project", sources: [packagePath] });
+      if (
+        manifest.workspaces ||
+        fileSet.has(directory === "." ? "pnpm-workspace.yaml" : `${directory}/pnpm-workspace.yaml`)
+      ) {
         evidence.push({
           status: "confirmed",
           claim: "JavaScript/TypeScript workspace",
-          sources: manifest.workspaces ? ["package.json"] : ["pnpm-workspace.yaml"],
+          sources: manifest.workspaces
+            ? [packagePath]
+            : [directory === "." ? "pnpm-workspace.yaml" : `${directory}/pnpm-workspace.yaml`],
         });
       }
       const allDependencies = { ...manifest.dependencies, ...manifest.devDependencies };
@@ -316,17 +416,17 @@ function detectEvidence(
       ].filter((name) => name in allDependencies);
       const userFacingSources = files.filter(
         (file) =>
+          (directory === "." || file.startsWith(`${directory}/`)) &&
           /\.(?:tsx|jsx|vue|svelte)$/.test(file) &&
-          /^(?:(?:src|app|pages|components)\/|(?:apps|packages)\/[^/]+\/(?:src|app|pages|components)\/)/.test(
-            file,
-          ),
+          !/(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)/.test(file) &&
+          /(?:^|\/)(?:src|app|pages|components)\//.test(file),
       );
       if (userFacingDependencies.length > 0 || userFacingSources.length > 0) {
         evidence.push({
           status: "confirmed",
           claim: "User-facing web application",
           sources: [
-            ...(userFacingDependencies.length > 0 ? ["package.json"] : []),
+            ...(userFacingDependencies.length > 0 ? [packagePath] : []),
             ...userFacingSources.slice(0, 4),
           ],
         });
@@ -339,38 +439,70 @@ function detectEvidence(
         evidence.push({
           status: "confirmed",
           claim: "Playwright browser verification",
-          sources: ["package.json"],
+          sources: [packagePath],
         });
+      }
+      const manager = packageManagerEvidence(files, contents, manifest, directory, packagePath);
+      packageManagers.push({ path: packagePath, evidence: manager });
+      evidence.push({
+        status: manager.status,
+        claim: manager.name
+          ? `JavaScript package manager: ${manager.name}`
+          : "JavaScript package manager",
+        sources: manager.sources,
+        detail: manager.detail,
+      });
+      if (manager.name && manager.status !== "conflicting" && packageManifest.scripts) {
+        if (packageManifest.scripts["format:check"])
+          commands.push(
+            commandFromScript(manager.name, "format-check", "format:check", directory, packagePath),
+          );
+        const testCoversBuild = new RegExp(
+          manager.name === "yarn"
+            ? "(?:^|\\s)yarn\\s+build(?:\\s|$)"
+            : `(?:^|\\s)${manager.name}\\s+run\\s+build(?:\\s|$)`,
+        ).test(packageManifest.scripts.test ?? "");
+        for (const id of ["lint", "typecheck", "test", "build"]) {
+          if (id === "build" && testCoversBuild) continue;
+          if (packageManifest.scripts[id])
+            commands.push(commandFromScript(manager.name, id, id, directory, packagePath));
+        }
       }
     } catch {
       evidence.push({
         status: "conflicting",
         claim: "package.json is malformed",
-        sources: ["package.json"],
+        sources: [packagePath],
       });
     }
   }
 
-  const packageManager = packageManagerEvidence(files, contents, packageManifest);
-  if (packageText) {
-    evidence.push({
-      status: packageManager.status,
-      claim: packageManager.name
-        ? `JavaScript package manager: ${packageManager.name}`
-        : "JavaScript package manager",
-      sources: packageManager.sources,
-      detail: packageManager.detail,
-    });
+  const rootManager = packageManagers.find((item) => item.path === "package.json")?.evidence;
+  const usableManagers = packageManagers.filter(
+    (item) => item.evidence.name && item.evidence.status !== "conflicting",
+  );
+  const managerNames = [...new Set(usableManagers.map((item) => item.evidence.name))];
+  const packageManager =
+    rootManager ??
+    (managerNames.length === 1
+      ? {
+          name: managerNames[0]!,
+          status: "confirmed" as const,
+          sources: usableManagers.flatMap((item) => item.evidence.sources),
+          detail: `Detected ${managerNames[0]!} in ${usableManagers.map((item) => item.path).join(", ")}.`,
+        }
+      : packageManagerEvidence(files, contents, undefined));
+
+  for (const command of ciVerificationCommands(contents)) {
     if (
-      packageManager.name &&
-      packageManager.status !== "conflicting" &&
-      packageManifest?.scripts
+      !commands.some(
+        (candidate) =>
+          candidate.executable === command.executable &&
+          candidate.cwd === command.cwd &&
+          JSON.stringify(candidate.args) === JSON.stringify(command.args),
+      )
     ) {
-      if (packageManifest.scripts["format:check"])
-        commands.push(commandFromScript(packageManager.name, "format-check", "format:check"));
-      for (const id of ["lint", "typecheck", "test", "build"]) {
-        if (packageManifest.scripts[id]) commands.push(commandFromScript(packageManager.name, id));
-      }
+      commands.push(command);
     }
   }
 
@@ -381,20 +513,33 @@ function detectEvidence(
       sources: fileSet.has("tsconfig.json") ? ["tsconfig.json"] : ["source file extensions"],
     });
   }
-  if (fileSet.has("pyproject.toml") || fileSet.has("requirements.txt")) {
+  const pythonManifest = files.find(
+    (file) =>
+      projectManifest(file) &&
+      ["pyproject.toml", "requirements.txt"].includes(path.posix.basename(file)),
+  );
+  if (pythonManifest) {
     evidence.push({
       status: "confirmed",
       claim: "Python project",
-      sources: fileSet.has("pyproject.toml") ? ["pyproject.toml"] : ["requirements.txt"],
+      sources: [pythonManifest],
     });
   }
-  if (fileSet.has("Cargo.toml")) {
-    evidence.push({ status: "confirmed", claim: "Rust project", sources: ["Cargo.toml"] });
+  const rustManifest = files.find(
+    (file) => projectManifest(file) && path.posix.basename(file) === "Cargo.toml",
+  );
+  if (rustManifest) {
+    evidence.push({ status: "confirmed", claim: "Rust project", sources: [rustManifest] });
   }
-  if (fileSet.has("go.mod")) {
-    evidence.push({ status: "confirmed", claim: "Go project", sources: ["go.mod"] });
+  const goManifest = files.find(
+    (file) => projectManifest(file) && path.posix.basename(file) === "go.mod",
+  );
+  if (goManifest) {
+    evidence.push({ status: "confirmed", claim: "Go project", sources: [goManifest] });
   }
-  const playwrightConfig = files.find((file) => /^playwright\.config\./.test(file));
+  const playwrightConfig = files.find(
+    (file) => projectManifest(file) && /(?:^|\/)playwright\.config\./.test(file),
+  );
   if (playwrightConfig && !evidence.some((item) => item.claim.startsWith("Playwright"))) {
     evidence.push({
       status: "confirmed",
@@ -419,7 +564,7 @@ function detectEvidence(
       sources: ci.slice(0, 5),
     });
   }
-  return { evidence, commands };
+  return { evidence, commands, packageManager };
 }
 
 export async function scanRepository(
@@ -536,16 +681,7 @@ export async function scanRepository(
   const git = await lstat(path.join(root, ".git"))
     .then((gitStat) => gitStat.isDirectory() || gitStat.isFile())
     .catch(() => false);
-  const { evidence, commands } = detectEvidence(files, contents);
-  let packageManifest: { packageManager?: unknown } | undefined;
-  try {
-    packageManifest = contents["package.json"]
-      ? (JSON.parse(contents["package.json"]) as { packageManager?: unknown })
-      : undefined;
-  } catch {
-    packageManifest = undefined;
-  }
-  const packageManager = packageManagerEvidence(files, contents, packageManifest);
+  const { evidence, commands, packageManager } = detectEvidence(files, contents);
   const documents = files
     .map(classifyDocument)
     .filter((document): document is RepositoryDocument => document !== undefined);
@@ -559,13 +695,21 @@ export async function scanRepository(
   ] as const) {
     const matches = documents.filter((document) => document.kind === kind);
     if (matches.length > 0) {
+      const competingArchitectureEntrypoints =
+        kind === "architecture"
+          ? matches.filter((document) =>
+              /^architecture\.(?:md|mdx)$/i.test(path.posix.basename(document.path)),
+            )
+          : [];
+      const architectureConflict = competingArchitectureEntrypoints.length > 1;
       evidence.push({
-        status: kind === "architecture" && matches.length > 1 ? "conflicting" : "confirmed",
-        claim:
-          kind === "architecture" && matches.length > 1
-            ? "Multiple architecture documents require reconciliation"
-            : `Existing ${kind} documentation`,
-        sources: matches.map((document) => document.path).slice(0, 10),
+        status: architectureConflict ? "conflicting" : "confirmed",
+        claim: architectureConflict
+          ? "Multiple architecture documents require reconciliation"
+          : `Existing ${kind} documentation`,
+        sources: (architectureConflict ? competingArchitectureEntrypoints : matches)
+          .map((document) => document.path)
+          .slice(0, 10),
       });
     }
   }

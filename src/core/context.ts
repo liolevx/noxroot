@@ -18,18 +18,33 @@ const STOP_WORDS = new Set([
   "add",
   "and",
   "change",
+  "changing",
+  "component",
+  "components",
+  "do",
+  "existing",
   "fix",
   "for",
   "from",
   "improve",
+  "introduce",
   "into",
   "make",
+  "modify",
+  "modifying",
+  "new",
+  "not",
+  "pattern",
+  "patterns",
+  "reuse",
   "safe",
   "safety",
   "that",
   "the",
   "this",
+  "top",
   "with",
+  "without",
 ]);
 const TOKEN_ALIASES: Record<string, string> = {
   approved: "approve",
@@ -103,7 +118,7 @@ function routeMatches(pattern: string, taskTerms: string[]): boolean {
 
 function category(file: string): Category {
   if (ALWAYS_CONTEXT.has(file)) return "entrypoint";
-  if (MANIFESTS.has(file)) return "manifest";
+  if (MANIFESTS.has(path.posix.basename(file))) return "manifest";
   if (TEST_PATH.test(file)) return "test";
   if (SOURCE_EXTENSION.test(file)) return "source";
   if (DOCUMENT_PATH.test(file)) return "document";
@@ -136,7 +151,7 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
   } else if (file === ".noxroot/config.yml") {
     score += 52;
     reasons.push("active Noxroot configuration");
-  } else if (MANIFESTS.has(file)) {
+  } else if (MANIFESTS.has(path.posix.basename(file))) {
     score += 28;
     reasons.push("authoritative project manifest");
   }
@@ -171,6 +186,30 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
   if (FIXTURE_PATH.test(file)) {
     score -= 45;
     reasons.push("fixture/example penalty");
+  }
+  const procedure = file.replaceAll("\\", "/");
+  if (
+    procedure.endsWith("/.noxroot/skills/product-ux-review/SKILL.md") ||
+    procedure === ".noxroot/skills/product-ux-review/SKILL.md"
+  ) {
+    if (
+      taskTerms.some((term) =>
+        ["design", "hierarchy", "interaction", "mobile", "ux", "wording"].includes(term),
+      )
+    ) {
+      score += 70;
+      reasons.push("product/UX procedure matches the requested surface");
+    }
+  } else if (procedure.endsWith(".noxroot/skills/verify-change/SKILL.md")) {
+    if (taskTerms.some((term) => ["check", "regression", "test", "verify"].includes(term))) {
+      score += 70;
+      reasons.push("verification procedure matches the requested outcome");
+    }
+  } else if (procedure.endsWith(".noxroot/skills/independent-review/SKILL.md")) {
+    if (taskTerms.some((term) => ["auth", "review", "security"].includes(term))) {
+      score += 70;
+      reasons.push("independent-review procedure matches the requested risk");
+    }
   }
   return { file, bytes: 0, score, reasons, category: fileCategory, matchedTerms };
 }
@@ -275,6 +314,18 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const budget = config?.context.budgetBytes ?? DEFAULT_CONTEXT_BUDGET;
   const intent = parseTaskIntent(task);
   const taskTerms = tokens(relevantIntentText(intent));
+  const projectAreaTerms = new Set(
+    profile.files
+      .filter((file) => MANIFESTS.has(path.posix.basename(file)))
+      .map((file) => path.posix.dirname(file).split("/")[0])
+      .filter((value): value is string => Boolean(value) && value !== ".")
+      .flatMap(tokens),
+  );
+  const rankingTerms = taskTerms.filter((term) => !projectAreaTerms.has(term));
+  const contentTerms = rankingTerms.filter(
+    (term) => !["check", "regression", "test", "verify"].includes(term),
+  );
+  const excludedPathTerms = new Set(tokens(intent.explicitExclusions.join(" ")));
   const activeRoutes = (routes?.routes ?? []).filter((route) =>
     route.match.some((pattern) => routeMatches(pattern, taskTerms)),
   );
@@ -285,38 +336,61 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       .map((route) => route.id);
 
   const outsidePool: Array<{ path: string; reason: string }> = [];
+  const scopeExcluded: Array<{ path: string; reason: string }> = [];
   const candidates: RankedCandidate[] = [];
   for (const file of profile.files) {
     if (profile.suspectedSecrets.includes(file)) continue;
     if (routedExcludes.some((pattern) => matchesGlob(pattern, file))) continue;
+    if (tokens(file).some((term) => excludedPathTerms.has(term))) {
+      if (scopeExcluded.length < 10) {
+        scopeExcluded.push({ path: file, reason: "matches an explicit task exclusion" });
+      }
+      continue;
+    }
     const activeRouteIds = routeIncludesFor(file);
-    const fixed = ALWAYS_CONTEXT.has(file) || MANIFESTS.has(file);
+    const fixed = ALWAYS_CONTEXT.has(file) || MANIFESTS.has(path.posix.basename(file));
     if (activeRoutes.length > 0 && !fixed && activeRouteIds.length === 0) {
       if (outsidePool.length < 10) {
         outsidePool.push({ path: file, reason: "outside the active route candidate pool" });
       }
       continue;
     }
-    const candidate = baseScore(file, taskTerms, activeRouteIds);
+    const candidate = baseScore(file, rankingTerms, activeRouteIds);
     candidate.bytes = profile.fileSizes[file] ?? 0;
     candidates.push(candidate);
   }
 
-  await addContentRelevance(canonicalRoot, candidates, taskTerms);
+  await addContentRelevance(canonicalRoot, candidates, contentTerms);
   addAdjacency(candidates);
   candidates.sort((left, right) => right.score - left.score || left.file.localeCompare(right.file));
 
   const selectionFileLimit = Math.min(8_000, Math.floor(budget * 0.55));
+  const fitsSelection = (item: RankedCandidate): boolean =>
+    item.bytes <= selectionFileLimit ||
+    (item.bytes <= Math.floor(budget * 0.75) &&
+      item.reasons.some((reason) => reason.startsWith("basename matches task term")));
   const topOwner = candidates.find(
-    (item) => item.category === "source" && item.score >= 20 && item.bytes <= selectionFileLimit,
+    (item) =>
+      item.category === "source" &&
+      item.matchedTerms.size > 0 &&
+      item.score >= 20 &&
+      fitsSelection(item),
   );
   const topTest = candidates.find(
-    (item) => item.category === "test" && item.score >= 20 && item.bytes <= selectionFileLimit,
+    (item) =>
+      item.category === "test" &&
+      item.matchedTerms.size > 0 &&
+      item.score >= 20 &&
+      fitsSelection(item),
+  );
+  const topProcedure = candidates.find(
+    (item) => item.file.startsWith(".noxroot/skills/") && item.score >= 20 && fitsSelection(item),
   );
   const priority = [
     topOwner,
-    topTest,
+    topProcedure,
     ...candidates.filter((item) => ALWAYS_CONTEXT.has(item.file)),
+    topTest,
   ]
     .filter((item): item is RankedCandidate => item !== undefined)
     .filter(
@@ -345,11 +419,24 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     other: 0,
   };
   const selected: ContextSelection[] = [];
-  const excluded: Array<{ path: string; reason: string }> = [...outsidePool];
+  const excluded: Array<{ path: string; reason: string }> = [...scopeExcluded, ...outsidePool];
   let selectedBytes = 0;
   for (const item of selectionOrder) {
-    if (item.bytes > selectionFileLimit && !ALWAYS_CONTEXT.has(item.file)) {
+    const adjacentToPriority = item.reasons.some((reason) => {
+      const match = /^source\/test counterpart of (.+)$/.exec(reason);
+      return Boolean(match?.[1] && priorityPaths.has(match[1]));
+    });
+    if (!fitsSelection(item) && !ALWAYS_CONTEXT.has(item.file)) {
       if (excluded.length < 20) excluded.push({ path: item.file, reason: "per-file context cap" });
+      continue;
+    }
+    if (
+      (item.category === "source" || item.category === "test") &&
+      item.matchedTerms.size === 0 &&
+      !adjacentToPriority
+    ) {
+      if (excluded.length < 20)
+        excluded.push({ path: item.file, reason: "insufficient direct task relevance" });
       continue;
     }
     if (item.score < 10 && !ALWAYS_CONTEXT.has(item.file)) {

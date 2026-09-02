@@ -17,6 +17,8 @@ const MANAGED_BLOCK = `${MANAGED_START}
 
 Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant routes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge.
 
+For a code-changing task, run \`noxroot start "<task>"\` before editing and \`noxroot finish\` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.
+
 When \`.noxroot/skills/\` exists, load only the task-relevant \`SKILL.md\`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.
 ${MANAGED_END}`;
 
@@ -159,6 +161,23 @@ function usefulDocuments(profile: RepositoryProfile): RepositoryDocument[] {
 }
 
 function routesContent(profile: RepositoryProfile, skillPaths: string[]): string {
+  const projectRoots = [
+    ...new Set(
+      profile.files
+        .filter(
+          (file) =>
+            ["package.json", "pyproject.toml", "Cargo.toml", "go.mod"].includes(
+              path.posix.basename(file),
+            ) &&
+            !/(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?)(?:\/|$)/.test(
+              file,
+            ),
+        )
+        .map((file) => path.posix.dirname(file))
+        .filter((directory) => directory !== ".")
+        .map((directory) => `${directory}/**`),
+    ),
+  ];
   const sourceRoots = ["src/**", "app/**", "lib/**", "packages/**", "apps/**"].filter((glob) =>
     profile.files.some((file) => file.startsWith(glob.replace("/**", "/"))),
   );
@@ -176,6 +195,7 @@ function routesContent(profile: RepositoryProfile, skillPaths: string[]): string
           ".noxroot/knowledge/INDEX.md",
           ...usefulDocuments(profile).map((document) => document.path),
           ...skillPaths,
+          ...projectRoots,
           ...sourceRoots,
           ...testRoots,
         ],
@@ -187,10 +207,19 @@ function routesContent(profile: RepositoryProfile, skillPaths: string[]): string
 
 function indexLink(document: RepositoryDocument): string {
   const relative = path.posix.relative(".noxroot/knowledge", document.path);
+  const basename = path.posix.basename(document.path).replace(/\.(?:md|mdx)$/i, "");
   const label =
     document.kind === "ux"
       ? "Product and UX"
-      : `${document.kind[0]?.toUpperCase() ?? ""}${document.kind.slice(1)}`;
+      : document.kind === "architecture" && basename.toLowerCase() !== "architecture"
+        ? basename.toLowerCase() === "readme"
+          ? "Architecture overview"
+          : basename.toLowerCase() === "ai"
+            ? "AI architecture"
+            : `${basename
+                .replaceAll("-", " ")
+                .replace(/^./, (value) => value.toUpperCase())} architecture`
+        : `${document.kind[0]?.toUpperCase() ?? ""}${document.kind.slice(1)}`;
   return `- [${label}](${relative}) — existing repository documentation; load only when relevant.`;
 }
 

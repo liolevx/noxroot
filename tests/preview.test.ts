@@ -251,6 +251,160 @@ describe("read-only preview", () => {
     );
   });
 
+  it("discovers nested Node and Python projects with scoped checks from manifests and CI", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await mkdir(path.join(root, "web", "components"), { recursive: true });
+    await mkdir(path.join(root, "engine", "src"), { recursive: true });
+    await mkdir(path.join(root, ".github", "workflows"), { recursive: true });
+    await writeFile(
+      path.join(root, "web", "package.json"),
+      JSON.stringify({
+        dependencies: { next: "16.0.0", react: "19.0.0" },
+        scripts: {
+          typecheck: "tsc --noEmit",
+          lint: "eslint .",
+          build: "next build",
+          test: "npm run build && node --test",
+        },
+      }),
+    );
+    await writeFile(path.join(root, "web", "package-lock.json"), "{}\n");
+    await writeFile(
+      path.join(root, "web", "components", "App.tsx"),
+      "export const App = () => <main />;\n",
+    );
+    await writeFile(path.join(root, "engine", "pyproject.toml"), "[project]\nname='engine'\n");
+    await writeFile(path.join(root, "engine", "src", "app.py"), "value = 1\n");
+    await writeFile(
+      path.join(root, ".github", "workflows", "ci.yml"),
+      `jobs:
+  engine:
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - name: ruff
+        run: uv run ruff check .
+      - name: mypy
+        run: uv run mypy --strict src
+      - name: pytest
+        run: uv run pytest -q
+  focused:
+    steps:
+      - name: focused pytest
+        working-directory: engine
+        run: python -m pytest tests/test_sic.py
+  unsafe:
+    steps:
+      - name: matrix pytest
+        working-directory: \${{ matrix.directory }}
+        run: python -m pytest
+`,
+    );
+
+    const result = await previewRepository(root);
+    expect(result.profile.evidence).toContainEqual(
+      expect.objectContaining({ claim: "Node.js project", sources: ["web/package.json"] }),
+    );
+    expect(result.profile.evidence).toContainEqual(
+      expect.objectContaining({ claim: "Python project", sources: ["engine/pyproject.toml"] }),
+    );
+    expect(result.profile.packageManager).toMatchObject({
+      name: "npm",
+      status: "confirmed",
+      sources: ["web/package-lock.json"],
+    });
+    expect(result.profile.candidateCommands).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "web-typecheck", cwd: "web", appliesTo: ["web/**"] }),
+        expect.objectContaining({ id: "web-lint", cwd: "web", appliesTo: ["web/**"] }),
+        expect.objectContaining({ id: "web-test", cwd: "web", appliesTo: ["web/**"] }),
+        expect.objectContaining({
+          id: "engine-ruff",
+          executable: "uv",
+          args: ["run", "ruff", "check", "."],
+          cwd: "engine",
+          appliesTo: ["engine/**"],
+        }),
+        expect.objectContaining({ id: "engine-mypy", cwd: "engine" }),
+        expect.objectContaining({ id: "engine-pytest", cwd: "engine" }),
+        expect.objectContaining({
+          id: "engine-focused-pytest",
+          executable: "python",
+          cwd: "engine",
+        }),
+      ]),
+    );
+    expect(result.profile.candidateCommands.map((command) => command.id)).not.toContain(
+      "matrix-pytest",
+    );
+    expect(result.profile.candidateCommands.map((command) => command.id)).not.toContain(
+      "web-build",
+    );
+    expect(result.modules.find((item) => item.id === "product-ux")?.status).toBe("recommended");
+    expect(result.modules.find((item) => item.id === "browser-qa")?.status).toBe("not applicable");
+    const routes = result.proposedFiles.find(
+      (item) => item.path === ".noxroot/routes.yml",
+    )?.content;
+    expect(routes).toContain("web/**");
+    expect(routes).toContain("engine/**");
+  });
+
+  it("does not promote embedded test fixtures into live nested projects", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await writeFile(
+      path.join(root, "package.json"),
+      JSON.stringify({ packageManager: "npm@11.0.0", scripts: { test: "node --test" } }),
+    );
+    await mkdir(path.join(root, "tests", "fixtures", "sample"), { recursive: true });
+    await writeFile(
+      path.join(root, "tests", "fixtures", "sample", "package.json"),
+      JSON.stringify({ packageManager: "pnpm@10.0.0", scripts: { build: "fixture" } }),
+    );
+    await writeFile(
+      path.join(root, "tests", "fixtures", "sample", "pyproject.toml"),
+      "[project]\nname='fixture'\n",
+    );
+
+    const result = await previewRepository(root);
+    expect(result.profile.candidateCommands.map((command) => command.id)).toEqual(["test"]);
+    expect(result.profile.evidence).not.toContainEqual(
+      expect.objectContaining({ sources: ["tests/fixtures/sample/package.json"] }),
+    );
+    expect(result.profile.evidence).not.toContainEqual(
+      expect.objectContaining({ sources: ["tests/fixtures/sample/pyproject.toml"] }),
+    );
+  });
+
+  it("indexes architecture domain documents without treating their coexistence as a conflict", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await mkdir(path.join(root, "architecture"), { recursive: true });
+    await writeFile(path.join(root, "ARCHITECTURE.md"), "# System\n");
+    await writeFile(path.join(root, "architecture", "README.md"), "# Overview\n");
+    await writeFile(path.join(root, "architecture", "frontend.md"), "# Frontend\n");
+    await writeFile(path.join(root, "architecture", "contracts.md"), "# Contracts\n");
+
+    const result = await previewRepository(root);
+    expect(result.conflicts).not.toContain(
+      "Multiple architecture documents require reconciliation",
+    );
+    const index = result.proposedFiles.find(
+      (item) => item.path === ".noxroot/knowledge/INDEX.md",
+    )?.content;
+    expect(index).toContain("Architecture overview");
+    expect(index).toContain("Frontend architecture");
+    expect(index).toContain("Contracts architecture");
+  });
+
   it("marks existing Playwright as applicable without installing browser tooling", async () => {
     const fixture = await fixtureCopy("browser");
     cleanup.push(fixture.cleanup);

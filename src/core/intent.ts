@@ -7,7 +7,12 @@ const AUTHORITY = /\b(push|merge|deploy|publish|release)\b/gi;
 function clauses(task: string): string[] {
   return task
     .split(/(?:\r?\n|[.;](?:\s|$))/)
-    .map((value) => value.trim())
+    .flatMap((value) => {
+      const trimmed = value.trim();
+      const without = /\bwithout\b/i.exec(trimmed);
+      if (!without || without.index === 0) return [trimmed];
+      return [trimmed.slice(0, without.index).trim(), trimmed.slice(without.index).trim()];
+    })
     .filter(Boolean);
 }
 
