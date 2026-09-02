@@ -1,0 +1,144 @@
+export type EvidenceStatus = "confirmed" | "declared" | "inferred" | "unknown" | "conflicting";
+
+export type ModuleStatus =
+  "recommended" | "optional" | "enabled" | "disabled" | "not applicable" | "blocked";
+
+export interface Evidence {
+  status: EvidenceStatus;
+  claim: string;
+  sources: string[];
+  detail?: string;
+}
+
+export interface ModuleAssessment {
+  id:
+    | "repository-profile"
+    | "agent-routing"
+    | "project-knowledge"
+    | "verification"
+    | "product-ux"
+    | "orchestration"
+    | "learning"
+    | "browser-qa";
+  label: string;
+  status: ModuleStatus;
+  reason: string;
+}
+
+export interface InspectionLimits {
+  maxFiles: number;
+  maxFileBytes: number;
+  maxContentBytes: number;
+  maxDepth: number;
+  maxDurationMs: number;
+}
+
+export interface InspectionStats {
+  filesVisited: number;
+  contentBytesRead: number;
+  durationMs: number;
+  incompleteReasons: string[];
+}
+
+export interface CandidateCommand {
+  id: string;
+  executable: string;
+  args: string[];
+  cwd: string;
+  source: string;
+  appliesTo: string[];
+}
+
+export interface RepositoryProfile {
+  root: string;
+  empty: boolean;
+  git: boolean;
+  files: string[];
+  fileSizes: Record<string, number>;
+  evidence: Evidence[];
+  suspectedSecrets: string[];
+  blockedSymlinks: string[];
+  candidateCommands: CandidateCommand[];
+  stats: InspectionStats;
+}
+
+export interface ProposedFile {
+  path: string;
+  action: "create" | "reference";
+  reason: string;
+  content?: string;
+  patch?: string;
+}
+
+export interface PreviewResult {
+  kind: "preview";
+  root: string;
+  profile: RepositoryProfile;
+  modules: ModuleAssessment[];
+  proposedFiles: ProposedFile[];
+  existingSetup: string[];
+  conflicts: string[];
+  unknowns: string[];
+  contextEstimate: {
+    defaultBytes: number;
+    estimatedTokens: number;
+  };
+  trust: {
+    repositoryFilesChanged: 0;
+    repositoryCommandsExecuted: 0;
+    agentCallsMade: 0;
+    networkRequestsMade: 0;
+  };
+}
+
+export interface ContextSelection {
+  path: string;
+  bytes: number;
+  estimatedTokens: number;
+  reasons: string[];
+}
+
+export interface ContextPackage {
+  task: string;
+  interpretation: string;
+  applicableAreas: string[];
+  selected: ContextSelection[];
+  likelyOwningSource: string[];
+  likelyTests: string[];
+  constraints: string[];
+  requiredVerification: CandidateCommand[];
+  conflicts: string[];
+  unknowns: string[];
+  excluded: Array<{ path: string; reason: string }>;
+  budget: { maximumBytes: number; selectedBytes: number; estimatedTokens: number };
+}
+
+export interface VerificationCommand {
+  id: string;
+  executable: string;
+  args: string[];
+  cwd: string;
+  timeoutMs: number;
+  appliesTo: string[];
+}
+
+export interface ProcessEvidence {
+  executable: string;
+  args: string[];
+  cwd: string;
+  startedAt: string;
+  endedAt: string;
+  durationMs: number;
+  exitCode: number | null;
+  signal: string | null;
+  timedOut: boolean;
+  stdout: string;
+  stderr: string;
+  outputTruncated: boolean;
+}
+
+export interface VerificationResult {
+  command: VerificationCommand;
+  evidence: ProcessEvidence;
+  status: "passed" | "failed" | "timed-out";
+}
