@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 async function pathType(candidate: string): Promise<"file" | "directory" | undefined> {
@@ -70,4 +70,24 @@ export async function replaceRunRecord(root: string, id: string, value: unknown)
   });
   await rename(temporary, target);
   return target;
+}
+
+export async function listRunRecords<T>(root: string): Promise<T[]> {
+  const directory = path.join(await localStateRoot(root), "runs");
+  let names: string[];
+  try {
+    names = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  const records: T[] = [];
+  for (const name of names) {
+    try {
+      records.push(JSON.parse(await readFile(path.join(directory, name), "utf8")) as T);
+    } catch {
+      // A malformed or concurrently replaced record is not eligible for implicit selection.
+    }
+  }
+  return records;
 }

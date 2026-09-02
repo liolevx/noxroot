@@ -268,6 +268,9 @@ export function assessModules(
   ): ModuleAssessment["status"] =>
     initialized ? (enabledModules.has(id) ? "enabled" : "disabled") : initial;
   const hasBrowser = profile.evidence.some((item) => item.claim.includes("Playwright"));
+  const hasUserFacingProduct = profile.evidence.some(
+    (item) => item.claim === "User-facing web application",
+  );
   const hasChecks = profile.candidateCommands.length > 0;
   return [
     {
@@ -301,10 +304,10 @@ export function assessModules(
     {
       id: "product-ux",
       label: "Product and UX",
-      status: hasBrowser ? status("product-ux", "optional") : "not applicable",
-      reason: hasBrowser
-        ? "Browser tooling exists, but product intent must be declared before UX rules are created."
-        : "No evidence currently establishes a user-facing browser product.",
+      status: hasUserFacingProduct ? status("product-ux", "recommended") : "not applicable",
+      reason: hasUserFacingProduct
+        ? "User-facing source or framework evidence makes the product/UX procedure applicable."
+        : "No evidence currently establishes a user-facing product.",
     },
     {
       id: "orchestration",

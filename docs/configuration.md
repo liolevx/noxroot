@@ -29,6 +29,10 @@ agents:
       executable: my-agent
       args: [run, --non-interactive]
       timeoutMs: 600000
+      healthCheck:
+        executable: my-agent
+        args: [status]
+        timeoutMs: 10000
 budgets:
   workerCalls: 2
   reviewerCalls: 2
@@ -50,7 +54,9 @@ implementation level 1 permits guided records; implementation level 2 permits a 
 review level 3 permits independent reviewer and bounded repair calls. Higher configured values are
 effectively capped at 3. `merge` and `delivery` are operationally disabled in the MVP regardless of
 their fields. Agent arguments are literal arrays and task packages use standard input. Never put
-credentials in configuration, arguments, prompts, or knowledge.
+credentials in configuration, arguments, prompts, or knowledge. The optional health command is never
+inferred: configure it only when the selected agent documents a safe non-mutating health or
+authentication-status command.
 
 Confirmed checks live separately in `.noxroot/verification.yml`:
 

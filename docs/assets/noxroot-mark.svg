@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="mark-title mark-desc">
+  <title id="mark-title">Noxroot mark</title>
+  <desc id="mark-desc">A violet branching path forms a lowercase n and grows into three roots.</desc>
+  <rect width="64" height="64" rx="14" fill="#090612"/>
+  <path d="M17 43V23m0 7c8-10 18-9 18 2v11m0-11c0-10 12-12 12-1v12M17 43l-7 8m7-8v10m0-10 8 8m10-8-5 10m5-10 7 8m5-8 5 8" fill="none" stroke="#A78BFA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="17" cy="23" r="3" fill="#DDD6FE"/>
+  <circle cx="35" cy="43" r="3" fill="#DDD6FE"/>
+  <circle cx="47" cy="43" r="3" fill="#DDD6FE"/>
+</svg>

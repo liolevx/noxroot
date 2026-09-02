@@ -26,4 +26,18 @@ describe("bounded relevance routing", () => {
     );
     expect(unrelated).toEqual([]);
   });
+
+  it("preserves negative constraints without activating them as relevance or authority", async () => {
+    const context = await buildContext(
+      "Improve reviewer output. Do not deploy or change authentication.",
+      path.resolve("."),
+    );
+    expect(context.intent).toMatchObject({
+      requiredOutcomes: ["Improve reviewer output"],
+      explicitExclusions: ["Do not deploy or change authentication"],
+      requestedAuthority: [],
+    });
+    expect(context.constraints).toContain("Do not deploy or change authentication");
+    expect(context.selected.some((item) => /deploy|auth/i.test(item.path))).toBe(false);
+  });
 });

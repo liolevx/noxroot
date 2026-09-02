@@ -1,5 +1,6 @@
 import type { AgentAdapter, AgentResult } from "../adapters/agents.js";
 import type { ContextPackage, VerificationResult } from "../model.js";
+import { assessReviewNeed } from "./review.js";
 
 export interface RunBudgets {
   workerCalls: number;
@@ -14,9 +15,11 @@ export interface RunRecord {
     | "running"
     | "review-pending"
     | "approved"
+    | "completed"
     | "changes-requested"
     | "failed"
     | "blocked"
+    | "incomplete"
     | "manual";
   branch?: string;
   worktree?: string;
@@ -78,7 +81,7 @@ function handoff(record: Omit<RunRecord, "handoff">): string {
       .join("\n") || "No independent reviewer was invoked.",
     "",
     "RISKS",
-    record.status === "approved"
+    record.status === "approved" || record.status === "completed"
       ? "Passing evidence is limited to the checks listed above."
       : "Human review is required.",
     "",
@@ -156,7 +159,7 @@ export async function orchestrateRun(
     const partial: Omit<RunRecord, "handoff"> = {
       id: request.id,
       task: request.task,
-      status: "blocked",
+      status: "incomplete",
       ...(request.branch === undefined ? {} : { branch: request.branch }),
       worktree: request.cwd,
       calls,
@@ -177,7 +180,7 @@ export async function orchestrateRun(
     const partial: Omit<RunRecord, "handoff"> = {
       id: request.id,
       task: request.task,
-      status: "blocked",
+      status: "incomplete",
       ...(request.branch === undefined ? {} : { branch: request.branch }),
       worktree: request.cwd,
       calls,
@@ -210,6 +213,22 @@ export async function orchestrateRun(
       id: request.id,
       task: request.task,
       status: "failed",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps,
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
+
+  const reviewDiff = await dependencies.diff();
+  const reviewAssessment = assessReviewNeed([], reviewDiff);
+  if (!reviewAssessment.required) {
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "completed",
       ...(request.branch === undefined ? {} : { branch: request.branch }),
       worktree: request.cwd,
       calls,
@@ -254,7 +273,8 @@ export async function orchestrateRun(
     role: "reviewer",
     package: {
       original: request.context,
-      diff: await dependencies.diff(),
+      diff: reviewDiff,
+      reviewAssessment,
       verification: checkResults,
       rubric: [
         "Inspect independently before relying on worker rationale.",

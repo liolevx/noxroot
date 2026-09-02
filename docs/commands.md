@@ -9,14 +9,14 @@ output is plain by default).
 
 Exit codes:
 
-| Code | Meaning                                          |
-| ---- | ------------------------------------------------ |
-| 0    | Requested operation completed                    |
-| 2    | Usage, configuration, or validation error        |
-| 3    | Required confirmation was refused or unavailable |
-| 4    | Approved verification failed or timed out        |
-| 5    | Agent/reviewer flow did not finish approved      |
-| 130  | Interrupted                                      |
+| Code | Meaning                                           |
+| ---- | ------------------------------------------------- |
+| 0    | Requested operation completed                     |
+| 2    | Usage, configuration, or validation error         |
+| 3    | Required confirmation was refused or unavailable  |
+| 4    | Verification failed, timed out, or is incomplete  |
+| 5    | Connected agent or required review did not finish |
+| 130  | Interrupted                                       |
 
 ## `preview`
 
@@ -57,21 +57,30 @@ recorded task. Commands run directly, sequentially, with working-directory valid
 timeout/cancellation, a minimal environment, and bounded output. Execution stops after the first
 failure.
 
-## `run`
+## `start` and `run`
 
-`run "task" --dry-run` prints effective autonomy, calls, scopes, checks, and prohibitions without a
-Git/project command, agent, or write. At implementation level 1, `--guided` records a clean Git
-baseline, context, and trusted policy for an external agent. Level 2 permits a configured worker in
-an isolated branch/worktree. Level 3 permits reviewer/repair execution. Merge and delivery remain
-disabled. Policy is captured before the worker and actual changed paths select affected checks.
+`start "task"` is the plain-language guided entry point. It records a clean Git baseline, structured
+outcomes and exclusions, bounded context, and the trusted verification policy without invoking a
+model. The coding agent can consume the same record and package.
+
+`run "task" --dry-run` exposes effective autonomy, calls, scopes, checks, and prohibitions without a
+Git/project command, agent, or write. Level 2 permits an explicitly configured worker in an isolated
+branch/worktree. Before that worktree exists, preflight checks the executable, literal arguments,
+repository write access, Git baseline, approved check executables, and only an explicitly configured
+health command. Level 3 permits review and bounded repair. Merge and delivery remain disabled.
 
 ## `finish`
 
-`finish --task ID [--review-file path]` closes a guided task. It validates repository identity and
-the recorded policy hash, computes the diff from the baseline (including new files), runs matching
-approved checks, and creates a portable reviewer package. Without an authorized command reviewer or
-a strict repository-relative review JSON file, successful checks produce `review-pending`, not
-approval. Zero matching checks, unavailable tools, and invalid reviewer output block completion.
+`finish [--task ID] [--review-file path]` closes a guided task. The id is inferred when exactly one
+eligible task is active; multiple tasks require an explicit id. Finish validates repository identity
+and the policy snapshot, computes the actual diff, and runs matching approved checks. Routine
+checked changes become `completed` without a reviewer. User-facing, security-sensitive, and
+unusually broad diffs produce a review package and may become `review-pending`. Only a schema-valid
+reviewer can produce `approved`. No matching or available check becomes `incomplete`: local handoff
+can continue, but approval cannot. Finish also reports a deterministic documentation/learning
+assessment without a new model call. When no deterministic documentation signal exists,
+documentation is reported as `not-assessed`; an empty deterministic learning assessment is reported
+as `no-candidate`, not as proof that no documentation could help.
 
 ## `learn`
 

@@ -75,6 +75,9 @@ export function renderContext(context: ContextPackage): string {
     "NOXROOT CONTEXT",
     `Task: ${context.task}`,
     `Interpretation: ${context.interpretation}`,
+    `Required outcomes: ${context.intent.requiredOutcomes.join("; ") || "inspect and clarify"}`,
+    `Explicit exclusions: ${context.intent.explicitExclusions.join("; ") || "none"}`,
+    `Requested authority: ${context.intent.requestedAuthority.join(", ") || "local work only"}`,
     `Confidence: ${context.confidence}`,
     "",
     `Selected ${context.selected.length} of ${context.repositoryFileCount} repository files (${context.eligibleCandidateFiles} eligible) · ${context.budget.selectedBytes}/${context.budget.maximumBytes} bytes (~${context.budget.estimatedTokens} tokens)`,
@@ -108,7 +111,8 @@ export function renderContext(context: ContextPackage): string {
 }
 
 export function renderVerification(results: VerificationResult[]): string {
-  if (results.length === 0) return "NOXROOT VERIFY\nNo approved checks matched.\n";
+  if (results.length === 0)
+    return "NOXROOT VERIFY\nVerification incomplete: no approved checks matched.\n";
   const lines = ["NOXROOT VERIFY"];
   for (const result of results) {
     lines.push(

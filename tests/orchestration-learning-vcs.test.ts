@@ -4,7 +4,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AgentAdapter, AgentRequest, AgentResult } from "../src/adapters/agents.js";
-import { prepareIsolatedWorktree } from "../src/adapters/vcs.js";
+import { boundedDiff, prepareIsolatedWorktree } from "../src/adapters/vcs.js";
 import { applyLearning, proposeLearnings } from "../src/knowledge/learn.js";
 import type { ContextPackage, VerificationResult } from "../src/model.js";
 import { orchestrateRun, type RunRecord } from "../src/orchestration/run.js";
@@ -17,6 +17,12 @@ afterEach(async () => Promise.all(cleanup.splice(0).map((operation) => operation
 const context: ContextPackage = {
   task: "change greeting",
   interpretation: "bounded greeting change",
+  intent: {
+    requiredOutcomes: ["change greeting"],
+    explicitExclusions: [],
+    requestedAuthority: [],
+    acceptanceCriteria: [],
+  },
   confidence: "high",
   repositoryFileCount: 2,
   eligibleCandidateFiles: 2,
@@ -97,7 +103,7 @@ class FakeAdapter implements AgentAdapter {
 }
 
 describe("orchestration, worktree isolation, and controlled learning", () => {
-  it("blocks before review when no approved deterministic check matched", async () => {
+  it("stops before review with an incomplete, never-approved result when no check matched", async () => {
     const adapter = new FakeAdapter();
     const record = await orchestrateRun(
       {
@@ -111,7 +117,8 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
       },
       { verify: async () => [], diff: async () => "diff" },
     );
-    expect(record.status).toBe("blocked");
+    expect(record.status).toBe("incomplete");
+    expect(record.reviewDecision).not.toBe("approved");
     expect(adapter.roles).toEqual(["worker"]);
     expect(record.handoff).toContain("No approved deterministic checks matched");
   });
@@ -134,13 +141,35 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
           verifies += 1;
           return [check("passed")];
         },
-        diff: async () => "diff --git a/src/greet.ts b/src/greet.ts",
+        diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
       },
     );
     expect(adapter.roles).toEqual(["worker", "reviewer"]);
     expect(verifies).toBe(1);
     expect(record.status).toBe("approved");
     expect(record.handoff).toContain("Noxroot did not merge or push it");
+  });
+
+  it("completes a routine checked change without an unnecessary reviewer", async () => {
+    const adapter = new FakeAdapter();
+    const record = await orchestrateRun(
+      {
+        id: "task-routine",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => [check("passed")],
+        diff: async () => "diff --git a/src/greet.ts b/src/greet.ts",
+      },
+    );
+    expect(record.status).toBe("completed");
+    expect(record.reviewDecision).toBeUndefined();
+    expect(adapter.roles).toEqual(["worker"]);
   });
 
   it("bounds one reviewer-requested repair and re-verifies before re-review", async () => {
@@ -161,7 +190,7 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
           verifies += 1;
           return [check("passed")];
         },
-        diff: async () => "diff",
+        diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
       },
     );
     expect(adapter.roles).toEqual(["worker", "reviewer", "repair", "reviewer"]);
@@ -184,6 +213,73 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
     expect(isolated.dirtySourceWorktree).toBe(true);
     expect(await readFile(path.join(root, "dirty.txt"), "utf8")).toBe("preserve me");
     await expect(readFile(path.join(isolated.path, "dirty.txt"), "utf8")).rejects.toThrow();
+  });
+
+  it("includes worker-created untracked files in the connected reviewer diff", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await exec("git", ["init"], { cwd: root });
+    await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+    await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+    await writeFile(path.join(root, "README.md"), "# Fixture\n");
+    await exec("git", ["add", "README.md"], { cwd: root });
+    await exec("git", ["commit", "-m", "initial"], { cwd: root });
+    const isolated = await prepareIsolatedWorktree(root, "add profile card", "20260101-1234abcd");
+    await mkdir(path.join(isolated.path, "src", "components"), { recursive: true });
+    await writeFile(
+      path.join(isolated.path, "src", "components", "Profile card.tsx"),
+      "export function ProfileCard() { return <section>Profile</section>; }\n",
+    );
+
+    const diff = await boundedDiff(isolated);
+    expect(diff).toContain("diff --git a/src/components/Profile card.tsx");
+    expect(diff).toContain("ProfileCard");
+  });
+
+  it("redacts untracked secret and configured-sensitive content from reviewer evidence", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await exec("git", ["init"], { cwd: root });
+    await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+    await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+    await writeFile(path.join(root, "README.md"), "# Fixture\n");
+    await exec("git", ["add", "README.md"], { cwd: root });
+    await exec("git", ["commit", "-m", "initial"], { cwd: root });
+    const isolated = await prepareIsolatedWorktree(root, "protect evidence", "20260101-deadbeef");
+    await mkdir(path.join(isolated.path, "runtime"), { recursive: true });
+    await writeFile(path.join(isolated.path, ".env"), "TOKEN=never-copy-this\n");
+    await writeFile(path.join(isolated.path, "runtime", "session.json"), '{"user":"private"}\n');
+
+    const diff = await boundedDiff(isolated, ["runtime/**"]);
+    expect(diff).toContain("Content omitted for sensitive path .env.");
+    expect(diff).toContain("Content omitted for sensitive path runtime/session.json.");
+    expect(diff).not.toContain("never-copy-this");
+    expect(diff).not.toContain('"user":"private"');
+  });
+
+  it("redacts tracked secret and configured-sensitive patches from reviewer evidence", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await exec("git", ["init"], { cwd: root });
+    await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+    await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+    await mkdir(path.join(root, "runtime"), { recursive: true });
+    await writeFile(path.join(root, "README.md"), "# Fixture\n");
+    await writeFile(path.join(root, ".env"), "TOKEN=old-secret\n");
+    await writeFile(path.join(root, "runtime", "session.json"), '{"user":"old"}\n');
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "initial"], { cwd: root });
+    const isolated = await prepareIsolatedWorktree(root, "protect patches", "20260101-cafebabe");
+    await writeFile(path.join(isolated.path, ".env"), "TOKEN=new-secret\n");
+    await writeFile(path.join(isolated.path, "runtime", "session.json"), '{"user":"new"}\n');
+
+    const diff = await boundedDiff(isolated, ["runtime/**"]);
+    expect(diff).toContain("Content omitted for sensitive path .env.");
+    expect(diff).toContain("Content omitted for sensitive path runtime/session.json.");
+    expect(diff).not.toContain("old-secret");
+    expect(diff).not.toContain("new-secret");
+    expect(diff).not.toContain('"user":"old"');
+    expect(diff).not.toContain('"user":"new"');
   });
 
   it("proposes only evidence-backed gaps, deduplicates, and requires a separate apply call", async () => {

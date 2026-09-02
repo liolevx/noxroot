@@ -65,7 +65,21 @@ try {
   );
   npm(["install", tarball, "--ignore-scripts", "--no-audit", "--no-fund"], installRoot);
 
-  const entrypoint = path.join(installRoot, "node_modules", "noxroot", "dist", "cli.js");
+  const installedPackage = path.join(installRoot, "node_modules", "noxroot");
+  for (const requiredFile of [
+    "README.md",
+    "docs/commands.md",
+    "docs/configuration.md",
+    "docs/architecture.md",
+    "docs/adapters.md",
+    "docs/assets/noxroot-banner.svg",
+    "docs/assets/noxroot-mark.svg",
+    "docs/assets/noxroot-workflow.svg",
+  ]) {
+    await readFile(path.join(installedPackage, requiredFile), "utf8");
+  }
+
+  const entrypoint = path.join(installedPackage, "dist", "cli.js");
   if ((await readFile(entrypoint, "utf8")).split(/\r?\n/, 1)[0] !== "#!/usr/bin/env node") {
     throw new Error("The packed CLI entrypoint is missing its Node shebang.");
   }

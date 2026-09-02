@@ -119,7 +119,7 @@ describe("initialization, sync safety, context, and doctor", () => {
   });
 
   it("generates short canonical skills and routes product UX only for applicable work", async () => {
-    const fixture = await fixtureCopy("browser");
+    const fixture = await fixtureCopy("frontend");
     cleanup.push(fixture.cleanup);
     const preview = await previewRepository(fixture.root);
     const modules = preview.modules.map((module) => ({

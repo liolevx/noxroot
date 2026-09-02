@@ -24,8 +24,10 @@ project knowledge or test fixtures.
 
 Guided start requires a clean committed baseline. Finish validates repository identity and the
 policy snapshot, derives actual changed paths, includes bounded tracked and new-file diff evidence,
-and treats zero matching checks or unavailable executables as blockers. Reviewer files are resolved
-inside the repository and must satisfy the same strict JSON contract as command reviewers.
+and treats zero matching checks or unavailable executables as blockers. Diff evidence records the
+path but omits contents for suspected secrets, configured sensitive paths, and symlinks; the same
+redaction applies to connected-agent reviewer packages. Reviewer files are resolved inside the
+repository and must satisfy the same strict JSON contract as command reviewers.
 
 Negative guarantees are release blockers. A newly discovered path to a preview write, child command,
 agent call, network attempt, secret disclosure, or path escape requires a regression test before

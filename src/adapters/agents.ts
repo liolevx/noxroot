@@ -2,6 +2,8 @@ import path from "node:path";
 import { z } from "zod";
 import type { NoxrootConfig } from "../config/schema.js";
 import { runProcess, type ProcessRequest } from "./process.js";
+import { preflightCommandAdapter, type AgentPreflightResult } from "./preflight.js";
+import type { VerificationCommand } from "../model.js";
 
 export type AgentRole = "worker" | "reviewer" | "repair";
 
@@ -63,6 +65,11 @@ export interface AgentAdapter {
   id: string;
   mode: "manual" | "command";
   availability(): Promise<{ available: boolean; reason: string }>;
+  preflight?(request: {
+    cwd: string;
+    repositoryRoot: string;
+    verification: VerificationCommand[];
+  }): Promise<AgentPreflightResult>;
   invoke(request: AgentRequest): Promise<AgentResult>;
 }
 
@@ -110,7 +117,28 @@ export class CommandAgentAdapter implements AgentAdapter {
     private readonly runner: (
       request: ProcessRequest,
     ) => Promise<Awaited<ReturnType<typeof runProcess>>> = runProcess,
+    private readonly healthCheck?: {
+      executable: string;
+      args: string[];
+      timeoutMs: number;
+    },
   ) {}
+
+  async preflight(request: {
+    cwd: string;
+    repositoryRoot: string;
+    verification: VerificationCommand[];
+  }): Promise<AgentPreflightResult> {
+    return preflightCommandAdapter({
+      executable: this.executable,
+      args: this.args,
+      cwd: request.cwd,
+      repositoryRoot: request.repositoryRoot,
+      verification: request.verification,
+      ...(this.healthCheck === undefined ? {} : { health: this.healthCheck }),
+      runner: this.runner,
+    });
+  }
 
   async availability(): Promise<{ available: boolean; reason: string }> {
     return {
@@ -184,5 +212,7 @@ export function configuredAgent(config: NoxrootConfig | undefined): AgentAdapter
     adapter.args,
     adapter.timeoutMs,
     config.budgets.outputBytes,
+    runProcess,
+    adapter.healthCheck,
   );
 }

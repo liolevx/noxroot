@@ -9,6 +9,7 @@ import { resolveWithin } from "../security/paths.js";
 import { changedFiles, executeVerification, selectVerification } from "../verification/index.js";
 import type { EffectiveAutonomy } from "./autonomy.js";
 import type { RunRecord } from "./run.js";
+import { assessReviewNeed, type ReviewAssessment } from "./review.js";
 
 export interface GuidedRunRecord extends RunRecord {
   mode: "guided";
@@ -24,6 +25,7 @@ export interface GuidedRunRecord extends RunRecord {
   diffHash?: string;
   reviewerPackage?: unknown;
   learningCandidates?: ReviewerResponse["learningCandidates"];
+  reviewAssessment?: ReviewAssessment;
 }
 
 function policyHash(policy: VerificationCommand[]): string {
@@ -51,17 +53,28 @@ function guidedHandoff(
     "CHANGED",
     record.changedPaths?.join("\n") || "No changed paths were detected.",
     "",
-    "VERIFIED",
+    "CHECKED",
     checks.map((result) => `${result.command.id}: ${result.status}`).join("\n") ||
-      "No applicable approved deterministic checks ran.",
+      "Verification incomplete: no applicable approved checks ran.",
     "",
     "REVIEW",
-    review ? `${review.decision}: ${review.summary}` : "Independent review is still required.",
+    review
+      ? `${review.decision}: ${review.summary}`
+      : record.reviewAssessment?.required
+        ? `Pending ${record.reviewAssessment.kinds.join("/")} review: ${record.reviewAssessment.reasons.join(" ")}`
+        : "Not required for this bounded change.",
+    "",
+    "LEARNING",
+    record.learningCandidates?.length
+      ? `${record.learningCandidates.length} reusable project-knowledge candidate(s) proposed.`
+      : "No reusable project-knowledge candidate identified.",
     "",
     "NEXT",
     record.status === "review-pending"
       ? `Have a fresh reviewer return the strict JSON contract, then run noxroot finish --task ${record.id} --review-file <repository-relative-json>.`
-      : `Run noxroot learn --task ${record.id} to inspect durable learning proposals.`,
+      : record.status === "incomplete"
+        ? "Review the unverified change and add or approve an applicable project check if one exists."
+        : "Review the resulting change; apply any learning only after confirmation.",
   ].join("\n");
 }
 
@@ -105,6 +118,7 @@ export async function finishGuidedRun(input: {
   adapter: AgentAdapter;
   reviewAuthorized: boolean;
   reviewFile?: string;
+  sensitivePaths?: string[];
   signal?: AbortSignal;
 }): Promise<GuidedRunRecord> {
   const { record } = input;
@@ -118,8 +132,13 @@ export async function finishGuidedRun(input: {
   }
   const changedPaths = await changedFiles(input.root, record.baseline.revision);
   for (const changedPath of changedPaths) resolveWithin(input.root, changedPath);
-  const diff = await diffFromRevision(input.root, record.baseline.revision);
+  const diff = await diffFromRevision(
+    input.root,
+    record.baseline.revision,
+    input.sensitivePaths ?? [],
+  );
   const diffHash = createHash("sha256").update(diff).digest("hex");
+  const reviewAssessment = assessReviewNeed(changedPaths, diff);
   const commands = selectVerification(record.trustedVerificationPolicy, changedPaths);
   const checks = await executeVerification(input.root, commands, {
     ...(input.signal === undefined ? {} : { signal: input.signal }),
@@ -128,6 +147,7 @@ export async function finishGuidedRun(input: {
     ...record,
     changedPaths,
     diffHash,
+    reviewAssessment,
     verification: [...record.verification, checks],
     verificationGaps: [],
   };
@@ -139,13 +159,13 @@ export async function finishGuidedRun(input: {
     return next;
   }
   if (checks.length === 0) {
-    next.status = "blocked";
+    next.status = "incomplete";
     next.verificationGaps = ["No approved deterministic checks matched the actual change."];
     next.handoff = guidedHandoff(next, checks);
     return next;
   }
   if (checks.some((result) => result.status === "unavailable")) {
-    next.status = "blocked";
+    next.status = "incomplete";
     next.verificationGaps = checks
       .filter((result) => result.status === "unavailable")
       .map(
@@ -162,12 +182,21 @@ export async function finishGuidedRun(input: {
     return next;
   }
 
+  if (!reviewAssessment.required && !input.reviewFile) {
+    next.status = "completed";
+    next.finishedAt = new Date().toISOString();
+    next.learningCandidates = [];
+    next.handoff = guidedHandoff(next, checks);
+    return next;
+  }
+
   const reviewerPackage = {
     task: record.task,
     context: record.context,
     changedPaths,
     diff,
     verification: checks,
+    reviewAssessment,
     responseContract: {
       decision: "approved | changes-requested | blocked",
       summary: "short factual summary",

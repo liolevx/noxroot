@@ -95,7 +95,12 @@ function verificationCandidate(run: RunRecord): Candidate | undefined {
     .flat()
     .filter((result) => result.status !== "passed")
     .map((result) => `${result.command.id}: ${result.status}`);
-  const evidence = [...new Set([...run.verificationGaps, ...failed].map(boundedLine))]
+  const deterministicGaps = run.verificationGaps.filter((gap) =>
+    /^(?:No approved deterministic check|Approved check .+ was unavailable|At least one affected approved deterministic check)/.test(
+      gap,
+    ),
+  );
+  const evidence = [...new Set([...deterministicGaps, ...failed].map(boundedLine))]
     .filter(Boolean)
     .sort();
   if (evidence.length === 0) return undefined;
