@@ -73,9 +73,11 @@ failure.
 outcomes and exclusions, bounded context, and the trusted verification policy without invoking a
 model. Repeating the same task in the same repository, branch, and worktree reuses the active record
 and baseline instead of creating a duplicate, including when the worktree now contains the task's
-changes. A different task creates a separate record. Generated repository instructions tell
-compatible agents to use this lifecycle only for code-changing work; read-only conversation does not
-start a task.
+changes. Its continuation brief derives changed paths from the baseline, compares any recorded
+verification with the current diff, and reports the next applicable action. Verification is shown as
+not run, current and passed, current but incomplete or failed, or stale after a later edit. A
+different task creates a separate record. Generated repository instructions tell compatible agents
+to use this lifecycle only for code-changing work; read-only conversation does not start a task.
 
 `run "task" --dry-run` exposes effective autonomy, calls, scopes, checks, and prohibitions without a
 Git/project command, agent, or write. Level 2 permits an explicitly configured worker in an isolated
