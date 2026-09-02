@@ -9,9 +9,9 @@ import { fixtures } from "./helpers.js";
 describe("documentation examples", () => {
   it("keeps the README opening and preview excerpt synchronized with a real fixture", async () => {
     const readme = await readFile(path.resolve("README.md"), "utf8");
-    expect(
-      readme.startsWith('<p align="center">\n  <img src="docs/assets/noxroot-wordmark.svg"'),
-    ).toBe(true);
+    expect(readme.startsWith('<p align="center">\n  <img src="docs/assets/noxroot-logo.svg"')).toBe(
+      true,
+    );
     expect(readme).toContain(
       "Project memory and orchestration for the coding agent you already use.",
     );
@@ -77,7 +77,7 @@ describe("documentation examples", () => {
       if (/^(?:https?:|mailto:|#)/.test(target)) continue;
       await expect(access(path.resolve(target.split("#")[0]!))).resolves.toBeUndefined();
     }
-    const assets = ["noxroot-wordmark.svg", "noxroot-workflow.svg"];
+    const assets = ["noxroot-logo.svg", "noxroot-toolkit.svg"];
     expect((await readdir(path.resolve("docs", "assets"))).sort()).toEqual(assets);
     expect(readme).toContain("This transcript illustrates the stable information hierarchy");
     for (const asset of assets) {
@@ -88,15 +88,15 @@ describe("documentation examples", () => {
       expect(svg).toContain("<title");
       expect(svg).toContain("<desc");
     }
-    const workflow = await readFile(path.resolve("docs/assets/noxroot-workflow.svg"), "utf8");
+    const workflow = await readFile(path.resolve("docs/assets/noxroot-toolkit.svg"), "utf8");
     expect(workflow).toContain('viewBox="0 0 800 870"');
     expect(workflow).toContain("PROJECT MEMORY");
     expect(workflow).toContain("TASK CONTEXT");
     expect(workflow).toContain("YOUR CODING AGENT");
     expect(workflow).toContain("VERIFICATION");
     expect(workflow).toContain("LEARNING LOOP");
-    const wordmark = await readFile(path.resolve("docs/assets/noxroot-wordmark.svg"), "utf8");
-    expect(wordmark).not.toContain("<rect width=");
-    expect(wordmark).toContain("NOXROOT");
+    const logo = await readFile(path.resolve("docs/assets/noxroot-logo.svg"), "utf8");
+    expect(logo).toContain('viewBox="0 0 1600 440"');
+    expect(logo).toContain("Noxroot owl mark");
   });
 });

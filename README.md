@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/noxroot-wordmark.svg" alt="NOXROOT" width="100%">
+  <img src="docs/assets/noxroot-logo.svg" alt="Noxroot" width="100%">
 </p>
 
 # Noxroot
@@ -27,7 +27,7 @@ native instruction file and use it around normal work. You keep asking for chang
 language; Noxroot stays in the background unless it finds a failure, an incomplete check, or a
 decision that genuinely needs you.
 
-![The Noxroot toolkit connects project memory, task context, your coding agent, verification, and a learning loop](docs/assets/noxroot-workflow.svg)
+![The Noxroot toolkit connects project memory, task context, your coding agent, verification, and a learning loop](docs/assets/noxroot-toolkit.svg)
 
 Five components form one loop. Project memory prepares task context. Your agent builds with it.
 Noxroot checks the result, then returns only useful lessons to project memory.
