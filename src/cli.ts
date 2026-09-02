@@ -21,7 +21,7 @@ import { effectiveAutonomy } from "./orchestration/autonomy.js";
 import { finishGuidedRun, startGuidedRun, type GuidedRunRecord } from "./orchestration/guided.js";
 import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import { renderContext, renderPreview, renderVerification } from "./output.js";
-import { readRunRecord, replaceRunRecord, writeRunRecord } from "./state/local.js";
+import { listRunRecords, readRunRecord, replaceRunRecord, writeRunRecord } from "./state/local.js";
 import {
   changedFiles,
   executeVerification,
@@ -125,6 +125,56 @@ function renderDoctor(result: Awaited<ReturnType<typeof doctorRepository>>): str
 function createId(): string {
   const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   return `${date}-${randomBytes(4).toString("hex")}`;
+}
+
+const RETRYABLE_GUIDED_STATUSES = new Set<RunRecord["status"]>([
+  "running",
+  "review-pending",
+  "changes-requested",
+  "failed",
+  "blocked",
+  "incomplete",
+]);
+
+async function inferGuidedTaskId(root: string, explicit?: string): Promise<string> {
+  if (explicit) return explicit;
+  const canonicalRoot = path.resolve(root);
+  const records = await listRunRecords<GuidedRunRecord>(canonicalRoot);
+  const eligible = records.filter(
+    (record) =>
+      record.mode === "guided" &&
+      RETRYABLE_GUIDED_STATUSES.has(record.status) &&
+      path.resolve(record.repository.root) === canonicalRoot,
+  );
+  if (eligible.length === 1) return eligible[0]!.id;
+  if (eligible.length === 0) {
+    throw new Error('No active guided task was found. Start one with noxroot start "<task>".');
+  }
+  throw new Error(
+    `Multiple active guided tasks need an explicit --task id: ${eligible.map((record) => record.id).join(", ")}`,
+  );
+}
+
+function renderStart(
+  id: string,
+  context: Awaited<ReturnType<typeof buildContext>>,
+  checks: Awaited<ReturnType<typeof planVerification>>,
+  recordPath: string,
+): string {
+  return `${[
+    "Preparing",
+    `  Outcome: ${context.intent.requiredOutcomes[0] ?? context.interpretation}`,
+    `  Exclusions: ${context.intent.explicitExclusions.join("; ") || "none"}`,
+    `  Context: ${context.selected.length} relevant files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
+    `  Likely area: ${context.applicableAreas.join(", ") || "not yet established"}`,
+    `  Checks: ${checks.map((check) => check.id).join(", ") || "none approved yet"}`,
+    "  Coding agent: not invoked (manual mode)",
+    "",
+    "Ready for your coding agent.",
+    `Task: ${id}`,
+    "Next: make the change, then run noxroot finish.",
+    `Local record: ${recordPath}`,
+  ].join("\n")}\n`;
 }
 
 export function createProgram(customIo?: Partial<Io>): Command {
@@ -309,6 +359,40 @@ export function createProgram(customIo?: Partial<Io>): Command {
         }
       },
     );
+
+  program
+    .command("start")
+    .description("prepare a guided task for the coding agent you already use")
+    .argument("<task>", "task outcome, exclusions, and acceptance criteria")
+    .action(async (task: string, _options: unknown, command: Command) => {
+      const common = globals(command);
+      const root = path.resolve(common.root);
+      const context = await buildContext(task, root);
+      const config = await loadConfig(root);
+      const autonomy = effectiveAutonomy(config);
+      if (!autonomy.guided.authorized) {
+        emit(io, common.json, { refused: autonomy.guided, context }, `${autonomy.guided.reason}\n`);
+        process.exitCode = EXIT.refused;
+        return;
+      }
+      const checks = await planVerification(root);
+      const id = createId();
+      const record = await startGuidedRun({
+        id,
+        task,
+        root,
+        context,
+        effectiveAutonomy: autonomy,
+        trustedVerificationPolicy: checks,
+      });
+      const recordPath = await writeRunRecord(root, id, record);
+      emit(
+        io,
+        common.json,
+        { context, record, recordPath, agentInvoked: false },
+        renderStart(id, context, checks, recordPath),
+      );
+    });
 
   program
     .command("run")
@@ -498,15 +582,16 @@ export function createProgram(customIo?: Partial<Io>): Command {
   program
     .command("finish")
     .description("close a guided task with affected checks and independent review")
-    .requiredOption("--task <task-id>", "guided task id")
+    .option("--task <task-id>", "guided task id; inferred when exactly one task is active")
     .option(
       "--review-file <path>",
       "repository-relative file containing one strict reviewer JSON response",
     )
-    .action(async (options: { task: string; reviewFile?: string }, command: Command) => {
+    .action(async (options: { task?: string; reviewFile?: string }, command: Command) => {
       const common = globals(command);
       const root = path.resolve(common.root);
-      const record = await readRunRecord<GuidedRunRecord>(root, options.task);
+      const taskId = await inferGuidedTaskId(root, options.task);
+      const record = await readRunRecord<GuidedRunRecord>(root, taskId);
       const config = await loadConfig(root);
       const autonomy = effectiveAutonomy(config);
       const adapter = configuredAgent(config);
@@ -523,14 +608,24 @@ export function createProgram(customIo?: Partial<Io>): Command {
           ...(options.reviewFile === undefined ? {} : { reviewFile: options.reviewFile }),
           signal: controller.signal,
         });
-        const recordPath = await replaceRunRecord(root, options.task, finished);
+        const recordPath = await replaceRunRecord(root, taskId, finished);
+        const learning = await proposeLearnings(root, finished);
+        const completion = {
+          documentation: { status: "no-update-needed" as const },
+          learning: {
+            status:
+              learning.proposals.length > 0 ? ("proposed" as const) : ("no-update-needed" as const),
+            proposals: learning.proposals.length,
+          },
+        };
         emit(
           io,
           common.json,
-          { record: finished, recordPath },
-          `${finished.handoff}\n\nEvidence: ${recordPath}\n`,
+          { record: finished, recordPath, completion, learning },
+          `${finished.handoff}\n\nDocumentation\n  No update needed\n\nLearning\n  ${learning.proposals.length ? `${learning.proposals.length} reusable proposal(s) available; inspect with noxroot learn --task ${taskId}.` : "No reusable project knowledge identified."}\n\nLocal record: ${recordPath}\n`,
         );
         if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
+        else if (finished.status === "incomplete") process.exitCode = EXIT.verification;
         else if (!["approved", "review-pending"].includes(finished.status))
           process.exitCode = EXIT.agent;
       } finally {

@@ -4,6 +4,7 @@ import { loadConfig, loadRoutes, loadVerification } from "../config/load.js";
 import { scanRepository } from "../detection/scan.js";
 import type { CandidateCommand, ContextPackage, ContextSelection } from "../model.js";
 import { resolveWithin } from "../security/paths.js";
+import { parseTaskIntent, relevantIntentText } from "./intent.js";
 
 const DEFAULT_CONTEXT_BUDGET = 16_000;
 const MAX_SELECTED_FILES = 24;
@@ -272,7 +273,8 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const routes = await loadRoutes(canonicalRoot);
   const verification = await loadVerification(canonicalRoot);
   const budget = config?.context.budgetBytes ?? DEFAULT_CONTEXT_BUDGET;
-  const taskTerms = tokens(task);
+  const intent = parseTaskIntent(task);
+  const taskTerms = tokens(relevantIntentText(intent));
   const activeRoutes = (routes?.routes ?? []).filter((route) =>
     route.match.some((pattern) => routeMatches(pattern, taskTerms)),
   );
@@ -415,7 +417,9 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
 
   return {
     task,
-    interpretation: `Deterministic path and bounded content-token evidence relevant to: ${task}`,
+    interpretation:
+      intent.requiredOutcomes[0] ?? "Inspect the repository for the requested local change.",
+    intent,
     confidence,
     repositoryFileCount: profile.files.length,
     eligibleCandidateFiles: candidates.length,
@@ -429,9 +433,12 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     selected,
     likelyOwningSource,
     likelyTests,
-    constraints: selected
-      .filter((item) => item.path.includes("knowledge/") || item.path.endsWith("AGENTS.md"))
-      .map((item) => `Read ${item.path} before changing its routed surface.`),
+    constraints: [
+      ...intent.explicitExclusions,
+      ...selected
+        .filter((item) => item.path.includes("knowledge/") || item.path.endsWith("AGENTS.md"))
+        .map((item) => `Read ${item.path} before changing its routed surface.`),
+    ],
     requiredVerification,
     conflicts,
     unknowns,

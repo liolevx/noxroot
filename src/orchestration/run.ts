@@ -17,6 +17,7 @@ export interface RunRecord {
     | "changes-requested"
     | "failed"
     | "blocked"
+    | "incomplete"
     | "manual";
   branch?: string;
   worktree?: string;
@@ -156,7 +157,7 @@ export async function orchestrateRun(
     const partial: Omit<RunRecord, "handoff"> = {
       id: request.id,
       task: request.task,
-      status: "blocked",
+      status: "incomplete",
       ...(request.branch === undefined ? {} : { branch: request.branch }),
       worktree: request.cwd,
       calls,
@@ -177,7 +178,7 @@ export async function orchestrateRun(
     const partial: Omit<RunRecord, "handoff"> = {
       id: request.id,
       task: request.task,
-      status: "blocked",
+      status: "incomplete",
       ...(request.branch === undefined ? {} : { branch: request.branch }),
       worktree: request.cwd,
       calls,

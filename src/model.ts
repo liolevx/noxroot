@@ -122,9 +122,17 @@ export interface ContextSelection {
   reasons: string[];
 }
 
+export interface TaskIntent {
+  requiredOutcomes: string[];
+  explicitExclusions: string[];
+  requestedAuthority: string[];
+  acceptanceCriteria: string[];
+}
+
 export interface ContextPackage {
   task: string;
   interpretation: string;
+  intent: TaskIntent;
   confidence: "high" | "partial" | "insufficient";
   repositoryFileCount: number;
   eligibleCandidateFiles: number;

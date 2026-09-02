@@ -51,17 +51,24 @@ function guidedHandoff(
     "CHANGED",
     record.changedPaths?.join("\n") || "No changed paths were detected.",
     "",
-    "VERIFIED",
+    "CHECKED",
     checks.map((result) => `${result.command.id}: ${result.status}`).join("\n") ||
-      "No applicable approved deterministic checks ran.",
+      "Verification incomplete: no applicable approved checks ran.",
     "",
     "REVIEW",
     review ? `${review.decision}: ${review.summary}` : "Independent review is still required.",
     "",
+    "LEARNING",
+    record.learningCandidates?.length
+      ? `${record.learningCandidates.length} reusable project-knowledge candidate(s) proposed.`
+      : "No project-knowledge update needed.",
+    "",
     "NEXT",
     record.status === "review-pending"
       ? `Have a fresh reviewer return the strict JSON contract, then run noxroot finish --task ${record.id} --review-file <repository-relative-json>.`
-      : `Run noxroot learn --task ${record.id} to inspect durable learning proposals.`,
+      : record.status === "incomplete"
+        ? "Review the unverified change and add or approve an applicable project check if one exists."
+        : "Review the resulting change; apply any learning only after confirmation.",
   ].join("\n");
 }
 
@@ -139,13 +146,13 @@ export async function finishGuidedRun(input: {
     return next;
   }
   if (checks.length === 0) {
-    next.status = "blocked";
+    next.status = "incomplete";
     next.verificationGaps = ["No approved deterministic checks matched the actual change."];
     next.handoff = guidedHandoff(next, checks);
     return next;
   }
   if (checks.some((result) => result.status === "unavailable")) {
-    next.status = "blocked";
+    next.status = "incomplete";
     next.verificationGaps = checks
       .filter((result) => result.status === "unavailable")
       .map(

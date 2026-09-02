@@ -17,6 +17,12 @@ afterEach(async () => Promise.all(cleanup.splice(0).map((operation) => operation
 const context: ContextPackage = {
   task: "change greeting",
   interpretation: "bounded greeting change",
+  intent: {
+    requiredOutcomes: ["change greeting"],
+    explicitExclusions: [],
+    requestedAuthority: [],
+    acceptanceCriteria: [],
+  },
   confidence: "high",
   repositoryFileCount: 2,
   eligibleCandidateFiles: 2,
@@ -97,7 +103,7 @@ class FakeAdapter implements AgentAdapter {
 }
 
 describe("orchestration, worktree isolation, and controlled learning", () => {
-  it("blocks before review when no approved deterministic check matched", async () => {
+  it("stops before review with an incomplete, never-approved result when no check matched", async () => {
     const adapter = new FakeAdapter();
     const record = await orchestrateRun(
       {
@@ -111,7 +117,8 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
       },
       { verify: async () => [], diff: async () => "diff" },
     );
-    expect(record.status).toBe("blocked");
+    expect(record.status).toBe("incomplete");
+    expect(record.reviewDecision).not.toBe("approved");
     expect(adapter.roles).toEqual(["worker"]);
     expect(record.handoff).toContain("No approved deterministic checks matched");
   });

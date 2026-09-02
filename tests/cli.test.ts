@@ -41,6 +41,7 @@ describe("CLI contracts", () => {
       "doctor",
       "context",
       "verify",
+      "start",
       "run",
       "finish",
       "learn",

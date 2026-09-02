@@ -57,6 +57,12 @@ async function cli(args: string[]): Promise<{ stdout: string; stderr: string }> 
 const context = {
   task: "change value",
   interpretation: "Change the value implementation.",
+  intent: {
+    requiredOutcomes: ["change value"],
+    explicitExclusions: [],
+    requestedAuthority: [],
+    acceptanceCriteria: [],
+  },
   applicableAreas: ["src"],
   likelyOwningSource: ["src/value.ts"],
   selected: [{ path: "src/value.ts", reasons: ["task match"], bytes: 30, estimatedTokens: 8 }],
@@ -112,15 +118,20 @@ commands:
     await git(root, ["add", "."]);
     await git(root, ["commit", "-m", "noxroot fixture"]);
 
-    const started = await cli(["run", "change value", "--guided", "--json", "--root", root]);
+    const started = await cli(["start", "change value", "--json", "--root", root]);
     const startValue = JSON.parse(started.stdout) as { record: { id: string; status: string } };
     expect(startValue.record.status).toBe("running");
+    expect(started.stderr).toBe("");
     await writeFile(path.join(root, "src", "value.ts"), "export const value = 4;\n");
 
-    const pending = await cli(["finish", "--task", startValue.record.id, "--json", "--root", root]);
-    expect((JSON.parse(pending.stdout) as { record: { status: string } }).record.status).toBe(
-      "review-pending",
-    );
+    const pending = await cli(["finish", "--json", "--root", root]);
+    const pendingValue = JSON.parse(pending.stdout) as {
+      record: { status: string; calls: unknown[] };
+      completion: { learning: { status: string } };
+    };
+    expect(pendingValue.record.status).toBe("review-pending");
+    expect(pendingValue.record.calls).toEqual([]);
+    expect(pendingValue.completion.learning.status).toBe("no-update-needed");
 
     const reviewPath = path.join(root, ".git", "noxroot", "external-review.json");
     await writeFile(
@@ -157,6 +168,26 @@ commands:
     const learned = await cli(["learn", "--task", startValue.record.id, "--json", "--root", root]);
     const learning = JSON.parse(learned.stdout) as { proposals: Array<{ kind: string }> };
     expect(learning.proposals).toEqual([expect.objectContaining({ kind: "procedure" })]);
+  });
+
+  it("requires an explicit id when multiple guided tasks are active", async () => {
+    const root = await repository();
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      `version: 1
+modules: [repository-profile, agent-routing, orchestration]
+autonomy: {default: 0, implementation: 1, review: 0, merge: 0, delivery: 0}
+agents: {default: manual, adapters: {manual: {type: manual}}}
+`,
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "noxroot fixture"]);
+    await cli(["start", "first task", "--json", "--root", root]);
+    await cli(["start", "second task", "--json", "--root", root]);
+    await expect(cli(["finish", "--json", "--root", root])).rejects.toThrow(
+      "Multiple active guided tasks need an explicit --task id",
+    );
   });
 
   it("records a clean baseline, verifies the actual diff, then accepts strict external review", async () => {
@@ -214,7 +245,7 @@ commands:
     expect(await readFile(path.join(root, reviewPath), "utf8")).toContain('"approved"');
   });
 
-  it("blocks completion when no approved check matches the actual change", async () => {
+  it("permits an incomplete handoff without approving when no check matches", async () => {
     const root = await repository();
     const record = await startGuidedRun({
       id: "guided-2",
@@ -231,7 +262,8 @@ commands:
       adapter: new ManualAgentAdapter(),
       reviewAuthorized: false,
     });
-    expect(finished.status).toBe("blocked");
+    expect(finished.status).toBe("incomplete");
+    expect(finished.reviewDecision).not.toBe("approved");
     expect(finished.verificationGaps).toContain(
       "No approved deterministic checks matched the actual change.",
     );
