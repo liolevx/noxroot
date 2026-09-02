@@ -1,0 +1,14 @@
+version: 1
+routes:
+  - id: default
+    match:
+      - "**/*"
+    include:
+      - AGENTS.md
+      - .noxroot/knowledge/INDEX.md
+      - src/**
+      - tests/**
+    exclude:
+      - dist/**
+      - coverage/**
+      - node_modules/**
