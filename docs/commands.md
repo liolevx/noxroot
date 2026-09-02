@@ -61,7 +61,11 @@ failure.
 
 `start "task"` is the plain-language guided entry point. It records a clean Git baseline, structured
 outcomes and exclusions, bounded context, and the trusted verification policy without invoking a
-model. The coding agent can consume the same record and package.
+model. Repeating the same task in the same repository, branch, and worktree reuses the active record
+and baseline instead of creating a duplicate, including when the worktree now contains the task's
+changes. A different task creates a separate record. Generated repository instructions tell
+compatible agents to use this lifecycle only for code-changing work; read-only conversation does not
+start a task.
 
 `run "task" --dry-run` exposes effective autonomy, calls, scopes, checks, and prohibitions without a
 Git/project command, agent, or write. Level 2 permits an explicitly configured worker in an isolated
@@ -84,9 +88,10 @@ as `no-candidate`, not as proof that no documentation could help.
 
 ## `learn`
 
-`learn --task ID` accepts only deterministic verification evidence and structured reviewer
-candidates of kind `knowledge`, `decision`, `procedure`, `verification`, or `none`. Proposals show
-evidence, expected value, duplication/conflict results, content, and whether an executable guardrail
-is better. `--apply` requires confirmation; the first learnings file and index link are written in
-the same operation. Raw prose, task text, sessions, user data, secrets, and external human docs are
-not converted into knowledge.
+`learn --task ID` accepts structured reviewer candidates of kind `knowledge`, `decision`,
+`procedure`, `verification`, or `none`. A verification gap is reported by `finish`, but does not
+become project knowledge merely because it occurred once. Proposals show evidence, expected value,
+duplication/conflict results, content, and whether an executable guardrail is better. `--apply`
+requires confirmation; the first learnings file and index link are written in the same operation.
+Raw prose, task text, sessions, user data, secrets, and external human docs are not converted into
+knowledge.

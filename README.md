@@ -14,13 +14,13 @@ agent and repository. It does not provide a model, replace Git, or take ownershi
 
 ## What Noxroot changes
 
-| Without Noxroot                                         | With Noxroot                                                                 |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Each agent session rediscovers the repository           | Every task starts from the same durable project memory                       |
-| Too much code is loaded or the important file is missed | The agent gets a small, explainable context package                          |
-| Checks are guessed, skipped, or reported vaguely        | The actual diff is checked with repository-approved commands                 |
-| Decisions and fixes disappear into old chats            | Useful lessons are proposed as plain Markdown and carried forward            |
-| Agent workflows depend on one vendor                    | The core contract stays portable: CLI, Markdown, JSON, and a command adapter |
+| Without Noxroot                                         | With Noxroot                                                                                              |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Each agent session rediscovers the repository           | Every task starts from the same durable project memory                                                    |
+| Too much code is loaded or the important file is missed | The agent gets a small, explainable context package                                                       |
+| Checks are guessed, skipped, or reported vaguely        | The actual diff is checked with repository-approved commands                                              |
+| Decisions and fixes disappear into old chats            | Reusable lessons are proposed as plain Markdown documentation and carried into future tasks once accepted |
+| Agent workflows depend on one vendor                    | The core contract stays portable: CLI, Markdown, JSON, and a command adapter                              |
 
 New chats do not require another `init`. Ordinary questions need no Noxroot task. Noxroot stays in
 the background until code-changing work needs it.
@@ -74,9 +74,12 @@ Run `init` once per repository, not once per chat or day. It shows a read-only d
 existing documentation, and proposes a thin managed entrypoint without replacing a good `AGENTS.md`
 or copying documentation into a Noxroot-only format.
 
-For code-changing work, `start` and `finish` define the lifecycle. An agent may run them when its
-client workflow supports it; otherwise use the CLI. v0.1 can infer one active task at `finish`, but
-`start` does not resume an unfinished task from a new conversation.
+For code-changing work, compatible agents are instructed to run `start` before editing and `finish`
+when the change is ready to check. Questions, explanations, reviews, and other read-only work do not
+create tasks. If a new conversation starts the same task in the same repository, branch, and
+worktree, `start` reuses the active baseline instead of creating a duplicate. `finish` infers one
+applicable active task; genuine ambiguity requires an explicit task id. Native instruction discovery
+still varies by coding tool, so the commands remain available for manual use.
 
 ### What setup adds
 
