@@ -75,6 +75,20 @@ describe("initialization, sync safety, context, and doctor", () => {
     expect((await previewRepository(fixture.root)).proposedFiles).toEqual([]);
   });
 
+  it("preserves CRLF bytes outside and inside the appended managed block", async () => {
+    const root = await temporaryDirectory("noxroot-crlf-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const original = Buffer.from("# Instructions\r\n\r\nKeep this exact.\r\n", "utf8");
+    await writeFile(path.join(root, "AGENTS.md"), original);
+    await writeFile(path.join(root, "package.json"), '{"name":"sample"}\r\n');
+
+    const preview = await previewRepository(root);
+    await applyProposals(preview);
+    const after = await readFile(path.join(root, "AGENTS.md"));
+    expect(after.subarray(0, original.length)).toEqual(original);
+    expect(after.toString("utf8")).not.toMatch(/(?<!\r)\n/);
+  });
+
   it("reuses an equivalent existing entrypoint without patching it", async () => {
     const fixture = await fixtureCopy("equivalent-agents");
     cleanup.push(fixture.cleanup);

@@ -1,4 +1,5 @@
-import { readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CommanderError } from "commander";
 import { createProgram } from "../src/cli.js";
@@ -104,6 +105,29 @@ describe("CLI contracts", () => {
       ".noxroot/config.yml",
       ".noxroot/knowledge/INDEX.md",
     ]);
+  });
+
+  it("refuses init when preview finds overlapping repository orchestration", async () => {
+    const root = await temporaryDirectory("noxroot-cli-conflict-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, "tools"), { recursive: true });
+    await writeFile(path.join(root, "AGENTS.md"), "Use `project-flow` for code changes.\n");
+    await writeFile(
+      path.join(root, "pyproject.toml"),
+      '[project]\nname = "sample"\n[project.scripts]\nproject-flow = "tools.flow:main"\n',
+    );
+    await writeFile(
+      path.join(root, "tools", "flow.py"),
+      'workflow = "git worktree implementation worker verification reviewer merge"\n',
+    );
+    const before = await hashTree(root);
+
+    const { stdout, stderr } = await run(["init", "--yes", "--root", root]);
+
+    expect(stdout).toContain("Initialization allowed: no");
+    expect(stderr).toContain("Initialization refused");
+    expect(process.exitCode).toBe(3);
+    expect(await hashTree(root)).toBe(before);
   });
 
   it("makes run --dry-run command-free and write-free", async () => {
