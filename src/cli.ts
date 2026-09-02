@@ -548,29 +548,30 @@ export function createProgram(customIo?: Partial<Io>): Command {
       const common = globals(command);
       const record = await readRunRecord<RunRecord>(common.root, options.task);
       const result = await proposeLearnings(common.root, record);
+      const applicable = result.proposals.filter(
+        (proposal) => proposal.duplication === "not-found" && proposal.conflict === "none",
+      );
       if (common.json && options.apply && !options.yes) {
         throw new Error(
           "Learning application with --json requires --yes after a separate reviewed proposal.",
         );
       }
       if (!common.json) io.stdout(`${JSON.stringify(result, null, 2)}\n`);
-      if (!options.apply || result.proposals.length === 0) {
+      if (!options.apply || applicable.length === 0) {
         if (common.json) writeJson(io, result);
         return;
       }
-      if (
-        !(await confirm(io, `Apply ${result.proposals.length} learning proposal(s)?`, options.yes))
-      ) {
+      if (!(await confirm(io, `Apply ${applicable.length} learning proposal(s)?`, options.yes))) {
         process.exitCode = EXIT.refused;
         io.stderr("Learning application cancelled; durable knowledge was not changed.\n");
         return;
       }
       const applied: string[] = [];
-      for (const proposal of result.proposals) {
+      for (const proposal of applicable) {
         applied.push(...(await applyLearning(common.root, proposal)));
       }
       if (common.json) writeJson(io, { ...result, applied });
-      else io.stdout(`Applied ${result.proposals.length} proposal(s).\n`);
+      else io.stdout(`Applied ${applicable.length} proposal(s).\n`);
     });
 
   return program;

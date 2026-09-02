@@ -156,6 +156,28 @@ describe("read-only preview", () => {
     ).toBe(true);
   });
 
+  it("does not promote fixture or Noxroot-owned documents to project architecture conflicts", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await mkdir(path.join(root, "docs"), { recursive: true });
+    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
+    await mkdir(path.join(root, "tests", "fixtures", "sample"), { recursive: true });
+    await writeFile(path.join(root, "docs", "architecture.md"), "# Canonical architecture\n");
+    await writeFile(
+      path.join(root, ".noxroot", "knowledge", "architecture.md"),
+      "# Noxroot routing mirror\n",
+    );
+    await writeFile(
+      path.join(root, "tests", "fixtures", "sample", "ARCHITECTURE.md"),
+      "# Fixture architecture\n",
+    );
+    const result = await previewRepository(root);
+    expect(result.conflicts.some((item) => item.includes("Multiple architecture"))).toBe(false);
+    expect(result.profile.documents.map((item) => item.path)).toContain("docs/architecture.md");
+  });
+
   it.each([
     { manager: "npm", evidence: "package-lock.json", args: ["run", "test"] },
     { manager: "pnpm", evidence: "packageManager", args: ["run", "test"] },

@@ -76,6 +76,9 @@ interface IgnorePattern {
 
 function classifyDocument(file: string): RepositoryDocument | undefined {
   const lower = file.toLowerCase();
+  if (lower.startsWith(".noxroot/") || /(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)/.test(lower)) {
+    return undefined;
+  }
   const basename = path.posix.basename(lower);
   if (["agents.md", "claude.md", "copilot-instructions.md"].includes(basename)) {
     return { path: file, kind: "instructions", authoritative: true };
