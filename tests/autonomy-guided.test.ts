@@ -212,14 +212,100 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     await writeFile(path.join(root, "src", "value.ts"), "export const value = 2;\n");
     const second = JSON.parse(
       (await cli(["start", "  change the VALUE safely. ", "--json", "--root", root])).stdout,
-    ) as { record: { id: string }; continued: boolean };
+    ) as {
+      record: { id: string };
+      continued: boolean;
+      continuation: {
+        changedPaths: string[];
+        verification: { status: string; current: boolean };
+        nextAction: string;
+      };
+    };
 
     expect(second.record.id).toBe(first.record.id);
     expect(second.continued).toBe(true);
+    expect(second.continuation.changedPaths).toEqual(["src/value.ts"]);
+    expect(second.continuation.verification).toMatchObject({
+      status: "not-run",
+      current: false,
+    });
+    expect(second.continuation.nextAction).toBe(
+      "Run noxroot finish when the change is ready to check.",
+    );
+    const brief = await cli(["start", "change the value safely", "--root", root]);
+    expect(brief.stdout).toContain("Changed: 1 file since baseline (src/value.ts)");
+    expect(brief.stdout).toContain("Verification: Not run for the current diff.");
+    expect(brief.stdout).toContain("Next: Run noxroot finish when the change is ready to check.");
     const records = await (
       await import("node:fs/promises")
     ).readdir(path.join(root, ".git", "noxroot", "runs"));
     expect(records.filter((name) => name.endsWith(".json"))).toHaveLength(1);
+  });
+
+  it("reports current and stale verification deterministically when continuing", async () => {
+    const root = await repository();
+    await mkdir(path.join(root, "web", "components"), { recursive: true });
+    await writeFile(path.join(root, "web", "components", "panel.tsx"), "export const Panel = 1;\n");
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      `version: 1
+modules: [repository-profile, agent-routing, verification, orchestration]
+autonomy: {default: 0, implementation: 1, review: 0, merge: 0, delivery: 0}
+agents: {default: manual, adapters: {manual: {type: manual}}}
+`,
+    );
+    await writeFile(
+      path.join(root, ".noxroot", "verification.yml"),
+      `version: 1
+commands:
+  - id: node-check
+    executable: ${JSON.stringify(process.execPath)}
+    args: [-e, process.exit(0)]
+    cwd: .
+    timeoutMs: 10000
+    appliesTo: [web/**]
+`,
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "noxroot fixture"]);
+
+    await cli(["start", "improve the panel", "--json", "--root", root]);
+    await writeFile(path.join(root, "web", "components", "panel.tsx"), "export const Panel = 2;\n");
+    const finished = JSON.parse((await cli(["finish", "--json", "--root", root])).stdout) as {
+      record: { status: string };
+    };
+    expect(finished.record.status).toBe("review-pending");
+
+    const current = JSON.parse(
+      (await cli(["start", "improve the panel", "--json", "--root", root])).stdout,
+    ) as {
+      continuation: {
+        changedPaths: string[];
+        verification: { status: string; current: boolean };
+        nextAction: string;
+      };
+    };
+    expect(current.continuation.changedPaths).toEqual(["web/components/panel.tsx"]);
+    expect(current.continuation.verification).toMatchObject({
+      status: "current-passed",
+      current: true,
+    });
+    expect(current.continuation.nextAction).toContain("required fresh review");
+
+    await writeFile(path.join(root, "web", "components", "panel.tsx"), "export const Panel = 3;\n");
+    const stale = JSON.parse(
+      (await cli(["start", "improve the panel", "--json", "--root", root])).stdout,
+    ) as {
+      continuation: {
+        verification: { status: string; current: boolean };
+        nextAction: string;
+      };
+    };
+    expect(stale.continuation.verification).toMatchObject({ status: "stale", current: false });
+    expect(stale.continuation.nextAction).toBe(
+      "Run noxroot finish when the change is ready to check.",
+    );
   });
 
   it("does not continue a task record from another branch", async () => {

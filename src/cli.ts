@@ -24,7 +24,13 @@ import { inspectRepositoryAdoption } from "./detection/adoption.js";
 import { applyLearning, proposeLearnings } from "./knowledge/learn.js";
 import type { PreviewResult } from "./model.js";
 import { effectiveAutonomy } from "./orchestration/autonomy.js";
-import { finishGuidedRun, startGuidedRun, type GuidedRunRecord } from "./orchestration/guided.js";
+import {
+  finishGuidedRun,
+  inspectGuidedContinuation,
+  startGuidedRun,
+  type GuidedContinuationState,
+  type GuidedRunRecord,
+} from "./orchestration/guided.js";
 import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import { renderContext, renderPreview, renderVerification } from "./output.js";
 import {
@@ -246,14 +252,24 @@ async function inferGuidedTaskId(root: string, explicit?: string): Promise<strin
   );
 }
 
-function renderContinuation(record: GuidedRunRecord, recordPath: string): string {
+function renderContinuation(
+  record: GuidedRunRecord,
+  recordPath: string,
+  continuation: GuidedContinuationState,
+): string {
+  const changed = continuation.changedPaths.length;
+  const changedSummary = changed
+    ? `${changed} file${changed === 1 ? "" : "s"} since baseline${changed <= 5 ? ` (${continuation.changedPaths.join(", ")})` : ""}`
+    : "no files since baseline";
   return `${[
     "Continuing active task",
     `  Outcome: ${record.context.intent.requiredOutcomes[0] ?? record.context.interpretation}`,
     `  Task: ${record.id}`,
     `  Baseline: ${record.baseline.revision.slice(0, 12)}`,
+    `  Changed: ${changedSummary}`,
+    `  Verification: ${continuation.verification.summary}`,
     "  No duplicate task was created.",
-    "Next: continue the change, then run noxroot finish.",
+    `Next: ${continuation.nextAction}`,
     `Local record: ${recordPath}`,
   ].join("\n")}\n`;
 }
@@ -492,6 +508,12 @@ export function createProgram(customIo?: Partial<Io>): Command {
       const root = path.resolve(common.root);
       const continuation = await findGuidedContinuation(root, task);
       if (continuation) {
+        const config = await loadConfig(root);
+        const continuationState = await inspectGuidedContinuation(
+          root,
+          continuation,
+          config?.sensitivePaths ?? [],
+        );
         const recordPath = path.join(await localStateRoot(root), "runs", `${continuation.id}.json`);
         emit(
           io,
@@ -502,8 +524,9 @@ export function createProgram(customIo?: Partial<Io>): Command {
             recordPath,
             agentInvoked: false,
             continued: true,
+            continuation: continuationState,
           },
-          renderContinuation(continuation, recordPath),
+          renderContinuation(continuation, recordPath, continuationState),
         );
         return;
       }
