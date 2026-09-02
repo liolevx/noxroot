@@ -1,80 +1,71 @@
 import type { ContextPackage, PreviewResult, VerificationResult } from "./model.js";
 
-function section(title: string, lines: string[]): string[] {
-  return lines.length > 0 ? ["", title, ...lines] : [];
-}
-
-export function renderPreview(result: PreviewResult): string {
+export function renderPreview(result: PreviewResult, options: { diff?: boolean } = {}): string {
+  const manager =
+    result.profile.packageManager.status === "confirmed"
+      ? ` (${result.profile.packageManager.name})`
+      : "";
+  const detected = result.profile.evidence
+    .filter(
+      (item) =>
+        item.status === "confirmed" &&
+        !item.claim.startsWith("JavaScript package manager") &&
+        item.claim !== "Git repository",
+    )
+    .map((item) => item.claim.replace(/ source$/, ""));
+  const actionCounts = new Map<string, number>();
+  for (const proposal of result.proposedFiles) {
+    actionCounts.set(proposal.action, (actionCounts.get(proposal.action) ?? 0) + 1);
+  }
+  const actionSummary = [...actionCounts.entries()]
+    .map(([action, count]) => `${action} ${count}`)
+    .join(", ");
+  const instructions = ["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md"].filter(
+    (file) => result.profile.files.includes(file),
+  );
+  const applicableModules = result.modules.filter((module) =>
+    ["recommended", "enabled", "optional"].includes(module.status),
+  );
+  const unavailableModules = result.modules.filter((module) =>
+    ["not applicable", "blocked"].includes(module.status),
+  );
   const lines = [
     "NOXROOT PREVIEW",
-    "Read-only repository diagnosis",
-    "",
-    `Repository files changed: ${result.trust.repositoryFilesChanged}`,
-    `Repository commands executed: ${result.trust.repositoryCommandsExecuted}`,
-    `Agent calls made: ${result.trust.agentCallsMade}`,
-    `Network requests made by Noxroot: ${result.trust.networkRequestsMade}`,
-  ];
-  lines.push(
-    ...section(
-      "Detected",
-      result.profile.evidence.map((item) => {
-        const marker =
-          item.status === "confirmed" ? "✓" : item.status === "conflicting" ? "!" : "?";
-        return `${marker} [${item.status}] ${item.claim}${item.sources.length ? ` — ${item.sources.join(", ")}` : ""}`;
-      }),
-    ),
-  );
-  lines.push(
-    ...section(
-      "Existing setup to reuse",
-      result.existingSetup.map((item) => `- ${item}`),
-    ),
-  );
-  lines.push(
-    ...section(
-      "Conflicts and limits",
-      result.conflicts.map((item) => `- ${item}`),
-    ),
-  );
-  if (result.profile.stats.incompleteReasons.length > 0) {
-    lines.push(...result.profile.stats.incompleteReasons.map((item) => `- Incomplete: ${item}`));
-  }
-  if (result.profile.suspectedSecrets.length > 0) {
-    lines.push(
-      `- ${result.profile.suspectedSecrets.length} suspected secret file(s) were identified by name; contents were not read.`,
-    );
-  }
-  lines.push(
-    ...section(
-      "Unknown",
-      result.unknowns.map((item) => `? ${item}`),
-    ),
-  );
-  lines.push(
-    ...section(
-      "Modules",
-      result.modules.map((module) => `- ${module.label}: ${module.status} — ${module.reason}`),
-    ),
-  );
-  lines.push("", `Proposed changes: ${result.proposedFiles.length} files`);
-  for (const file of result.proposedFiles) {
-    lines.push("", `${file.action.toUpperCase()} ${file.path}`, file.reason);
-    if (file.patch) lines.push(file.patch.trimEnd());
-  }
-  lines.push(
-    ...section(
-      "Commands discovered but not run",
-      result.profile.candidateCommands.map(
-        (command) => `- ${[command.executable, ...command.args].join(" ")} — ${command.source}`,
-      ),
-    ),
-  );
-  lines.push(
-    "",
+    `Detected: ${detected.join(", ") || "No application architecture yet"}${manager}`,
+    `Existing instructions: ${instructions.join(", ") || "none"}`,
+    `Approved check candidates found: ${result.profile.candidateCommands.map((item) => item.id).join(", ") || "none"}`,
+    `Proposed (${result.proposedFiles.length}): ${actionSummary || "no setup changes"}`,
+    `Files: ${result.proposedFiles.map((item) => `${item.action} ${item.path}`).join(", ") || "none"}`,
+    `Applicable modules: ${applicableModules.map((item) => `${item.id} (${item.status})`).join(", ") || "none"}`,
+    `Unavailable modules: ${unavailableModules.map((item) => `${item.id} (${item.status}: ${item.reason})`).join(", ") || "none"}`,
+    `Unknown: ${result.unknowns.join(", ") || "none"}`,
+    `Conflicts/limits: ${
+      [
+        ...result.conflicts,
+        ...result.profile.stats.incompleteReasons,
+        ...(result.profile.suspectedSecrets.length
+          ? [`${result.profile.suspectedSecrets.length} suspected secret path(s) excluded`]
+          : []),
+      ].join("; ") || "none"
+    }`,
     `Estimated default context: ${result.contextEstimate.defaultBytes} bytes (~${result.contextEstimate.estimatedTokens} tokens)`,
-    "Next: noxroot init",
+    `Trust: files changed ${result.trust.repositoryFilesChanged}; repository commands ${result.trust.repositoryCommandsExecuted}; agent calls ${result.trust.agentCallsMade}; network requests ${result.trust.networkRequestsMade}.`,
+  ];
+  if (options.diff && result.proposedFiles.length > 0) {
+    lines.push("", "Exact proposed changes");
+    for (const file of result.proposedFiles) {
+      lines.push("", `${file.action.toUpperCase()} ${file.path}`, file.reason);
+      if (file.patch) lines.push(file.patch.trimEnd());
+    }
+  }
+  lines.push(
     "",
-    "No repository changes were made.",
+    "No repository files changed. No project command, agent, or network request ran.",
+    result.proposedFiles.length === 0
+      ? 'Next: no setup changes are recommended; run noxroot context "<task>".'
+      : options.diff
+        ? "Next: noxroot init"
+        : "Next: noxroot preview --diff",
   );
   return `${lines.join("\n")}\n`;
 }

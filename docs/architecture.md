@@ -16,11 +16,21 @@ fake in tests and keeps worker/reviewer invocations distinct. Delegated Git runs
 branches and worktrees; local evidence is stored under the Git common directory, not
 `.noxroot/knowledge/`.
 
+Guided orchestration is a two-command lifecycle. Start persists repository identity, clean revision,
+bounded context, effective autonomy, and a hash of the approved verification policy. Finish derives
+the real diff and affected checks from that snapshot, then emits a portable reviewer package or a
+strict decision. Local state is never treated as application runtime state.
+
 Committed knowledge is stable, medium-grained Markdown/YAML. Active coordination state is local and
 retained separately. Application-agent frameworks remain application architecture: their sessions,
 state, memory, and user data are not Noxroot project knowledge. The MVP uses generic repository
 detection, approved native tests/evals, and the command-adapter protocol; framework-specific
 semantic modules are deferred.
+
+Controlled learning consumes deterministic verification evidence or already parsed structured
+reviewer candidates. Deterministic signatures deduplicate Noxroot-owned knowledge; first creation
+also updates the index. Canonical `.noxroot/skills/*/SKILL.md` files are short, standards-compatible
+procedures selected through ordinary routing, not a new skill runtime or vendor-specific tree.
 
 Trust boundaries are described in [security.md](security.md). Public behavior belongs in tests
 before it is claimed in the README.

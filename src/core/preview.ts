@@ -50,8 +50,13 @@ export async function previewRepository(root = process.cwd()): Promise<PreviewRe
         ...(profile.candidateCommands.length > 0 ? [] : ["Approved verification commands"]),
       ];
   const defaultPaths = ["AGENTS.md", ".noxroot/config.yml", ".noxroot/knowledge/INDEX.md"];
+  const proposedContent = new Map(
+    proposedFiles
+      .filter((file) => file.content !== undefined)
+      .map((file) => [file.path, Buffer.byteLength(file.content!)]),
+  );
   const defaultBytes = defaultPaths.reduce(
-    (total, file) => total + (profile.fileSizes[file] ?? 0),
+    (total, file) => total + (proposedContent.get(file) ?? profile.fileSizes[file] ?? 0),
     0,
   );
   return {

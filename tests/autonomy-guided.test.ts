@@ -1,11 +1,13 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { CommanderError } from "commander";
 import { afterEach, describe, expect, it } from "vitest";
 import { effectiveAutonomy } from "../src/orchestration/autonomy.js";
 import { finishGuidedRun, startGuidedRun } from "../src/orchestration/guided.js";
 import { ManualAgentAdapter } from "../src/adapters/agents.js";
 import { runProcess } from "../src/adapters/process.js";
 import { temporaryDirectory } from "./helpers.js";
+import { createProgram } from "../src/cli.js";
 
 const cleanup: string[] = [];
 afterEach(async () => {
@@ -36,6 +38,22 @@ async function repository(): Promise<string> {
   return root;
 }
 
+async function cli(args: string[]): Promise<{ stdout: string; stderr: string }> {
+  let stdout = "";
+  let stderr = "";
+  const program = createProgram({
+    stdout: (value) => (stdout += value),
+    stderr: (value) => (stderr += value),
+    isTTY: false,
+  });
+  try {
+    await program.parseAsync(["node", "noxroot", ...args]);
+  } catch (error) {
+    if (!(error instanceof CommanderError)) throw error;
+  }
+  return { stdout, stderr };
+}
+
 const context = {
   task: "change value",
   interpretation: "Change the value implementation.",
@@ -64,6 +82,81 @@ describe("enforced autonomy and guided completion", () => {
     expect(autonomy.reviewer).toMatchObject({ effective: 3, authorized: true });
     expect(autonomy.merge.authorized).toBe(false);
     expect(autonomy.delivery.authorized).toBe(false);
+    expect(effectiveAutonomy(undefined).worker.authorized).toBe(false);
+  });
+
+  it("completes the public guided CLI journey through a learning proposal", async () => {
+    const root = await repository();
+    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      `version: 1
+modules: [repository-profile, agent-routing, verification, orchestration, learning]
+autonomy: {default: 0, implementation: 1, review: 0, merge: 0, delivery: 0}
+agents: {default: manual, adapters: {manual: {type: manual}}}
+`,
+    );
+    await writeFile(
+      path.join(root, ".noxroot", "verification.yml"),
+      `version: 1
+commands:
+  - id: node-check
+    executable: ${JSON.stringify(process.execPath)}
+    args: [-e, process.exit(0)]
+    cwd: .
+    timeoutMs: 10000
+    appliesTo: [src/**]
+`,
+    );
+    await writeFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "# Index\n");
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "noxroot fixture"]);
+
+    const started = await cli(["run", "change value", "--guided", "--json", "--root", root]);
+    const startValue = JSON.parse(started.stdout) as { record: { id: string; status: string } };
+    expect(startValue.record.status).toBe("running");
+    await writeFile(path.join(root, "src", "value.ts"), "export const value = 4;\n");
+
+    const pending = await cli(["finish", "--task", startValue.record.id, "--json", "--root", root]);
+    expect((JSON.parse(pending.stdout) as { record: { status: string } }).record.status).toBe(
+      "review-pending",
+    );
+
+    const reviewPath = path.join(root, ".git", "noxroot", "external-review.json");
+    await writeFile(
+      reviewPath,
+      JSON.stringify({
+        decision: "approved",
+        summary: "The actual diff and affected check passed.",
+        findings: [],
+        learningCandidates: [
+          {
+            kind: "procedure",
+            destination: ".noxroot/knowledge/learnings.md",
+            evidence: ["node-check passed for src/value.ts"],
+            expectedValue: "Keeps the recurring value-change check discoverable.",
+            content: "Use the approved node-check for changes under src.",
+            whyNotExecutable: "The executable rule already lives in verification policy.",
+          },
+        ],
+      }),
+    );
+    const approved = await cli([
+      "finish",
+      "--task",
+      startValue.record.id,
+      "--review-file",
+      ".git/noxroot/external-review.json",
+      "--json",
+      "--root",
+      root,
+    ]);
+    expect((JSON.parse(approved.stdout) as { record: { status: string } }).record.status).toBe(
+      "approved",
+    );
+    const learned = await cli(["learn", "--task", startValue.record.id, "--json", "--root", root]);
+    const learning = JSON.parse(learned.stdout) as { proposals: Array<{ kind: string }> };
+    expect(learning.proposals).toEqual([expect.objectContaining({ kind: "procedure" })]);
   });
 
   it("records a clean baseline, verifies the actual diff, then accepts strict external review", async () => {

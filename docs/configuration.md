@@ -11,7 +11,7 @@ modules:
 roots: [.]
 entrypoints: [AGENTS.md]
 context:
-  budgetBytes: 48000
+  budgetBytes: 16000
   documentWarningBytes: 24000
 autonomy:
   default: 0
@@ -45,9 +45,12 @@ browser:
     - { name: mobile, width: 390, height: 844 }
 ```
 
-Autonomy levels 4 and 5 are reserved but `merge` and `delivery` are schema-capped at level 3 and
-operationally disabled. Agent command arguments are literal arrays; task packages are sent over
-standard input. Never put credentials in configuration, arguments, prompts, or knowledge.
+Autonomy is enforced, never descriptive-only: level 0 permits read-only diagnosis/context/plans;
+implementation level 1 permits guided records; implementation level 2 permits a configured worker;
+review level 3 permits independent reviewer and bounded repair calls. Higher configured values are
+effectively capped at 3. `merge` and `delivery` are operationally disabled in the MVP regardless of
+their fields. Agent arguments are literal arrays and task packages use standard input. Never put
+credentials in configuration, arguments, prompts, or knowledge.
 
 Confirmed checks live separately in `.noxroot/verification.yml`:
 
@@ -69,3 +72,8 @@ evidence and enforces the configured byte budget.
 `entrypoints` selects thin vendor-facing instruction files without duplicating canonical knowledge.
 `browser` is optional and must reference an already confirmed verification command; preview never
 installs browser tooling or starts an application.
+
+For JavaScript repositories, candidate commands use an authoritative `packageManager` declaration,
+then an unambiguous lockfile, then consistent CI evidence. npm, pnpm, Yarn, and Bun are supported.
+Missing or conflicting evidence produces no guessed command and preview never installs a manager or
+runs Corepack.

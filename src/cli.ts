@@ -151,7 +151,8 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .command("preview")
     .description("perform a strict read-only repository diagnosis")
     .option("--module <id>", "show one module assessment")
-    .action(async (options: { module?: string }, command: Command) => {
+    .option("--diff", "show exact proposed file patches")
+    .action(async (options: { module?: string; diff?: boolean }, command: Command) => {
       const common = globals(command);
       let result = await previewRepository(common.root);
       if (options.module) {
@@ -159,7 +160,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         if (!modules.length) throw new Error(`Unknown module id: ${options.module}`);
         result = { ...result, modules };
       }
-      emit(io, common.json, result, renderPreview(result));
+      emit(io, common.json, result, renderPreview(result, { diff: options.diff ?? false }));
     });
 
   program
@@ -178,7 +179,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             "Mutating init with --json requires --yes after a separate reviewed preview.",
           );
         }
-        if (!common.json) io.stdout(renderPreview(preview));
+        if (!common.json) io.stdout(renderPreview(preview, { diff: !options.dryRun }));
         if (options.dryRun) {
           if (common.json) writeJson(io, preview);
           return;
@@ -214,31 +215,39 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .command("sync")
     .description("reinspect initialized setup and propose evidence-backed additions")
     .option("--dry-run", "show proposals without applying them")
+    .option("--diff", "show exact proposed file patches")
     .option("--yes", "confirm the complete displayed proposal non-interactively")
-    .action(async (options: { dryRun?: boolean; yes?: boolean }, command: Command) => {
-      const common = globals(command);
-      const preview = await previewRepository(common.root);
-      if (common.json && !options.dryRun && !options.yes) {
-        throw new Error(
-          "Mutating sync with --json requires --yes after a separate reviewed preview.",
-        );
-      }
-      if (!common.json) io.stdout(renderPreview(preview));
-      if (options.dryRun || preview.proposedFiles.length === 0) {
-        if (common.json) writeJson(io, { preview, applied: { created: [] } });
-        return;
-      }
-      if (
-        !(await confirm(io, `Create ${preview.proposedFiles.length} missing file(s)?`, options.yes))
-      ) {
-        process.exitCode = EXIT.refused;
-        io.stderr("Synchronization cancelled; no files were changed.\n");
-        return;
-      }
-      const result = await applyProposals(preview);
-      if (common.json) writeJson(io, { preview, applied: result });
-      else io.stdout(`Created: ${result.created.join(", ")}\n`);
-    });
+    .action(
+      async (options: { dryRun?: boolean; diff?: boolean; yes?: boolean }, command: Command) => {
+        const common = globals(command);
+        const preview = await previewRepository(common.root);
+        if (common.json && !options.dryRun && !options.yes) {
+          throw new Error(
+            "Mutating sync with --json requires --yes after a separate reviewed preview.",
+          );
+        }
+        if (!common.json)
+          io.stdout(renderPreview(preview, { diff: options.diff || !options.dryRun }));
+        if (options.dryRun || preview.proposedFiles.length === 0) {
+          if (common.json) writeJson(io, { preview, applied: { created: [] } });
+          return;
+        }
+        if (
+          !(await confirm(
+            io,
+            `Create ${preview.proposedFiles.length} missing file(s)?`,
+            options.yes,
+          ))
+        ) {
+          process.exitCode = EXIT.refused;
+          io.stderr("Synchronization cancelled; no files were changed.\n");
+          return;
+        }
+        const result = await applyProposals(preview);
+        if (common.json) writeJson(io, { preview, applied: result });
+        else io.stdout(`Created: ${result.created.join(", ")}\n`);
+      },
+    );
 
   program
     .command("doctor")

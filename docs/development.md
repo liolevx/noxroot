@@ -1,7 +1,8 @@
 # Development
 
-Requirements: Node.js 24 LTS, npm 11.5.1 or later for future trusted publishing, and Git for
-worktree integration tests.
+Requirements: Node.js `>=22.12 <27`, npm, and Git for lifecycle/worktree integration tests. CI runs
+the full matrix on Node 24 across Linux, macOS, and Windows and installed-package smoke tests on
+Node 22 and 26 on Linux.
 
 ```bash
 npm ci
@@ -10,6 +11,8 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run test:built
+npm run test:package
 npm run package:check
 ```
 
@@ -23,8 +26,10 @@ Noxroot configuration.
 Tests cover preview invariance/no execution/determinism/secrets/paths, initialization
 preservation/cancellation, context budgets, verification trust, direct process behavior, worktree
 isolation, worker/check/reviewer/repair ordering, learning confirmation and deduplication, CLI
-help/JSON/non-TTY behavior, and the application-agent framework boundary. CI runs the supported
-operating-system matrix and performs package-content inspection on Linux.
+help/JSON/non-TTY behavior, guided start/finish, autonomy enforcement, strict reviewer output,
+package-manager evidence, skill generation/routing, and the application-agent framework boundary.
+The package smoke creates a real tarball, installs it in a temporary project, and invokes its actual
+platform binary for version and preview checks.
 
 Before adding a dependency, explain why a platform API is insufficient. Production dependencies are
 limited to command parsing, schema validation, and YAML. Before claiming a new project shape or

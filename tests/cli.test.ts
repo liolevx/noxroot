@@ -65,6 +65,19 @@ describe("CLI contracts", () => {
     expect(value.trust.repositoryFilesChanged).toBe(0);
   });
 
+  it("keeps default preview concise and reveals exact patches only with --diff", async () => {
+    const fixture = await fixtureCopy("typescript");
+    cleanup.push(fixture.cleanup);
+    const concise = await run(["preview", "--root", fixture.root]);
+    expect(concise.stdout).toContain("Proposed (7): create 7");
+    expect(concise.stdout).toContain("Next: noxroot preview --diff");
+    expect(concise.stdout).not.toContain("--- /dev/null");
+    const exact = await run(["preview", "--diff", "--root", fixture.root]);
+    expect(exact.stdout).toContain("Exact proposed changes");
+    expect(exact.stdout).toContain("--- /dev/null");
+    expect(exact.stdout).toContain("Next: noxroot init");
+  });
+
   it("cancels non-interactive initialization without --yes", async () => {
     const root = await temporaryDirectory();
     cleanup.push(() => rm(root, { recursive: true, force: true }));

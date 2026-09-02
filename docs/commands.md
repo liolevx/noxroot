@@ -20,10 +20,11 @@ Exit codes:
 
 ## `preview`
 
-`noxroot preview [--module ID]` is strictly read-only. `noxroot init --dry-run` is an aliasing
-experience, but documentation uses `preview` as the first command. Human output includes complete
-proposed patches; JSON includes the repository profile, evidence, limits, module reasons, proposal
-contents, discovered-but-unrun commands, context estimate, and zero-side-effect counters.
+`noxroot preview [--module ID] [--diff]` is strictly read-only. Default human output is a concise
+diagnosis with proposed actions and one next command; `--diff` adds every exact patch. JSON always
+contains the complete repository profile, limits, module reasons, proposal contents,
+discovered-but-unrun commands, proposed context estimate, and zero-side-effect counters.
+`noxroot init --dry-run` is the concise aliasing experience.
 
 ## `init` and `sync`
 
@@ -32,8 +33,9 @@ writes each file through a same-directory temporary file, and rolls back files i
 operation fails. Existing files are never overwritten.
 
 `init --select` interactively accepts explicit module ids. `sync --dry-run` re-diagnoses an
-initialized repository. Mutating sync creates missing evidence-backed files but never rewrites human
-knowledge. `--yes` is for automation that has already reviewed the emitted patches.
+initialized repository; add `--diff` for patches. Mutating init and sync always show exact patches
+before confirmation. Sync creates or patches only hash-guarded Noxroot-owned surfaces and never
+rewrites user-authored external knowledge. `--yes` is for automation that already reviewed them.
 
 ## `doctor`
 
@@ -57,16 +59,25 @@ failure.
 
 ## `run`
 
-`run "task" --dry-run` reads repository/configuration evidence only: it runs no Git/project command,
-invokes no agent, and writes nothing. `--guided` emits the portable context and verification
-package. A delegated run requires an explicitly configured command adapter, a Git commit, and
-confirmation. It creates an isolated branch/worktree, snapshots verification policy before the
-worker, runs deterministic checks, invokes an independent reviewer, and permits at most the
-configured low repair maximum.
+`run "task" --dry-run` prints effective autonomy, calls, scopes, checks, and prohibitions without a
+Git/project command, agent, or write. At implementation level 1, `--guided` records a clean Git
+baseline, context, and trusted policy for an external agent. Level 2 permits a configured worker in
+an isolated branch/worktree. Level 3 permits reviewer/repair execution. Merge and delivery remain
+disabled. Policy is captured before the worker and actual changed paths select affected checks.
+
+## `finish`
+
+`finish --task ID [--review-file path]` closes a guided task. It validates repository identity and
+the recorded policy hash, computes the diff from the baseline (including new files), runs matching
+approved checks, and creates a portable reviewer package. Without an authorized command reviewer or
+a strict repository-relative review JSON file, successful checks produce `review-pending`, not
+approval. Zero matching checks, unavailable tools, and invalid reviewer output block completion.
 
 ## `learn`
 
-`learn --task ID` reads bounded local run evidence and proposes only supported, non-duplicate
-consolidation. A valid answer is `No durable learning identified`. `--apply` still requires
-confirmation (or reviewed automation via `--yes`). Learning never copies agent output, task text,
-runtime sessions, user data, or secrets into committed knowledge.
+`learn --task ID` accepts only deterministic verification evidence and structured reviewer
+candidates of kind `knowledge`, `decision`, `procedure`, `verification`, or `none`. Proposals show
+evidence, expected value, duplication/conflict results, content, and whether an executable guardrail
+is better. `--apply` requires confirmation; the first learnings file and index link are written in
+the same operation. Raw prose, task text, sessions, user data, secrets, and external human docs are
+not converted into knowledge.

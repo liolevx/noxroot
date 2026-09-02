@@ -62,6 +62,7 @@ describe("read-only preview", () => {
     ]);
     expect(result.proposedFiles.some((file) => file.path.includes("architecture"))).toBe(false);
     expect(result.unknowns).toContain("Product intent");
+    expect(result.contextEstimate.defaultBytes).toBeGreaterThan(0);
   });
 
   it("detects a TypeScript project and candidates without executing them", async () => {
