@@ -185,6 +185,7 @@ export async function doctorRepository(root = process.cwd()): Promise<DoctorResu
     const knowledgeFiles = profile.files.filter(
       (item) => item.startsWith(".noxroot/knowledge/") && item !== ".noxroot/knowledge/INDEX.md",
     );
+    const learningEvidence = new Map<string, { content: string; file: string }>();
     let index = "";
     try {
       index = await readFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "utf8");
@@ -204,6 +205,21 @@ export async function doctorRepository(root = process.cwd()): Promise<DoctorResu
       }
       if ((profile.fileSizes[file] ?? 0) <= 256_000) {
         const content = await readFile(path.join(root, file), "utf8");
+        for (const match of content.matchAll(/- Evidence:\s*([^\n]+)/g)) {
+          const evidence = match[1]?.trim().toLowerCase();
+          if (!evidence) continue;
+          const prior = learningEvidence.get(evidence);
+          if (prior && prior.content !== content) {
+            findings.push(
+              finding(
+                "warning",
+                "conflicting-knowledge",
+                `${file} and ${prior.file} record different Noxroot-owned knowledge for the same evidence.`,
+                "Revalidate the evidence, keep one current conclusion, and preserve rationale where needed.",
+              ),
+            );
+          } else learningEvidence.set(evidence, { content, file });
+        }
         const confirmed = /^Last confirmed:\s*(\d{4}-\d{2}-\d{2})\s*$/im.exec(content)?.[1];
         if (confirmed && Date.now() - Date.parse(confirmed) > 180 * 86_400_000) {
           findings.push(

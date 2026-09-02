@@ -14,15 +14,18 @@ receives one JSON line on standard input:
 { "role": "worker", "taskPackage": { "task": "..." } }
 ```
 
-Roles are `worker`, `repair`, and `reviewer`. Reviewers should return JSON containing
-`{"decision":"approved"}`, `changes-requested`, or `blocked`; concise plain text containing the same
-decision words is accepted as a fallback. Every invocation is a new child process with fresh input.
-Noxroot does not use a shell, interpolate repository text into arguments, bypass permissions, or
-promise support for undocumented vendor flags.
+Roles are `worker`, `repair`, and `reviewer`. An automated reviewer must write exactly one JSON
+object to standard output with `decision`, `summary`, `findings`, and `learningCandidates`. Findings
+require severity, evidence, and required outcome; optional paths are repository-relative. Prose,
+additional text, missing fields, unknown fields, truncated output, nonzero exit, and a decision
+printed only on standard error all block approval. Diagnostics remain separate on standard error.
+Every invocation is a fresh process. Noxroot does not use a shell, interpolate repository text into
+arguments, bypass permissions, or promise undocumented vendor flags.
 
 The application itself may use an agent framework. That framework is analyzed as repository
 architecture and can expose native tests/evals through `.noxroot/verification.yml`; it is not
-installed or controlled as a Noxroot dependency.
+installed or controlled as a Noxroot dependency. Project knowledge never absorbs the framework's
+runtime sessions, state, memory, or user data.
 
 ## Verification
 

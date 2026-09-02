@@ -59,15 +59,39 @@ export interface RepositoryProfile {
   suspectedSecrets: string[];
   blockedSymlinks: string[];
   candidateCommands: CandidateCommand[];
+  documents: RepositoryDocument[];
+  packageManager: PackageManagerEvidence;
   stats: InspectionStats;
+}
+
+export interface PackageManagerEvidence {
+  name?: "npm" | "pnpm" | "yarn" | "bun";
+  status: "confirmed" | "inferred" | "unknown" | "conflicting";
+  sources: string[];
+  detail: string;
+}
+
+export interface RepositoryDocument {
+  path: string;
+  kind:
+    | "instructions"
+    | "architecture"
+    | "product"
+    | "ux"
+    | "testing"
+    | "security"
+    | "contribution"
+    | "ordinary";
+  authoritative: boolean;
 }
 
 export interface ProposedFile {
   path: string;
-  action: "create" | "reference";
+  action: "create" | "reference" | "patch";
   reason: string;
   content?: string;
   patch?: string;
+  expectedHash?: string;
 }
 
 export interface PreviewResult {
@@ -101,6 +125,9 @@ export interface ContextSelection {
 export interface ContextPackage {
   task: string;
   interpretation: string;
+  confidence: "high" | "partial" | "insufficient";
+  repositoryFileCount: number;
+  eligibleCandidateFiles: number;
   applicableAreas: string[];
   selected: ContextSelection[];
   likelyOwningSource: string[];
@@ -140,5 +167,5 @@ export interface ProcessEvidence {
 export interface VerificationResult {
   command: VerificationCommand;
   evidence: ProcessEvidence;
-  status: "passed" | "failed" | "timed-out";
+  status: "passed" | "failed" | "timed-out" | "unavailable";
 }

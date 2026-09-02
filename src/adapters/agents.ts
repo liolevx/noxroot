@@ -1,4 +1,5 @@
 import path from "node:path";
+import { z } from "zod";
 import type { NoxrootConfig } from "../config/schema.js";
 import { runProcess, type ProcessRequest } from "./process.js";
 
@@ -17,9 +18,46 @@ export interface AgentResult {
   status: "completed" | "failed" | "manual";
   summary: string;
   output: string;
+  diagnostics?: string;
   exitCode: number | null;
   reviewDecision?: "approved" | "changes-requested" | "blocked";
+  review?: ReviewerResponse;
 }
+
+export const reviewerResponseSchema = z
+  .object({
+    decision: z.enum(["approved", "changes-requested", "blocked"]),
+    summary: z.string().trim().min(1).max(2_000),
+    findings: z
+      .array(
+        z
+          .object({
+            severity: z.enum(["critical", "high", "medium", "low"]),
+            path: z.string().min(1).optional(),
+            evidence: z.string().trim().min(1).max(4_000),
+            requiredOutcome: z.string().trim().min(1).max(4_000),
+          })
+          .strict(),
+      )
+      .max(100),
+    learningCandidates: z
+      .array(
+        z
+          .object({
+            kind: z.enum(["knowledge", "decision", "procedure", "verification", "none"]),
+            destination: z.string().min(1),
+            evidence: z.array(z.string().min(1).max(1_000)).min(1).max(20),
+            expectedValue: z.string().min(1),
+            content: z.string().min(1).max(4_000),
+            whyNotExecutable: z.string().min(1),
+          })
+          .strict(),
+      )
+      .max(20),
+  })
+  .strict();
+
+export type ReviewerResponse = z.infer<typeof reviewerResponseSchema>;
 
 export interface AgentAdapter {
   id: string;
@@ -50,19 +88,14 @@ export class ManualAgentAdapter implements AgentAdapter {
   }
 }
 
-function decisionFromOutput(output: string): AgentResult["reviewDecision"] {
+export function parseReviewerResponse(output: string): ReviewerResponse | undefined {
   try {
-    const parsed = JSON.parse(output) as { decision?: unknown };
-    if (parsed.decision === "approved") return "approved";
-    if (parsed.decision === "changes-requested") return "changes-requested";
-    if (parsed.decision === "blocked") return "blocked";
+    const decoded: unknown = JSON.parse(output);
+    const parsed = reviewerResponseSchema.safeParse(decoded);
+    return parsed.success ? parsed.data : undefined;
   } catch {
-    const lower = output.toLowerCase();
-    if (lower.includes("changes requested")) return "changes-requested";
-    if (lower.includes("approved")) return "approved";
-    if (lower.includes("blocked") || lower.includes("unverifiable")) return "blocked";
+    return undefined;
   }
-  return undefined;
 }
 
 export class CommandAgentAdapter implements AgentAdapter {
@@ -98,7 +131,6 @@ export class CommandAgentAdapter implements AgentAdapter {
         input: `${JSON.stringify({ role: request.role, taskPackage: request.package })}\n`,
         ...(request.signal === undefined ? {} : { signal: request.signal }),
       });
-      const combined = [evidence.stdout, evidence.stderr].filter(Boolean).join("\n");
       const result: AgentResult = {
         invoked: true,
         status: evidence.exitCode === 0 ? "completed" : "failed",
@@ -106,12 +138,26 @@ export class CommandAgentAdapter implements AgentAdapter {
           evidence.exitCode === 0
             ? `${request.role} command completed.`
             : `${request.role} command exited with ${evidence.exitCode ?? evidence.signal ?? "an error"}.`,
-        output: combined,
+        output: evidence.stdout,
+        ...(evidence.stderr ? { diagnostics: evidence.stderr } : {}),
         exitCode: evidence.exitCode,
       };
       if (request.role === "reviewer") {
-        const decision = decisionFromOutput(evidence.stdout);
-        if (decision !== undefined) result.reviewDecision = decision;
+        const review =
+          evidence.exitCode === 0 && !evidence.outputTruncated
+            ? parseReviewerResponse(evidence.stdout)
+            : undefined;
+        if (review) {
+          result.review = review;
+          result.reviewDecision = review.decision;
+          result.summary = review.summary;
+        } else {
+          result.reviewDecision = "blocked";
+          result.summary =
+            evidence.exitCode === 0
+              ? "Reviewer output was not one complete schema-valid JSON response."
+              : "Reviewer process did not exit successfully; its decision was ignored.";
+        }
       }
       return result;
     } catch (error) {

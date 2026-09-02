@@ -29,6 +29,25 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run test:built
+      - run: npm run test:package
+
+  runtime-smoke:
+    name: Node ${{ matrix.node }} / Ubuntu smoke
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 26]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:package
 
   package:
     runs-on: ubuntu-latest
@@ -40,5 +59,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - run: npm run test:package
       - run: npm run package:check
       - run: npm audit --audit-level=high

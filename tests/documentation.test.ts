@@ -1,6 +1,7 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { buildContext } from "../src/core/context.js";
 import { previewRepository } from "../src/core/preview.js";
 import { renderPreview } from "../src/output.js";
 import { fixtures } from "./helpers.js";
@@ -8,22 +9,36 @@ import { fixtures } from "./helpers.js";
 describe("documentation examples", () => {
   it("keeps the README opening and preview excerpt synchronized with a real fixture", async () => {
     const readme = await readFile(path.resolve("README.md"), "utf8");
-    expect(
-      readme.startsWith("# Noxroot\n\nCLI that builds repository context for coding agents"),
-    ).toBe(true);
+    expect(readme.startsWith("# Noxroot\n\nGive coding agents the right repository context")).toBe(
+      true,
+    );
     const output = renderPreview(await previewRepository(path.join(fixtures, "typescript")));
     for (const line of [
       "NOXROOT PREVIEW",
-      "Repository files changed: 0",
-      "Repository commands executed: 0",
-      "Agent calls made: 0",
-      "Network requests made by Noxroot: 0",
-      "✓ [confirmed] Node.js project — package.json",
-      "✓ [confirmed] TypeScript source — tsconfig.json",
-      "Proposed changes: 6 files",
-      "No repository changes were made.",
+      "Detected: Node.js project, TypeScript (npm)",
+      "Approved check candidates found: lint, typecheck, test, build",
+      "Proposed (7): create 7",
+      "Unknown: Continuous integration",
+      "Trust: files changed 0; repository commands 0; agent calls 0; network requests 0.",
+      "No repository files changed. No project command, agent, or network request ran.",
+      "Next: noxroot preview --diff",
     ]) {
       expect(output).toContain(line);
+      expect(readme).toContain(line);
+    }
+  });
+
+  it("keeps the README context proof synchronized with the dogfood route", async () => {
+    const readme = await readFile(path.resolve("README.md"), "utf8");
+    const context = await buildContext("improve reviewer decision safety", path.resolve("."));
+    const checks = context.requiredVerification.map((item) => item.id).join(", ");
+    for (const line of [
+      `Selected ${context.selected.length} of ${context.repositoryFileCount} repository files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
+      `Likely owner: ${context.likelyOwningSource[0]}`,
+      `Likely tests: ${context.likelyTests[0]} (+${context.likelyTests.length - 1} related)`,
+      `Approved checks: ${checks}`,
+      `Deliberately excluded: ${context.repositoryFileCount - context.selected.length} unrelated files`,
+    ]) {
       expect(readme).toContain(line);
     }
   });
@@ -31,6 +46,35 @@ describe("documentation examples", () => {
   it("documents the application-agent framework boundary", async () => {
     const readme = await readFile(path.resolve("README.md"), "utf8");
     expect(readme).toContain("Application-agent frameworks are detected project architectures");
-    expect(readme).toContain("runtime sessions, state, memory, and user data");
+    expect(readme).toMatch(/runtime sessions,\s+state, memory, and\s+user data/);
+  });
+
+  it("keeps the README focused and every relative link or image resolvable", async () => {
+    const readme = await readFile(path.resolve("README.md"), "utf8");
+    let inFence = false;
+    const prose = readme
+      .split("\n")
+      .filter((line) => {
+        if (line.startsWith("```")) {
+          inFence = !inFence;
+          return false;
+        }
+        return !inFence && !line.trim().startsWith("|");
+      })
+      .join(" ")
+      .replace(/!?\[[^\]]*\]\([^)]+\)/g, " ");
+    const words = prose.match(/[A-Za-z0-9][A-Za-z0-9'./+—-]*/g) ?? [];
+    expect(words.length).toBeGreaterThanOrEqual(900);
+    expect(words.length).toBeLessThanOrEqual(1_200);
+
+    for (const match of readme.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)) {
+      const target = match[1]!;
+      if (/^(?:https?:|mailto:|#)/.test(target)) continue;
+      await expect(access(path.resolve(target.split("#")[0]!))).resolves.toBeUndefined();
+    }
+    const svg = await readFile(path.resolve("docs/assets/noxroot-workflow.svg"), "utf8");
+    expect(svg).toContain('viewBox="0 0 1200 430"');
+    expect(svg).toContain("<title");
+    expect(svg).toContain("<desc");
   });
 });

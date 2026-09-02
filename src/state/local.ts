@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 async function pathType(candidate: string): Promise<"file" | "directory" | undefined> {
@@ -55,4 +55,19 @@ export async function readRunRecord<T>(root: string, id: string): Promise<T> {
   if (!/^[a-z0-9-]+$/i.test(id)) throw new Error("Task id contains unsupported characters.");
   const stateRoot = await localStateRoot(root);
   return JSON.parse(await readFile(path.join(stateRoot, "runs", `${id}.json`), "utf8")) as T;
+}
+
+export async function replaceRunRecord(root: string, id: string, value: unknown): Promise<string> {
+  if (!/^[a-z0-9-]+$/i.test(id)) throw new Error("Task id contains unsupported characters.");
+  const stateRoot = await localStateRoot(root);
+  const target = path.join(stateRoot, "runs", `${id}.json`);
+  await stat(target);
+  const temporary = `${target}.tmp-${process.pid}`;
+  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, {
+    encoding: "utf8",
+    flag: "wx",
+    mode: 0o600,
+  });
+  await rename(temporary, target);
+  return target;
 }

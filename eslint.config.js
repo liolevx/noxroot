@@ -8,6 +8,7 @@ export default tseslint.config(
       "coverage",
       "eslint.config.js",
       "tests/built-safety.mjs",
+      "tests/package-smoke.mjs",
       "tests/fixtures/**",
     ],
   },

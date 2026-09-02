@@ -17,6 +17,9 @@ afterEach(async () => Promise.all(cleanup.splice(0).map((operation) => operation
 const context: ContextPackage = {
   task: "change greeting",
   interpretation: "bounded greeting change",
+  confidence: "high",
+  repositoryFileCount: 2,
+  eligibleCandidateFiles: 2,
   applicableAreas: ["src"],
   selected: [],
   likelyOwningSource: ["src/greet.ts"],
@@ -94,6 +97,25 @@ class FakeAdapter implements AgentAdapter {
 }
 
 describe("orchestration, worktree isolation, and controlled learning", () => {
+  it("blocks before review when no approved deterministic check matched", async () => {
+    const adapter = new FakeAdapter();
+    const record = await orchestrateRun(
+      {
+        id: "task-no-checks",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      { verify: async () => [], diff: async () => "diff" },
+    );
+    expect(record.status).toBe("blocked");
+    expect(adapter.roles).toEqual(["worker"]);
+    expect(record.handoff).toContain("No approved deterministic checks matched");
+  });
+
   it("runs worker, deterministic verification, and a separate reviewer", async () => {
     const adapter = new FakeAdapter();
     let verifies = 0;
@@ -189,6 +211,80 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
       "utf8",
     );
     expect(written).toContain("No approved deterministic checks matched the change.");
+    expect(await readFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "utf8")).toContain(
+      "[Validated learnings](learnings.md)",
+    );
     expect((await proposeLearnings(root, run)).proposals).toEqual([]);
+  });
+
+  it("accepts only structured reviewer candidates and protects external documentation", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const run: RunRecord = {
+      id: "task-structured",
+      task: "raw prose must not become memory",
+      status: "approved",
+      verification: [],
+      verificationGaps: [],
+      handoff: "",
+      calls: [
+        {
+          role: "reviewer",
+          result: {
+            invoked: true,
+            status: "completed",
+            summary: "review complete",
+            output: "structured JSON was parsed earlier",
+            exitCode: 0,
+            reviewDecision: "approved",
+            review: {
+              decision: "approved",
+              summary: "review complete",
+              findings: [],
+              learningCandidates: [
+                {
+                  kind: "decision",
+                  destination: ".noxroot/knowledge/learnings.md",
+                  evidence: ["tests/decision.test.ts proves the boundary"],
+                  expectedValue: "Prevents accidental reversal of the boundary.",
+                  content: "Keep project knowledge separate from runtime session state.",
+                  whyNotExecutable: "The boundary is also tested; this note records the rationale.",
+                },
+                {
+                  kind: "knowledge",
+                  destination: "docs/architecture.md",
+                  evidence: ["source module boundary"],
+                  expectedValue: "Would alter user-authored docs.",
+                  content: "Do not apply this automatically.",
+                  whyNotExecutable: "Architecture rationale is not fully executable.",
+                },
+                {
+                  kind: "none",
+                  destination: ".noxroot/knowledge/learnings.md",
+                  evidence: ["routine session detail"],
+                  expectedValue: "none",
+                  content: "Do not persist.",
+                  whyNotExecutable: "No durable value.",
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+    const result = await proposeLearnings(root, run);
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0]).toMatchObject({
+      kind: "decision",
+      conflict: "none",
+      duplication: "not-found",
+    });
+    expect(result.proposals[0]?.content).not.toContain(run.task);
+    expect(result.rejected).toEqual([
+      {
+        destination: "docs/architecture.md",
+        reason: "Learning may update only a Noxroot-owned Markdown file under .noxroot/knowledge/.",
+      },
+    ]);
   });
 });

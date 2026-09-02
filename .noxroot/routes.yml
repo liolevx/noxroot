@@ -6,6 +6,8 @@ routes:
     include:
       - AGENTS.md
       - .noxroot/knowledge/INDEX.md
+      - .noxroot/skills/verify-change/SKILL.md
+      - .noxroot/skills/independent-review/SKILL.md
       - src/**
       - tests/**
     exclude:

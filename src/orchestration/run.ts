@@ -10,7 +10,14 @@ export interface RunBudgets {
 export interface RunRecord {
   id: string;
   task: string;
-  status: "approved" | "changes-requested" | "failed" | "blocked" | "manual";
+  status:
+    | "running"
+    | "review-pending"
+    | "approved"
+    | "changes-requested"
+    | "failed"
+    | "blocked"
+    | "manual";
   branch?: string;
   worktree?: string;
   calls: Array<{ role: "worker" | "reviewer" | "repair"; result: AgentResult }>;
@@ -28,6 +35,7 @@ export interface OrchestrationRequest {
   repositoryRoot: string;
   adapter: AgentAdapter;
   budgets: RunBudgets;
+  reviewAuthorized?: boolean;
   branch?: string;
   signal?: AbortSignal;
 }
@@ -38,7 +46,7 @@ export interface OrchestrationDependencies {
 }
 
 function passed(results: VerificationResult[]): boolean {
-  return results.length === 0 || results.every((result) => result.status === "passed");
+  return results.length > 0 && results.every((result) => result.status === "passed");
 }
 
 function handoff(record: Omit<RunRecord, "handoff">): string {
@@ -143,8 +151,41 @@ export async function orchestrateRun(
 
   let checkResults = await dependencies.verify();
   verification.push(checkResults);
-  if (checkResults.length === 0)
+  if (checkResults.length === 0) {
     verificationGaps.push("No approved deterministic checks matched the change.");
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "blocked",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps,
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
+  if (checkResults.some((result) => result.status === "unavailable")) {
+    verificationGaps.push(
+      ...checkResults
+        .filter((result) => result.status === "unavailable")
+        .map(
+          (result) =>
+            `Approved check ${result.command.id} was unavailable: ${result.evidence.stderr || result.command.executable}`,
+        ),
+    );
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "blocked",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps,
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
   while (
     !passed(checkResults) &&
     calls.filter((call) => call.role === "repair").length < request.budgets.repairIterations &&
@@ -188,6 +229,23 @@ export async function orchestrateRun(
       calls,
       verification,
       verificationGaps: [...verificationGaps, "Reviewer-call budget is zero."],
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
+
+  if (request.reviewAuthorized === false) {
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "review-pending",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps: [
+        ...verificationGaps,
+        "Independent reviewer execution is not authorized; use a fresh external review.",
+      ],
     };
     return { ...partial, handoff: handoff(partial) };
   }

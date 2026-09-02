@@ -17,21 +17,26 @@ function matches(pattern: string, changedPath: string): boolean {
   return new RegExp(`^${escaped}$`).test(normalized);
 }
 
+export function selectVerification(
+  commands: VerificationCommand[],
+  changedPaths: string[],
+): VerificationCommand[] {
+  if (changedPaths.length === 0) return [];
+  return commands.filter((command) =>
+    command.appliesTo.some((pattern) =>
+      changedPaths.some((changedPath) => matches(pattern, changedPath)),
+    ),
+  );
+}
+
 export async function planVerification(
   root: string,
   changedPaths: string[] = [],
 ): Promise<VerificationCommand[]> {
   const policy = await loadVerification(root);
   if (!policy) return [];
-  return policy.commands
-    .filter(
-      (command) =>
-        changedPaths.length === 0 ||
-        command.appliesTo.some((pattern) =>
-          changedPaths.some((changed) => matches(pattern, changed)),
-        ),
-    )
-    .map((command) => ({ ...command }));
+  const commands = policy.commands.map((command) => ({ ...command }));
+  return changedPaths.length === 0 ? commands : selectVerification(commands, changedPaths);
 }
 
 export async function executeVerification(
@@ -46,17 +51,41 @@ export async function executeVerification(
   const runner = options.runner ?? runProcess;
   const results: VerificationResult[] = [];
   for (const command of commands) {
-    const evidence = await runner({
-      executable: command.executable,
-      args: command.args,
-      cwd: path.resolve(root, command.cwd),
-      repositoryRoot: root,
-      timeoutMs: command.timeoutMs,
-      ...(options.outputLimitBytes === undefined
-        ? {}
-        : { outputLimitBytes: options.outputLimitBytes }),
-      ...(options.signal === undefined ? {} : { signal: options.signal }),
-    });
+    let evidence;
+    try {
+      evidence = await runner({
+        executable: command.executable,
+        args: command.args,
+        cwd: path.resolve(root, command.cwd),
+        repositoryRoot: root,
+        timeoutMs: command.timeoutMs,
+        ...(options.outputLimitBytes === undefined
+          ? {}
+          : { outputLimitBytes: options.outputLimitBytes }),
+        ...(options.signal === undefined ? {} : { signal: options.signal }),
+      });
+    } catch (error) {
+      const timestamp = new Date().toISOString();
+      results.push({
+        command,
+        status: "unavailable",
+        evidence: {
+          executable: command.executable,
+          args: command.args,
+          cwd: path.resolve(root, command.cwd),
+          startedAt: timestamp,
+          endedAt: timestamp,
+          durationMs: 0,
+          exitCode: null,
+          signal: null,
+          timedOut: false,
+          stdout: "",
+          stderr: (error as Error).message,
+          outputTruncated: false,
+        },
+      });
+      break;
+    }
     results.push({
       command,
       evidence,
@@ -67,7 +96,7 @@ export async function executeVerification(
   return results;
 }
 
-export async function changedFiles(root: string): Promise<string[]> {
+export async function changedFiles(root: string, baseRevision?: string): Promise<string[]> {
   try {
     const result = await runProcess({
       executable: "git",
@@ -87,7 +116,20 @@ export async function changedFiles(root: string): Promise<string[]> {
       files.push(entry.slice(3).replaceAll("\\", "/"));
       if ((status.includes("R") || status.includes("C")) && parts[index + 1]) index += 1;
     }
-    return [...new Set(files)].sort();
+    if (baseRevision) {
+      const committed = await runProcess({
+        executable: "git",
+        args: ["diff", "--name-only", "-z", baseRevision, "HEAD", "--"],
+        cwd: root,
+        repositoryRoot: root,
+        timeoutMs: 10_000,
+        outputLimitBytes: 1_000_000,
+      });
+      if (committed.exitCode === 0) {
+        files.push(...committed.stdout.split("\0").filter(Boolean));
+      }
+    }
+    return [...new Set(files.map((file) => file.replaceAll("\\", "/")))].sort();
   } catch {
     return [];
   }

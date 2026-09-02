@@ -1,6 +1,13 @@
 import { lstat, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import type { CandidateCommand, Evidence, InspectionLimits, RepositoryProfile } from "../model.js";
+import type {
+  CandidateCommand,
+  Evidence,
+  InspectionLimits,
+  PackageManagerEvidence,
+  RepositoryDocument,
+  RepositoryProfile,
+} from "../model.js";
 import { isSuspectedSecret, normalizeRelative } from "../security/paths.js";
 
 const DEFAULT_LIMITS: InspectionLimits = {
@@ -67,6 +74,43 @@ interface IgnorePattern {
   directoryOnly: boolean;
 }
 
+function classifyDocument(file: string): RepositoryDocument | undefined {
+  const lower = file.toLowerCase();
+  if (lower.startsWith(".noxroot/") || /(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)/.test(lower)) {
+    return undefined;
+  }
+  const basename = path.posix.basename(lower);
+  if (["agents.md", "claude.md", "copilot-instructions.md"].includes(basename)) {
+    return { path: file, kind: "instructions", authoritative: true };
+  }
+  if (
+    basename === "architecture.md" ||
+    basename === "architecture.mdx" ||
+    /(?:^|\/)docs?\/(?:system-)?architecture\.(?:md|mdx)$/.test(lower)
+  ) {
+    return { path: file, kind: "architecture", authoritative: true };
+  }
+  if (/^(?:product|requirements|product-requirements)\.(?:md|mdx)$/.test(basename)) {
+    return { path: file, kind: "product", authoritative: true };
+  }
+  if (/^(?:ux|design-system|accessibility)\.(?:md|mdx)$/.test(basename)) {
+    return { path: file, kind: "ux", authoritative: true };
+  }
+  if (/^(?:testing|test-strategy|quality)\.(?:md|mdx)$/.test(basename)) {
+    return { path: file, kind: "testing", authoritative: true };
+  }
+  if (basename === "security.md") {
+    return { path: file, kind: "security", authoritative: true };
+  }
+  if (/^(?:contributing|contribution)\.(?:md|mdx)$/.test(basename)) {
+    return { path: file, kind: "contribution", authoritative: true };
+  }
+  if (/\.(?:md|mdx)$/.test(lower)) {
+    return { path: file, kind: "ordinary", authoritative: false };
+  }
+  return undefined;
+}
+
 function globExpression(pattern: string): RegExp {
   let expression = "";
   for (let index = 0; index < pattern.length; index += 1) {
@@ -116,14 +160,114 @@ function matchesConfiguredPath(relative: string, patterns: string[]): boolean {
   return patterns.some((pattern) => globExpression(pattern.replace(/^\.\//, "")).test(relative));
 }
 
-function commandFromScript(id: string, scriptName = id): CandidateCommand {
+function commandFromScript(
+  manager: NonNullable<PackageManagerEvidence["name"]>,
+  id: string,
+  scriptName = id,
+): CandidateCommand {
+  const args = manager === "yarn" ? [scriptName] : ["run", scriptName];
   return {
     id,
-    executable: "npm",
-    args: ["run", scriptName],
+    executable: manager,
+    args,
     cwd: ".",
     source: `package.json scripts.${scriptName}`,
     appliesTo: id === "test" ? ["src/**", "tests/**"] : ["**/*"],
+  };
+}
+
+function packageManagerEvidence(
+  files: string[],
+  contents: ContentMap,
+  manifest: { packageManager?: unknown } | undefined,
+): PackageManagerEvidence {
+  const declared =
+    typeof manifest?.packageManager === "string"
+      ? /^(npm|pnpm|yarn|bun)@[^\s]+$/i.exec(manifest.packageManager)?.[1]?.toLowerCase()
+      : undefined;
+  const lockEvidence = [
+    { name: "npm" as const, files: ["package-lock.json", "npm-shrinkwrap.json"] },
+    { name: "pnpm" as const, files: ["pnpm-lock.yaml"] },
+    { name: "yarn" as const, files: ["yarn.lock"] },
+    { name: "bun" as const, files: ["bun.lock", "bun.lockb"] },
+  ]
+    .map((candidate) => ({
+      name: candidate.name,
+      source: candidate.files.find((file) => files.includes(file)),
+    }))
+    .filter((candidate): candidate is { name: "npm" | "pnpm" | "yarn" | "bun"; source: string } =>
+      Boolean(candidate.source),
+    );
+  if (typeof manifest?.packageManager === "string" && !declared) {
+    return {
+      status: "conflicting",
+      sources: ["package.json packageManager"],
+      detail: "packageManager must name npm, pnpm, yarn, or bun with a version.",
+    };
+  }
+  if (declared) {
+    const name = declared as "npm" | "pnpm" | "yarn" | "bun";
+    const incompatibleLocks = lockEvidence.filter((candidate) => candidate.name !== name);
+    if (incompatibleLocks.length > 0) {
+      return {
+        status: "conflicting",
+        sources: [
+          "package.json packageManager",
+          ...lockEvidence.map((candidate) => candidate.source),
+        ],
+        detail: `Declared ${name} conflicts with ${incompatibleLocks.map((item) => item.source).join(", ")}.`,
+      };
+    }
+    return {
+      name,
+      status: "confirmed",
+      sources: ["package.json packageManager"],
+      detail: `Declared package manager is ${name}.`,
+    };
+  }
+  if (lockEvidence.length === 1) {
+    const lock = lockEvidence[0]!;
+    return {
+      name: lock.name,
+      status: "confirmed",
+      sources: [lock.source],
+      detail: `Unambiguous ${lock.name} lockfile.`,
+    };
+  }
+  if (lockEvidence.length > 1) {
+    return {
+      status: "conflicting",
+      sources: lockEvidence.map((candidate) => candidate.source),
+      detail: "Multiple package-manager lockfiles are present.",
+    };
+  }
+  const ciSources = Object.entries(contents).filter(([file]) =>
+    file.startsWith(".github/workflows/"),
+  );
+  const ciManagers = ["npm", "pnpm", "yarn", "bun"].filter((manager) =>
+    ciSources.some(([, source]) => new RegExp(`(?:^|\\s)${manager}(?:\\s|$)`, "m").test(source)),
+  ) as Array<"npm" | "pnpm" | "yarn" | "bun">;
+  if (ciManagers.length === 1) {
+    const manager = ciManagers[0]!;
+    return {
+      name: manager,
+      status: "inferred",
+      sources: ciSources.map(([file]) => file),
+      detail: `Existing CI consistently invokes ${manager}.`,
+    };
+  }
+  if (ciManagers.length > 1) {
+    return {
+      status: "conflicting",
+      sources: ciSources.map(([file]) => file),
+      detail: `Existing CI invokes multiple package managers: ${ciManagers.join(", ")}.`,
+    };
+  }
+  return {
+    status: "unknown",
+    sources: [],
+    detail:
+      "No packageManager declaration, unambiguous lockfile, or package-manager CI command was found.",
   };
 }
 
@@ -138,15 +282,20 @@ function detectEvidence(
   const commands: CandidateCommand[] = [];
   const fileSet = new Set(files);
   const packageText = contents["package.json"];
-
-  if (packageText) {
-    try {
-      const manifest = JSON.parse(packageText) as {
+  let packageManifest:
+    | {
+        packageManager?: unknown;
         scripts?: Record<string, string>;
         workspaces?: unknown;
         dependencies?: Record<string, string>;
         devDependencies?: Record<string, string>;
-      };
+      }
+    | undefined;
+
+  if (packageText) {
+    try {
+      const manifest = JSON.parse(packageText) as NonNullable<typeof packageManifest>;
+      packageManifest = manifest;
       evidence.push({ status: "confirmed", claim: "Node.js project", sources: ["package.json"] });
       if (manifest.workspaces || fileSet.has("pnpm-workspace.yaml")) {
         evidence.push({
@@ -154,11 +303,6 @@ function detectEvidence(
           claim: "JavaScript/TypeScript workspace",
           sources: manifest.workspaces ? ["package.json"] : ["pnpm-workspace.yaml"],
         });
-      }
-      if (manifest.scripts?.["format:check"])
-        commands.push(commandFromScript("format-check", "format:check"));
-      for (const id of ["lint", "typecheck", "test", "build"]) {
-        if (manifest.scripts?.[id]) commands.push(commandFromScript(id));
       }
       const allDependencies = { ...manifest.dependencies, ...manifest.devDependencies };
       if (
@@ -178,6 +322,29 @@ function detectEvidence(
         claim: "package.json is malformed",
         sources: ["package.json"],
       });
+    }
+  }
+
+  const packageManager = packageManagerEvidence(files, contents, packageManifest);
+  if (packageText) {
+    evidence.push({
+      status: packageManager.status,
+      claim: packageManager.name
+        ? `JavaScript package manager: ${packageManager.name}`
+        : "JavaScript package manager",
+      sources: packageManager.sources,
+      detail: packageManager.detail,
+    });
+    if (
+      packageManager.name &&
+      packageManager.status !== "conflicting" &&
+      packageManifest?.scripts
+    ) {
+      if (packageManifest.scripts["format:check"])
+        commands.push(commandFromScript(packageManager.name, "format-check", "format:check"));
+      for (const id of ["lint", "typecheck", "test", "build"]) {
+        if (packageManifest.scripts[id]) commands.push(commandFromScript(packageManager.name, id));
+      }
     }
   }
 
@@ -323,7 +490,9 @@ export async function scanRepository(
       if (
         size <= limits.maxFileBytes &&
         contentBytesRead + size <= limits.maxContentBytes &&
-        (CONTENT_FILES.has(relative) || CONTENT_FILES.has(entry.name))
+        (CONTENT_FILES.has(relative) ||
+          CONTENT_FILES.has(entry.name) ||
+          /^\.github\/workflows\/.*\.ya?ml$/i.test(relative))
       ) {
         try {
           contents[relative] = await readFile(absolute, "utf8");
@@ -342,6 +511,38 @@ export async function scanRepository(
     .then((gitStat) => gitStat.isDirectory() || gitStat.isFile())
     .catch(() => false);
   const { evidence, commands } = detectEvidence(files, contents);
+  let packageManifest: { packageManager?: unknown } | undefined;
+  try {
+    packageManifest = contents["package.json"]
+      ? (JSON.parse(contents["package.json"]) as { packageManager?: unknown })
+      : undefined;
+  } catch {
+    packageManifest = undefined;
+  }
+  const packageManager = packageManagerEvidence(files, contents, packageManifest);
+  const documents = files
+    .map(classifyDocument)
+    .filter((document): document is RepositoryDocument => document !== undefined);
+  for (const kind of [
+    "architecture",
+    "product",
+    "ux",
+    "testing",
+    "security",
+    "contribution",
+  ] as const) {
+    const matches = documents.filter((document) => document.kind === kind);
+    if (matches.length > 0) {
+      evidence.push({
+        status: kind === "architecture" && matches.length > 1 ? "conflicting" : "confirmed",
+        claim:
+          kind === "architecture" && matches.length > 1
+            ? "Multiple architecture documents require reconciliation"
+            : `Existing ${kind} documentation`,
+        sources: matches.map((document) => document.path).slice(0, 10),
+      });
+    }
+  }
   if (git) {
     evidence.unshift({ status: "confirmed", claim: "Git repository", sources: [".git"] });
     evidence.push({
@@ -387,6 +588,8 @@ export async function scanRepository(
     suspectedSecrets,
     blockedSymlinks,
     candidateCommands: commands,
+    documents,
+    packageManager,
     stats: {
       filesVisited: files.length,
       contentBytesRead,

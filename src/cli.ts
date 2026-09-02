@@ -1,4 +1,7 @@
+#!/usr/bin/env node
+
 import { randomBytes } from "node:crypto";
+import { realpathSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import { stdin as defaultStdin, stdout as defaultStdout } from "node:process";
 import path from "node:path";
@@ -14,14 +17,21 @@ import { previewRepository } from "./core/preview.js";
 import { buildProposals } from "./core/proposals.js";
 import { applyLearning, proposeLearnings } from "./knowledge/learn.js";
 import type { PreviewResult } from "./model.js";
+import { effectiveAutonomy } from "./orchestration/autonomy.js";
+import { finishGuidedRun, startGuidedRun, type GuidedRunRecord } from "./orchestration/guided.js";
 import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import { renderContext, renderPreview, renderVerification } from "./output.js";
-import { readRunRecord, writeRunRecord } from "./state/local.js";
-import { changedFiles, executeVerification, planVerification } from "./verification/index.js";
+import { readRunRecord, replaceRunRecord, writeRunRecord } from "./state/local.js";
+import {
+  changedFiles,
+  executeVerification,
+  planVerification,
+  selectVerification,
+} from "./verification/index.js";
 
 const VERSION = "0.1.0";
 const DESCRIPTION =
-  "CLI that builds repository context for coding agents, coordinates implementation and review, runs relevant checks, and preserves validated learnings.";
+  "Local CLI for task-specific coding-agent context, approved verification, independent review, and validated project knowledge.";
 
 export const EXIT = {
   success: 0,
@@ -92,7 +102,7 @@ async function selectModules(preview: PreviewResult, io: Io): Promise<PreviewRes
             reason: "Disabled during confirmed selection.",
           },
     );
-    return { ...preview, modules, proposedFiles: buildProposals(preview.profile, modules) };
+    return { ...preview, modules, proposedFiles: await buildProposals(preview.profile, modules) };
   } finally {
     readline.close();
   }
@@ -142,7 +152,8 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .command("preview")
     .description("perform a strict read-only repository diagnosis")
     .option("--module <id>", "show one module assessment")
-    .action(async (options: { module?: string }, command: Command) => {
+    .option("--diff", "show exact proposed file patches")
+    .action(async (options: { module?: string; diff?: boolean }, command: Command) => {
       const common = globals(command);
       let result = await previewRepository(common.root);
       if (options.module) {
@@ -150,7 +161,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         if (!modules.length) throw new Error(`Unknown module id: ${options.module}`);
         result = { ...result, modules };
       }
-      emit(io, common.json, result, renderPreview(result));
+      emit(io, common.json, result, renderPreview(result, { diff: options.diff ?? false }));
     });
 
   program
@@ -169,7 +180,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             "Mutating init with --json requires --yes after a separate reviewed preview.",
           );
         }
-        if (!common.json) io.stdout(renderPreview(preview));
+        if (!common.json) io.stdout(renderPreview(preview, { diff: !options.dryRun }));
         if (options.dryRun) {
           if (common.json) writeJson(io, preview);
           return;
@@ -205,31 +216,39 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .command("sync")
     .description("reinspect initialized setup and propose evidence-backed additions")
     .option("--dry-run", "show proposals without applying them")
+    .option("--diff", "show exact proposed file patches")
     .option("--yes", "confirm the complete displayed proposal non-interactively")
-    .action(async (options: { dryRun?: boolean; yes?: boolean }, command: Command) => {
-      const common = globals(command);
-      const preview = await previewRepository(common.root);
-      if (common.json && !options.dryRun && !options.yes) {
-        throw new Error(
-          "Mutating sync with --json requires --yes after a separate reviewed preview.",
-        );
-      }
-      if (!common.json) io.stdout(renderPreview(preview));
-      if (options.dryRun || preview.proposedFiles.length === 0) {
-        if (common.json) writeJson(io, { preview, applied: { created: [] } });
-        return;
-      }
-      if (
-        !(await confirm(io, `Create ${preview.proposedFiles.length} missing file(s)?`, options.yes))
-      ) {
-        process.exitCode = EXIT.refused;
-        io.stderr("Synchronization cancelled; no files were changed.\n");
-        return;
-      }
-      const result = await applyProposals(preview);
-      if (common.json) writeJson(io, { preview, applied: result });
-      else io.stdout(`Created: ${result.created.join(", ")}\n`);
-    });
+    .action(
+      async (options: { dryRun?: boolean; diff?: boolean; yes?: boolean }, command: Command) => {
+        const common = globals(command);
+        const preview = await previewRepository(common.root);
+        if (common.json && !options.dryRun && !options.yes) {
+          throw new Error(
+            "Mutating sync with --json requires --yes after a separate reviewed preview.",
+          );
+        }
+        if (!common.json)
+          io.stdout(renderPreview(preview, { diff: options.diff || !options.dryRun }));
+        if (options.dryRun || preview.proposedFiles.length === 0) {
+          if (common.json) writeJson(io, { preview, applied: { created: [] } });
+          return;
+        }
+        if (
+          !(await confirm(
+            io,
+            `Create ${preview.proposedFiles.length} missing file(s)?`,
+            options.yes,
+          ))
+        ) {
+          process.exitCode = EXIT.refused;
+          io.stderr("Synchronization cancelled; no files were changed.\n");
+          return;
+        }
+        const result = await applyProposals(preview);
+        if (common.json) writeJson(io, { preview, applied: result });
+        else io.stdout(`Created: ${result.created.join(", ")}\n`);
+      },
+    );
 
   program
     .command("doctor")
@@ -282,7 +301,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           });
           emit(io, common.json, results, renderVerification(results));
           if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
-          else if (results.some((result) => result.status !== "passed"))
+          else if (results.length === 0 || results.some((result) => result.status !== "passed"))
             process.exitCode = EXIT.verification;
         } finally {
           process.removeListener("SIGINT", interrupt);
@@ -295,7 +314,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .command("run")
     .description("coordinate a bounded worker, verification, and independent-review flow")
     .argument("<task>", "bounded task description")
-    .option("--guided", "emit the task/context/verification package without an agent call")
+    .option("--guided", "record a portable task package for an external coding agent")
     .option("--dry-run", "show the exact run plan with no commands, agents, or writes")
     .option("--yes", "confirm the displayed delegated run plan non-interactively")
     .action(
@@ -310,6 +329,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         const config = await loadConfig(root);
         const adapter = options.guided ? new ManualAgentAdapter() : configuredAgent(config);
         const checks = await planVerification(root);
+        const autonomy = effectiveAutonomy(config);
         const id = createId();
         const plan = {
           id,
@@ -326,9 +346,15 @@ export function createProgram(customIo?: Partial<Io>): Command {
                 },
           contextBudgetBytes: context.budget.maximumBytes,
           verification: checks,
-          writableScope: adapter.mode === "manual" ? "none" : "new isolated Git worktree",
-          sideEffects:
-            adapter.mode === "manual"
+          autonomy,
+          writableScope: options.guided
+            ? "local Noxroot run evidence only"
+            : adapter.mode === "manual"
+              ? "none"
+              : "new isolated Git worktree",
+          sideEffects: options.guided
+            ? ["write one bounded local run record"]
+            : adapter.mode === "manual"
               ? []
               : [
                   "create branch and worktree",
@@ -343,29 +369,76 @@ export function createProgram(customIo?: Partial<Io>): Command {
             "discard dirty work",
             "authorize worker-added checks",
           ],
-          executes: !options.dryRun && !options.guided && adapter.mode !== "manual",
+          executes:
+            !options.dryRun &&
+            !options.guided &&
+            adapter.mode !== "manual" &&
+            autonomy.worker.authorized,
         };
-        const planningOnly = options.dryRun || options.guided || adapter.mode === "manual";
-        if (common.json && !planningOnly && !options.yes) {
-          throw new Error(
-            "Delegated run with --json requires --yes after a separate reviewed --dry-run.",
-          );
-        }
-        if (planningOnly) {
+
+        if (options.dryRun) {
           emit(
             io,
             common.json,
             { plan, context },
             `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context)}`,
           );
-        } else if (!common.json) {
+          return;
+        }
+        if (options.guided) {
+          if (!autonomy.guided.authorized) {
+            emit(
+              io,
+              common.json,
+              { plan, refused: autonomy.guided },
+              `${autonomy.guided.reason}\n`,
+            );
+            process.exitCode = EXIT.refused;
+            return;
+          }
+          const record = await startGuidedRun({
+            id,
+            task,
+            root,
+            context,
+            effectiveAutonomy: autonomy,
+            trustedVerificationPolicy: checks,
+          });
+          const recordPath = await writeRunRecord(root, id, record);
+          emit(
+            io,
+            common.json,
+            { plan, context, record, recordPath },
+            `NOXROOT GUIDED TASK\nTask id: ${id}\nSelected context: ${context.selected.length} files (~${context.budget.estimatedTokens} tokens)\nApproved checks captured: ${checks.length}\nNo agent was invoked.\nNext: noxroot finish --task ${id}\nEvidence: ${recordPath}\n`,
+          );
+          return;
+        }
+        if (adapter.mode === "manual") {
+          emit(
+            io,
+            common.json,
+            { plan, context },
+            `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context)}Next: rerun with --guided to record a completable task.\n`,
+          );
+          return;
+        }
+        if (!autonomy.worker.authorized) {
+          emit(io, common.json, { plan, refused: autonomy.worker }, `${autonomy.worker.reason}\n`);
+          process.exitCode = EXIT.refused;
+          return;
+        }
+        if (common.json && !options.yes) {
+          throw new Error(
+            "Delegated run with --json requires --yes after a separate reviewed --dry-run.",
+          );
+        }
+        if (!common.json) {
           io.stdout(
             `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context)}`,
           );
         } else {
           io.stderr(`NOXROOT RUN PLAN ${JSON.stringify(plan)}\n`);
         }
-        if (planningOnly) return;
         if (!(await confirm(io, "Start this delegated run?", options.yes))) {
           process.exitCode = EXIT.refused;
           io.stderr("Run cancelled; no branch, worktree, agent call, or check was created.\n");
@@ -391,12 +464,18 @@ export function createProgram(customIo?: Partial<Io>): Command {
                 repairIterations: 1,
                 outputBytes: 65_536,
               },
+              reviewAuthorized: autonomy.reviewer.authorized,
               branch: worktree.branch,
               signal: controller.signal,
             },
             {
-              verify: () =>
-                executeVerification(worktree.path, checks, { signal: controller.signal }),
+              verify: async () => {
+                const actualChanged = await changedFiles(worktree.path, worktree.baseRevision);
+                const affectedChecks = selectVerification(checks, actualChanged);
+                return executeVerification(worktree.path, affectedChecks, {
+                  signal: controller.signal,
+                });
+              },
               diff: () => boundedDiff(worktree),
             },
           );
@@ -417,6 +496,50 @@ export function createProgram(customIo?: Partial<Io>): Command {
     );
 
   program
+    .command("finish")
+    .description("close a guided task with affected checks and independent review")
+    .requiredOption("--task <task-id>", "guided task id")
+    .option(
+      "--review-file <path>",
+      "repository-relative file containing one strict reviewer JSON response",
+    )
+    .action(async (options: { task: string; reviewFile?: string }, command: Command) => {
+      const common = globals(command);
+      const root = path.resolve(common.root);
+      const record = await readRunRecord<GuidedRunRecord>(root, options.task);
+      const config = await loadConfig(root);
+      const autonomy = effectiveAutonomy(config);
+      const adapter = configuredAgent(config);
+      const controller = new AbortController();
+      const interrupt = (): void => controller.abort();
+      process.once("SIGINT", interrupt);
+      process.once("SIGTERM", interrupt);
+      try {
+        const finished = await finishGuidedRun({
+          root,
+          record,
+          adapter,
+          reviewAuthorized: autonomy.reviewer.authorized,
+          ...(options.reviewFile === undefined ? {} : { reviewFile: options.reviewFile }),
+          signal: controller.signal,
+        });
+        const recordPath = await replaceRunRecord(root, options.task, finished);
+        emit(
+          io,
+          common.json,
+          { record: finished, recordPath },
+          `${finished.handoff}\n\nEvidence: ${recordPath}\n`,
+        );
+        if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
+        else if (!["approved", "review-pending"].includes(finished.status))
+          process.exitCode = EXIT.agent;
+      } finally {
+        process.removeListener("SIGINT", interrupt);
+        process.removeListener("SIGTERM", interrupt);
+      }
+    });
+
+  program
     .command("learn")
     .description("propose controlled durable improvements from a completed run")
     .requiredOption("--task <task-id>", "completed task id")
@@ -426,29 +549,30 @@ export function createProgram(customIo?: Partial<Io>): Command {
       const common = globals(command);
       const record = await readRunRecord<RunRecord>(common.root, options.task);
       const result = await proposeLearnings(common.root, record);
+      const applicable = result.proposals.filter(
+        (proposal) => proposal.duplication === "not-found" && proposal.conflict === "none",
+      );
       if (common.json && options.apply && !options.yes) {
         throw new Error(
           "Learning application with --json requires --yes after a separate reviewed proposal.",
         );
       }
       if (!common.json) io.stdout(`${JSON.stringify(result, null, 2)}\n`);
-      if (!options.apply || result.proposals.length === 0) {
+      if (!options.apply || applicable.length === 0) {
         if (common.json) writeJson(io, result);
         return;
       }
-      if (
-        !(await confirm(io, `Apply ${result.proposals.length} learning proposal(s)?`, options.yes))
-      ) {
+      if (!(await confirm(io, `Apply ${applicable.length} learning proposal(s)?`, options.yes))) {
         process.exitCode = EXIT.refused;
         io.stderr("Learning application cancelled; durable knowledge was not changed.\n");
         return;
       }
       const applied: string[] = [];
-      for (const proposal of result.proposals) {
-        applied.push(await applyLearning(common.root, proposal));
+      for (const proposal of applicable) {
+        applied.push(...(await applyLearning(common.root, proposal)));
       }
       if (common.json) writeJson(io, { ...result, applied });
-      else io.stdout(`Applied ${result.proposals.length} proposal(s).\n`);
+      else io.stdout(`Applied ${applicable.length} proposal(s).\n`);
     });
 
   return program;
@@ -471,6 +595,15 @@ export async function main(argv = process.argv): Promise<void> {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+function isEntrypoint(): boolean {
+  if (!process.argv[1]) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+  } catch {
+    return import.meta.url === pathToFileURL(process.argv[1]).href;
+  }
+}
+
+if (isEntrypoint()) {
   await main();
 }
