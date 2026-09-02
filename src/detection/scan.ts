@@ -314,7 +314,13 @@ function detectEvidence(
         "solid-js",
         "@angular/core",
       ].filter((name) => name in allDependencies);
-      const userFacingSources = files.filter((file) => /\.(?:tsx|jsx|vue|svelte)$/.test(file));
+      const userFacingSources = files.filter(
+        (file) =>
+          /\.(?:tsx|jsx|vue|svelte)$/.test(file) &&
+          /^(?:(?:src|app|pages|components)\/|(?:apps|packages)\/[^/]+\/(?:src|app|pages|components)\/)/.test(
+            file,
+          ),
+      );
       if (userFacingDependencies.length > 0 || userFacingSources.length > 0) {
         evidence.push({
           status: "confirmed",

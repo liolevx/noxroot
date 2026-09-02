@@ -273,6 +273,25 @@ describe("read-only preview", () => {
     );
   });
 
+  it("does not promote a host repository from frontend code inside a test fixture", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await mkdir(path.join(root, "tests", "fixtures", "demo"), { recursive: true });
+    await writeFile(path.join(root, "package.json"), JSON.stringify({ name: "cli-with-fixtures" }));
+    await writeFile(
+      path.join(root, "tests", "fixtures", "demo", "App.tsx"),
+      "export function App() { return <main>Fixture</main>; }\n",
+    );
+
+    const result = await previewRepository(root);
+    expect(result.profile.evidence).not.toContainEqual(
+      expect.objectContaining({ claim: "User-facing web application" }),
+    );
+    expect(result.modules.find((item) => item.id === "product-ux")?.status).toBe("not applicable");
+  });
+
   it("never follows a symlink escape", async () => {
     const root = await temporaryDirectory();
     const outside = await temporaryDirectory("noxroot-outside-");
