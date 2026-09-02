@@ -60,7 +60,15 @@ export interface RepositoryProfile {
   blockedSymlinks: string[];
   candidateCommands: CandidateCommand[];
   documents: RepositoryDocument[];
+  packageManager: PackageManagerEvidence;
   stats: InspectionStats;
+}
+
+export interface PackageManagerEvidence {
+  name?: "npm" | "pnpm" | "yarn" | "bun";
+  status: "confirmed" | "inferred" | "unknown" | "conflicting";
+  sources: string[];
+  detail: string;
 }
 
 export interface RepositoryDocument {

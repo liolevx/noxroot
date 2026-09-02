@@ -99,6 +99,7 @@ describe("read-only preview", () => {
     await writeFile(
       path.join(root, "package.json"),
       JSON.stringify({
+        packageManager: "npm@11.0.0",
         scripts: { format: "prettier --write .", "format:check": "prettier --check ." },
       }),
     );
@@ -152,6 +153,79 @@ describe("read-only preview", () => {
     expect(
       result.conflicts.some((item) => item.includes("Multiple root agent instruction sources")),
     ).toBe(true);
+  });
+
+  it.each([
+    { manager: "npm", evidence: "package-lock.json", args: ["run", "test"] },
+    { manager: "pnpm", evidence: "packageManager", args: ["run", "test"] },
+    { manager: "yarn", evidence: "yarn.lock", args: ["test"] },
+    { manager: "bun", evidence: "bun.lock", args: ["run", "test"] },
+  ])(
+    "discovers $manager verification commands from authoritative evidence",
+    async (fixtureCase) => {
+      const root = await temporaryDirectory();
+      cleanup.push(async () =>
+        (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+      );
+      await writeFile(
+        path.join(root, "package.json"),
+        JSON.stringify({
+          name: `${fixtureCase.manager}-fixture`,
+          ...(fixtureCase.evidence === "packageManager"
+            ? { packageManager: `${fixtureCase.manager}@1.0.0` }
+            : {}),
+          scripts: { test: "fixture test command" },
+        }),
+      );
+      if (fixtureCase.evidence !== "packageManager") {
+        await writeFile(path.join(root, fixtureCase.evidence), "fixture lockfile");
+      }
+      const result = await scanRepository(root);
+      expect(result.packageManager.name).toBe(fixtureCase.manager);
+      expect(result.packageManager.status).toBe("confirmed");
+      expect(result.candidateCommands).toEqual([
+        expect.objectContaining({
+          id: "test",
+          executable: fixtureCase.manager,
+          args: fixtureCase.args,
+        }),
+      ]);
+    },
+  );
+
+  it("does not guess a package manager when evidence is missing or conflicting", async () => {
+    for (const conflicting of [false, true]) {
+      const root = await temporaryDirectory();
+      cleanup.push(async () =>
+        (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+      );
+      await writeFile(
+        path.join(root, "package.json"),
+        JSON.stringify({ name: "manager-fixture", scripts: { test: "fixture" } }),
+      );
+      if (conflicting) {
+        await writeFile(path.join(root, "package-lock.json"), "{}");
+        await writeFile(path.join(root, "yarn.lock"), "fixture");
+      }
+      const result = await scanRepository(root);
+      expect(result.packageManager.status).toBe(conflicting ? "conflicting" : "unknown");
+      expect(result.candidateCommands).toEqual([]);
+    }
+  });
+
+  it("uses the declared workspace package manager at the repository root", async () => {
+    const fixture = await fixtureCopy("monorepo");
+    cleanup.push(fixture.cleanup);
+    const result = await scanRepository(fixture.root);
+    expect(result.packageManager).toEqual({
+      name: "pnpm",
+      status: "confirmed",
+      sources: ["package.json packageManager"],
+      detail: "Declared package manager is pnpm.",
+    });
+    expect(result.candidateCommands[0]).toEqual(
+      expect.objectContaining({ executable: "pnpm", args: ["run", "test"] }),
+    );
   });
 
   it("marks existing Playwright as applicable without installing browser tooling", async () => {
