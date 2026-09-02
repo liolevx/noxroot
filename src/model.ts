@@ -101,6 +101,9 @@ export interface ContextSelection {
 export interface ContextPackage {
   task: string;
   interpretation: string;
+  confidence: "high" | "partial" | "insufficient";
+  repositoryFileCount: number;
+  eligibleCandidateFiles: number;
   applicableAreas: string[];
   selected: ContextSelection[];
   likelyOwningSource: string[];

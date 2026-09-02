@@ -30,7 +30,7 @@ function configContent(modules: ModuleAssessment[]): string {
     modules: enabled,
     roots: ["."],
     entrypoints: ["AGENTS.md"],
-    context: { budgetBytes: 48_000, documentWarningBytes: 24_000 },
+    context: { budgetBytes: 16_000, documentWarningBytes: 24_000 },
     autonomy: { default: 0, implementation: 2, review: 3, merge: 0, delivery: 0 },
     agents: { default: "manual", adapters: { manual: { type: "manual" } } },
     budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1, outputBytes: 65_536 },

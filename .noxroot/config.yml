@@ -11,7 +11,7 @@ roots:
 entrypoints:
   - AGENTS.md
 context:
-  budgetBytes: 48000
+  budgetBytes: 16000
   documentWarningBytes: 24000
 autonomy:
   default: 0

@@ -35,10 +35,10 @@ export const noxrootConfigSchema = z.object({
     .default(["AGENTS.md"]),
   context: z
     .object({
-      budgetBytes: z.number().int().positive().max(1_000_000).default(48_000),
+      budgetBytes: z.number().int().positive().max(1_000_000).default(16_000),
       documentWarningBytes: z.number().int().positive().default(24_000),
     })
-    .default({ budgetBytes: 48_000, documentWarningBytes: 24_000 }),
+    .default({ budgetBytes: 16_000, documentWarningBytes: 24_000 }),
   autonomy: z
     .object({
       default: autonomyLevel.default(0),

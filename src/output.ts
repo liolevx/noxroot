@@ -84,8 +84,9 @@ export function renderContext(context: ContextPackage): string {
     "NOXROOT CONTEXT",
     `Task: ${context.task}`,
     `Interpretation: ${context.interpretation}`,
+    `Confidence: ${context.confidence}`,
     "",
-    `Selected context: ${context.budget.selectedBytes}/${context.budget.maximumBytes} bytes (~${context.budget.estimatedTokens} tokens)`,
+    `Selected ${context.selected.length} of ${context.repositoryFileCount} repository files (${context.eligibleCandidateFiles} eligible) · ${context.budget.selectedBytes}/${context.budget.maximumBytes} bytes (~${context.budget.estimatedTokens} tokens)`,
     ...context.selected.map(
       (item) => `- ${item.path} (${item.bytes} bytes): ${item.reasons.join("; ")}`,
     ),

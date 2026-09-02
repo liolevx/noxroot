@@ -1,16 +1,88 @@
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig, loadRoutes, loadVerification } from "../config/load.js";
 import { scanRepository } from "../detection/scan.js";
 import type { CandidateCommand, ContextPackage, ContextSelection } from "../model.js";
+import { resolveWithin } from "../security/paths.js";
+
+const DEFAULT_CONTEXT_BUDGET = 16_000;
+const MAX_SELECTED_FILES = 24;
+const MAX_CONTENT_INSPECTIONS = 400;
+const MAX_CONTENT_BYTES = 1_000_000;
+const MAX_INSPECTED_FILE_BYTES = 96_000;
 
 const ALWAYS_CONTEXT = new Set(["AGENTS.md", ".noxroot/config.yml", ".noxroot/knowledge/INDEX.md"]);
+const MANIFESTS = new Set(["package.json", "pyproject.toml", "Cargo.toml", "go.mod"]);
+const STOP_WORDS = new Set([
+  "add",
+  "and",
+  "change",
+  "fix",
+  "for",
+  "from",
+  "improve",
+  "into",
+  "make",
+  "safe",
+  "safety",
+  "that",
+  "the",
+  "this",
+  "with",
+]);
+const TOKEN_ALIASES: Record<string, string> = {
+  approved: "approve",
+  approval: "approve",
+  approvals: "approve",
+  decisions: "decision",
+  reviewer: "review",
+  reviewers: "review",
+  reviewing: "review",
+  reviews: "review",
+  tests: "test",
+  testing: "test",
+  verified: "verify",
+  verification: "verify",
+};
 
 const SOURCE_EXTENSION = /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php)$/;
 const TEST_PATH = /(?:^|\/)(?:tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\./;
-const CONFIG_OR_DOC = /(?:^|\/)(?:docs?|\.github)(?:\/|$)|\.(?:md|ya?ml|json|toml)$/;
+const DOCUMENT_PATH = /(?:^|\/)(?:docs?|adr|adrs)(?:\/|$)|\.(?:md|mdx)$/;
+const FIXTURE_PATH = /(?:^|\/)(?:fixtures?|snapshots?|examples?|generated|vendor)(?:\/|$)/;
 
-function words(value: string): string[] {
-  return [...new Set(value.toLowerCase().match(/[a-z0-9][a-z0-9_-]{2,}/g) ?? [])];
+type Category = "entrypoint" | "manifest" | "source" | "test" | "document" | "other";
+
+interface RankedCandidate {
+  file: string;
+  bytes: number;
+  score: number;
+  reasons: string[];
+  category: Category;
+  matchedTerms: Set<string>;
+}
+
+function normalizeToken(value: string): string {
+  let token = value.toLowerCase();
+  const directAlias = TOKEN_ALIASES[token];
+  if (directAlias) return directAlias;
+  if (token.length > 4 && token.endsWith("ies")) token = `${token.slice(0, -3)}y`;
+  else if (token.length > 4 && token.endsWith("s")) token = token.slice(0, -1);
+  return TOKEN_ALIASES[token] ?? token;
+}
+
+function tokenList(value: string): string[] {
+  return (
+    value
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .toLowerCase()
+      .match(/[a-z0-9]+/g) ?? []
+  )
+    .map(normalizeToken)
+    .filter((token) => token.length >= 3 && !STOP_WORDS.has(token));
+}
+
+function tokens(value: string): string[] {
+  return [...new Set(tokenList(value))];
 }
 
 function matchesGlob(pattern: string, file: string): boolean {
@@ -22,153 +94,347 @@ function matchesGlob(pattern: string, file: string): boolean {
   return new RegExp(`^${escaped}$`).test(file);
 }
 
-function scorePath(
-  file: string,
-  terms: string[],
-  routedIncludes: string[],
-): { score: number; reasons: string[] } {
-  const lower = file.toLowerCase();
+function routeMatches(pattern: string, taskTerms: string[]): boolean {
+  if (pattern === "**/*" || pattern === "**") return true;
+  const routeTerms = tokens(pattern);
+  return routeTerms.some((term) => taskTerms.includes(term));
+}
+
+function category(file: string): Category {
+  if (ALWAYS_CONTEXT.has(file)) return "entrypoint";
+  if (MANIFESTS.has(file)) return "manifest";
+  if (TEST_PATH.test(file)) return "test";
+  if (SOURCE_EXTENSION.test(file)) return "source";
+  if (DOCUMENT_PATH.test(file)) return "document";
+  return "other";
+}
+
+function fileStem(file: string): string {
+  return path.posix
+    .basename(file)
+    .replace(/\.(?:test|spec)(?=\.)/i, "")
+    .replace(/\.[^.]+$/, "");
+}
+
+function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]): RankedCandidate {
   const reasons: string[] = [];
+  const fileCategory = category(file);
+  const segments = file.split("/").slice(0, -1).flatMap(tokens);
+  const stemTerms = tokens(fileStem(file));
+  const pathTerms = tokens(file);
+  const lower = file.toLowerCase();
+  const matchedTerms = new Set<string>();
   let score = 0;
-  if (ALWAYS_CONTEXT.has(file)) {
-    score += 100;
-    reasons.push("default progressive-disclosure path");
+
+  if (file === ".noxroot/knowledge/INDEX.md") {
+    score += 92;
+    reasons.push("progressive-disclosure knowledge index");
+  } else if (file === "AGENTS.md") {
+    score += 88;
+    reasons.push("authoritative repository instructions");
+  } else if (file === ".noxroot/config.yml") {
+    score += 52;
+    reasons.push("active Noxroot configuration");
+  } else if (MANIFESTS.has(file)) {
+    score += 28;
+    reasons.push("authoritative project manifest");
   }
-  for (const term of terms) {
-    if (lower.includes(term)) {
-      score += 20;
-      reasons.push(`path matches “${term}”`);
+
+  for (const term of taskTerms) {
+    if (stemTerms.includes(term)) {
+      score += 50;
+      matchedTerms.add(term);
+      reasons.push(`basename matches task term “${term}”`);
+    } else if (segments.includes(term)) {
+      score += 38;
+      matchedTerms.add(term);
+      reasons.push(`directory matches task term “${term}”`);
+    } else if (pathTerms.includes(term)) {
+      score += 22;
+      matchedTerms.add(term);
+      reasons.push(`path token matches task term “${term}”`);
+    } else if (lower.includes(term)) {
+      score += 7;
+      matchedTerms.add(term);
+      reasons.push(`path substring matches task term “${term}”`);
     }
   }
-  if (SOURCE_EXTENSION.test(file) && !TEST_PATH.test(file)) {
-    score += 2;
-    reasons.push("candidate source");
-  }
-  if (TEST_PATH.test(file)) {
-    score += 1;
-    reasons.push("candidate verification");
-  }
-  if (file.startsWith(".noxroot/knowledge/")) {
-    score += 8;
-    reasons.push("accepted project knowledge");
-  }
-  if (
-    file === "package.json" ||
-    file === "pyproject.toml" ||
-    file === "Cargo.toml" ||
-    file === "go.mod"
-  ) {
-    score += 12;
-    reasons.push("authoritative manifest");
-  }
-  if (routedIncludes.some((pattern) => matchesGlob(pattern, file))) {
-    score += 15;
+
+  if (fileCategory === "source") score += 4;
+  if (fileCategory === "test") score += 3;
+  if (file.startsWith(".noxroot/knowledge/")) score += 6;
+  if (activeRouteIds.length > 0) {
     reasons.push("matched an active context route");
+    reasons.push(`eligible through route ${activeRouteIds.join(", ")}`);
   }
-  return { score, reasons };
+  if (FIXTURE_PATH.test(file)) {
+    score -= 45;
+    reasons.push("fixture/example penalty");
+  }
+  return { file, bytes: 0, score, reasons, category: fileCategory, matchedTerms };
+}
+
+async function addContentRelevance(
+  root: string,
+  candidates: RankedCandidate[],
+  taskTerms: string[],
+): Promise<void> {
+  let inspected = 0;
+  let inspectedBytes = 0;
+  const inspectable = candidates
+    .filter((item) => ["source", "test", "document"].includes(item.category))
+    .filter((item) => item.bytes <= MAX_INSPECTED_FILE_BYTES)
+    .sort((left, right) => right.score - left.score || left.file.localeCompare(right.file));
+  for (const item of inspectable) {
+    if (inspected >= MAX_CONTENT_INSPECTIONS || inspectedBytes + item.bytes > MAX_CONTENT_BYTES)
+      break;
+    inspected += 1;
+    inspectedBytes += item.bytes;
+    let source: string;
+    try {
+      source = await readFile(resolveWithin(root, item.file), "utf8");
+    } catch {
+      continue;
+    }
+    const sourceTerms = tokenList(source);
+    const matches = taskTerms.filter((term) => sourceTerms.includes(term));
+    if (matches.length > 0) {
+      item.score += Math.min(
+        120,
+        matches.reduce(
+          (total, term) =>
+            total + Math.min(12, sourceTerms.filter((token) => token === term).length) * 6,
+          0,
+        ),
+      );
+      for (const match of matches) item.matchedTerms.add(match);
+      item.reasons.push(
+        `content contains task term${matches.length === 1 ? "" : "s"} ${matches.map((term) => `“${term}”`).join(", ")}`,
+      );
+    }
+  }
+  for (const item of candidates) {
+    if (item.matchedTerms.size > 1) {
+      item.score += (item.matchedTerms.size - 1) * 12;
+      item.reasons.push(`matches ${item.matchedTerms.size} distinct task terms`);
+    }
+  }
+}
+
+function addAdjacency(candidates: RankedCandidate[]): void {
+  const relevant = candidates.filter((item) => item.score >= 20);
+  for (const item of candidates) {
+    if (item.category !== "source" && item.category !== "test") continue;
+    const stem = normalizeToken(fileStem(item.file));
+    const counterpart = relevant.find(
+      (candidate) =>
+        candidate.file !== item.file &&
+        candidate.category === (item.category === "source" ? "test" : "source") &&
+        (normalizeToken(fileStem(candidate.file)) === stem ||
+          tokens(candidate.file).includes(stem) ||
+          tokens(item.file).includes(normalizeToken(fileStem(candidate.file)))),
+    );
+    if (counterpart) {
+      item.score += 34;
+      item.reasons.push(`source/test counterpart of ${counterpart.file}`);
+    }
+  }
 }
 
 function approvedCommands(
   config: Awaited<ReturnType<typeof loadVerification>>,
+  relevantPaths: string[],
 ): CandidateCommand[] {
-  return (config?.commands ?? []).map((command) => ({
-    id: command.id,
-    executable: command.executable,
-    args: command.args,
-    cwd: command.cwd,
-    source: ".noxroot/verification.yml",
-    appliesTo: command.appliesTo,
-  }));
+  return (config?.commands ?? [])
+    .filter(
+      (command) =>
+        relevantPaths.length === 0 ||
+        command.appliesTo.some((pattern) =>
+          relevantPaths.some((relevantPath) => matchesGlob(pattern, relevantPath)),
+        ),
+    )
+    .map((command) => ({
+      id: command.id,
+      executable: command.executable,
+      args: command.args,
+      cwd: command.cwd,
+      source: ".noxroot/verification.yml",
+      appliesTo: command.appliesTo,
+    }));
 }
 
 export async function buildContext(task: string, root = process.cwd()): Promise<ContextPackage> {
-  const config = await loadConfig(root);
-  const profile = await scanRepository(path.resolve(root), {
+  const canonicalRoot = path.resolve(root);
+  const config = await loadConfig(canonicalRoot);
+  const profile = await scanRepository(canonicalRoot, {
     sensitivePaths: config?.sensitivePaths ?? [],
   });
-  const routes = await loadRoutes(root);
-  const verification = await loadVerification(root);
-  const budget = config?.context.budgetBytes ?? 48_000;
-  const terms = words(task);
+  const routes = await loadRoutes(canonicalRoot);
+  const verification = await loadVerification(canonicalRoot);
+  const budget = config?.context.budgetBytes ?? DEFAULT_CONTEXT_BUDGET;
+  const taskTerms = tokens(task);
   const activeRoutes = (routes?.routes ?? []).filter((route) =>
-    route.match.some(
-      (pattern) => pattern === "**/*" || terms.some((term) => pattern.toLowerCase().includes(term)),
-    ),
+    route.match.some((pattern) => routeMatches(pattern, taskTerms)),
   );
-  const routedIncludes = activeRoutes.flatMap((route) => route.include);
   const routedExcludes = activeRoutes.flatMap((route) => route.exclude);
-  const ranked = profile.files
-    .filter((file) => !profile.suspectedSecrets.includes(file))
-    .filter((file) => !routedExcludes.some((pattern) => matchesGlob(pattern, file)))
-    .map((file) => ({
-      file,
-      ...scorePath(file, terms, routedIncludes),
-      bytes: profile.fileSizes[file] ?? 0,
-    }))
-    .filter((item) => item.score > 0)
-    .sort((left, right) => right.score - left.score || left.file.localeCompare(right.file));
-  const selected: ContextSelection[] = [];
-  const excluded: Array<{ path: string; reason: string }> = [];
-  let selectedBytes = 0;
-  for (const item of ranked) {
-    if (selected.length >= 40) {
-      excluded.push({ path: item.file, reason: "selection count limit" });
+  const routeIncludesFor = (file: string): string[] =>
+    activeRoutes
+      .filter((route) => route.include.some((pattern) => matchesGlob(pattern, file)))
+      .map((route) => route.id);
+
+  const outsidePool: Array<{ path: string; reason: string }> = [];
+  const candidates: RankedCandidate[] = [];
+  for (const file of profile.files) {
+    if (profile.suspectedSecrets.includes(file)) continue;
+    if (routedExcludes.some((pattern) => matchesGlob(pattern, file))) continue;
+    const activeRouteIds = routeIncludesFor(file);
+    const fixed = ALWAYS_CONTEXT.has(file) || MANIFESTS.has(file);
+    if (activeRoutes.length > 0 && !fixed && activeRouteIds.length === 0) {
+      if (outsidePool.length < 10) {
+        outsidePool.push({ path: file, reason: "outside the active route candidate pool" });
+      }
       continue;
     }
-    if (selectedBytes + item.bytes > budget && !ALWAYS_CONTEXT.has(item.file)) {
-      excluded.push({ path: item.file, reason: "context byte budget" });
+    const candidate = baseScore(file, taskTerms, activeRouteIds);
+    candidate.bytes = profile.fileSizes[file] ?? 0;
+    candidates.push(candidate);
+  }
+
+  await addContentRelevance(canonicalRoot, candidates, taskTerms);
+  addAdjacency(candidates);
+  candidates.sort((left, right) => right.score - left.score || left.file.localeCompare(right.file));
+
+  const selectionFileLimit = Math.min(8_000, Math.floor(budget * 0.55));
+  const topOwner = candidates.find(
+    (item) => item.category === "source" && item.score >= 20 && item.bytes <= selectionFileLimit,
+  );
+  const topTest = candidates.find(
+    (item) => item.category === "test" && item.score >= 20 && item.bytes <= selectionFileLimit,
+  );
+  const priority = [
+    topOwner,
+    topTest,
+    ...candidates.filter((item) => ALWAYS_CONTEXT.has(item.file)),
+  ]
+    .filter((item): item is RankedCandidate => item !== undefined)
+    .filter(
+      (item, index, all) => all.findIndex((candidate) => candidate.file === item.file) === index,
+    );
+  const selectionOrder = [...priority, ...candidates].filter(
+    (item, index, all) => all.findIndex((candidate) => candidate.file === item.file) === index,
+  );
+  const priorityPaths = new Set(priority.map((item) => item.file));
+  const curatedTargetBytes = Math.floor(budget * 0.85);
+
+  const categoryCaps: Record<Category, number> = {
+    entrypoint: 3,
+    manifest: 2,
+    source: 8,
+    test: 6,
+    document: 4,
+    other: 2,
+  };
+  const categoryCounts: Record<Category, number> = {
+    entrypoint: 0,
+    manifest: 0,
+    source: 0,
+    test: 0,
+    document: 0,
+    other: 0,
+  };
+  const selected: ContextSelection[] = [];
+  const excluded: Array<{ path: string; reason: string }> = [...outsidePool];
+  let selectedBytes = 0;
+  for (const item of selectionOrder) {
+    if (item.bytes > selectionFileLimit && !ALWAYS_CONTEXT.has(item.file)) {
+      if (excluded.length < 20) excluded.push({ path: item.file, reason: "per-file context cap" });
+      continue;
+    }
+    if (item.score < 10 && !ALWAYS_CONTEXT.has(item.file)) {
+      if (excluded.length < 20)
+        excluded.push({ path: item.file, reason: "insufficient task relevance" });
+      continue;
+    }
+    if (selected.length >= MAX_SELECTED_FILES) {
+      if (excluded.length < 20)
+        excluded.push({ path: item.file, reason: "selected-file count cap" });
+      continue;
+    }
+    if (categoryCounts[item.category] >= categoryCaps[item.category]) {
+      if (excluded.length < 20)
+        excluded.push({ path: item.file, reason: `${item.category} category cap` });
+      continue;
+    }
+    if (selectedBytes + item.bytes > budget) {
+      if (excluded.length < 20) excluded.push({ path: item.file, reason: "context byte budget" });
+      continue;
+    }
+    if (!priorityPaths.has(item.file) && selectedBytes + item.bytes > curatedTargetBytes) {
+      if (excluded.length < 20)
+        excluded.push({ path: item.file, reason: "curated context target" });
       continue;
     }
     selected.push({
       path: item.file,
       bytes: item.bytes,
       estimatedTokens: Math.ceil(item.bytes / 4),
-      reasons: item.reasons,
+      reasons: [...new Set(item.reasons)],
     });
     selectedBytes += item.bytes;
+    categoryCounts[item.category] += 1;
   }
-  const likelyOwningSource = ranked
-    .filter((item) => SOURCE_EXTENSION.test(item.file) && !TEST_PATH.test(item.file))
-    .slice(0, 8)
+
+  const selectedSet = new Set(selected.map((item) => item.path));
+  const likelyOwningSource = candidates
+    .filter((item) => item.category === "source" && selectedSet.has(item.file))
+    .slice(0, 5)
     .map((item) => item.file);
-  const likelyTests = ranked
-    .filter((item) => TEST_PATH.test(item.file))
-    .slice(0, 8)
+  const likelyTests = candidates
+    .filter((item) => item.category === "test" && selectedSet.has(item.file))
+    .slice(0, 5)
     .map((item) => item.file);
-  const applicableAreas = [
-    ...new Set(
-      [...likelyOwningSource, ...likelyTests]
-        .map((file) => file.split("/")[0])
-        .filter((value): value is string => Boolean(value)),
-    ),
+  const relevantPaths = [...likelyOwningSource, ...likelyTests];
+  const requiredVerification = approvedCommands(verification, relevantPaths);
+  const conflicts = profile.evidence
+    .filter((item) => item.status === "conflicting")
+    .map((item) => item.claim);
+  const unknowns = [
+    ...(likelyOwningSource.length ? [] : ["Owning source path"]),
+    ...(likelyTests.length ? [] : ["Directly related test path"]),
+    ...(requiredVerification.length ? [] : ["Applicable approved verification command"]),
   ];
-  const unselectedDocs = ranked.filter(
-    (item) => CONFIG_OR_DOC.test(item.file) && !selected.some((entry) => entry.path === item.file),
-  );
-  excluded.push(
-    ...unselectedDocs.slice(0, 10).map((item) => ({
-      path: item.file,
-      reason: "not relevant enough to this task",
-    })),
-  );
+  const confidence: ContextPackage["confidence"] =
+    likelyOwningSource.length > 0 &&
+    likelyTests.length > 0 &&
+    requiredVerification.length > 0 &&
+    conflicts.length === 0
+      ? "high"
+      : likelyOwningSource.length > 0
+        ? "partial"
+        : "insufficient";
+
   return {
     task,
-    interpretation: `Work is bounded to evidence relevant to: ${task}`,
-    applicableAreas,
+    interpretation: `Deterministic path and bounded content-token evidence relevant to: ${task}`,
+    confidence,
+    repositoryFileCount: profile.files.length,
+    eligibleCandidateFiles: candidates.length,
+    applicableAreas: [
+      ...new Set(
+        relevantPaths
+          .map((file) => file.split("/")[0])
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ],
     selected,
     likelyOwningSource,
     likelyTests,
     constraints: selected
       .filter((item) => item.path.includes("knowledge/") || item.path.endsWith("AGENTS.md"))
       .map((item) => `Read ${item.path} before changing its routed surface.`),
-    requiredVerification: approvedCommands(verification),
-    conflicts: profile.evidence
-      .filter((item) => item.status === "conflicting")
-      .map((item) => item.claim),
-    unknowns: [
-      ...(likelyOwningSource.length ? [] : ["Owning source path"]),
-      ...(verification?.commands.length ? [] : ["Approved verification command"]),
-    ],
+    requiredVerification,
+    conflicts,
+    unknowns,
     excluded: excluded.filter(
       (item, index, all) => all.findIndex((candidate) => candidate.path === item.path) === index,
     ),

@@ -17,6 +17,9 @@ afterEach(async () => Promise.all(cleanup.splice(0).map((operation) => operation
 const context: ContextPackage = {
   task: "change greeting",
   interpretation: "bounded greeting change",
+  confidence: "high",
+  repositoryFileCount: 2,
+  eligibleCandidateFiles: 2,
   applicableAreas: ["src"],
   selected: [],
   likelyOwningSource: ["src/greet.ts"],
