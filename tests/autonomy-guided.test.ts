@@ -127,11 +127,12 @@ commands:
     const pending = await cli(["finish", "--json", "--root", root]);
     const pendingValue = JSON.parse(pending.stdout) as {
       record: { status: string; calls: unknown[] };
-      completion: { learning: { status: string } };
+      completion: { documentation: { status: string }; learning: { status: string } };
     };
     expect(pendingValue.record.status).toBe("completed");
     expect(pendingValue.record.calls).toEqual([]);
-    expect(pendingValue.completion.learning.status).toBe("no-update-needed");
+    expect(pendingValue.completion.documentation.status).toBe("not-assessed");
+    expect(pendingValue.completion.learning.status).toBe("no-candidate");
 
     const reviewPath = path.join(root, ".git", "noxroot", "external-review.json");
     await writeFile(

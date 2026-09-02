@@ -67,7 +67,7 @@ function guidedHandoff(
     "LEARNING",
     record.learningCandidates?.length
       ? `${record.learningCandidates.length} reusable project-knowledge candidate(s) proposed.`
-      : "No project-knowledge update needed.",
+      : "No reusable project-knowledge candidate identified.",
     "",
     "NEXT",
     record.status === "review-pending"
@@ -118,6 +118,7 @@ export async function finishGuidedRun(input: {
   adapter: AgentAdapter;
   reviewAuthorized: boolean;
   reviewFile?: string;
+  sensitivePaths?: string[];
   signal?: AbortSignal;
 }): Promise<GuidedRunRecord> {
   const { record } = input;
@@ -131,7 +132,11 @@ export async function finishGuidedRun(input: {
   }
   const changedPaths = await changedFiles(input.root, record.baseline.revision);
   for (const changedPath of changedPaths) resolveWithin(input.root, changedPath);
-  const diff = await diffFromRevision(input.root, record.baseline.revision);
+  const diff = await diffFromRevision(
+    input.root,
+    record.baseline.revision,
+    input.sensitivePaths ?? [],
+  );
   const diffHash = createHash("sha256").update(diff).digest("hex");
   const reviewAssessment = assessReviewNeed(changedPaths, diff);
   const commands = selectVerification(record.trustedVerificationPolicy, changedPaths);

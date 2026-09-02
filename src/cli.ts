@@ -591,7 +591,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
                   signal: controller.signal,
                 });
               },
-              diff: () => boundedDiff(worktree),
+              diff: () => boundedDiff(worktree, config?.sensitivePaths ?? []),
             },
           );
           const recordPath = await writeRunRecord(root, id, record);
@@ -638,16 +638,20 @@ export function createProgram(customIo?: Partial<Io>): Command {
           record,
           adapter,
           reviewAuthorized: autonomy.reviewer.authorized,
+          sensitivePaths: config?.sensitivePaths ?? [],
           ...(options.reviewFile === undefined ? {} : { reviewFile: options.reviewFile }),
           signal: controller.signal,
         });
         const recordPath = await replaceRunRecord(root, taskId, finished);
         const learning = await proposeLearnings(root, finished);
         const completion = {
-          documentation: { status: "no-update-needed" as const },
+          documentation: {
+            status: "not-assessed" as const,
+            reason: "No deterministic documentation signal was produced.",
+          },
           learning: {
             status:
-              learning.proposals.length > 0 ? ("proposed" as const) : ("no-update-needed" as const),
+              learning.proposals.length > 0 ? ("proposed" as const) : ("no-candidate" as const),
             proposals: learning.proposals.length,
           },
         };
@@ -655,7 +659,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           io,
           common.json,
           { record: finished, recordPath, completion, learning },
-          `${finished.handoff}\n\nDocumentation\n  No update needed\n\nLearning\n  ${learning.proposals.length ? `${learning.proposals.length} reusable proposal(s) available; inspect with noxroot learn --task ${taskId}.` : "No reusable project knowledge identified."}\n\nLocal record: ${recordPath}\n`,
+          `${finished.handoff}\n\nDocumentation\n  Not assessed automatically; no deterministic documentation signal was produced.\n\nLearning\n  ${learning.proposals.length ? `${learning.proposals.length} reusable proposal(s) available; inspect with noxroot learn --task ${taskId}.` : "No reusable project-knowledge candidate identified."}\n\nLocal record: ${recordPath}\n`,
         );
         if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
         else if (finished.status === "incomplete") process.exitCode = EXIT.verification;

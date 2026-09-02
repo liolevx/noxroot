@@ -31,10 +31,12 @@ describe("documentation examples", () => {
     const readme = await readFile(path.resolve("README.md"), "utf8");
     const context = await buildContext("improve reviewer decision safety", path.resolve("."));
     const checks = context.requiredVerification.map((item) => item.id).join(", ");
+    const relatedTests =
+      context.likelyTests.length > 1 ? ` (+${context.likelyTests.length - 1} related)` : "";
     for (const line of [
       `Selected ${context.selected.length} of ${context.repositoryFileCount} repository files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
       `Likely owner: ${context.likelyOwningSource[0]}`,
-      `Likely tests: ${context.likelyTests[0]} (+${context.likelyTests.length - 1} related)`,
+      `Likely tests: ${context.likelyTests[0]}${relatedTests}`,
       `Approved checks: ${checks}`,
       `Deliberately excluded: ${context.repositoryFileCount - context.selected.length} unrelated files`,
     ]) {

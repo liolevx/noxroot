@@ -26,9 +26,9 @@ This example is produced from Noxroot’s own repository and locked to the docum
 ```text
 $ noxroot context "improve reviewer decision safety"
 
-Selected 6 of 110 repository files · ~3,272 tokens
+Selected 6 of 110 repository files · ~3,230 tokens
 Likely owner: src/adapters/agents.ts
-Likely tests: tests/agent-review.test.ts (+1 related)
+Likely tests: tests/agent-review.test.ts
 Approved checks: format-check, lint, typecheck, test, build
 Deliberately excluded: 104 unrelated files
 ```
@@ -73,8 +73,9 @@ and Noxroot never turns the gap into permission to merge.
 
 The completion step also performs a lightweight documentation and learning assessment. It reuses
 structured reviewer candidates when review already happened and deterministic verification gaps when
-they are genuinely reusable. Otherwise it says no update is needed. It does not call another model
-merely to manufacture a lesson, save raw task text, or create a session summary.
+they are genuinely reusable. Otherwise it reports no learning candidate and leaves documentation
+unassessed rather than implying certainty. It does not call another model merely to manufacture a
+lesson, save raw task text, or create a session summary.
 
 The exact values vary by repository. A normal human-readable completion is intentionally compact:
 
@@ -90,7 +91,7 @@ Review
   Not required for this bounded change
 
 Learning
-  No project-knowledge update needed
+  No reusable project-knowledge candidate
 
 Next
   Review the resulting change.

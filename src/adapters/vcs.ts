@@ -1,7 +1,8 @@
-import { mkdir, readFile, realpath } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { runProcess } from "./process.js";
 import { localStateRoot } from "../state/local.js";
+import { isSuspectedSecret, resolveWithin } from "../security/paths.js";
 
 export interface IsolatedWorktree {
   branch: string;
@@ -51,10 +52,51 @@ export async function captureRepositoryBaseline(root: string): Promise<Repositor
   return { root: repositoryRoot, revision: revision.stdout.trim(), status: status.stdout };
 }
 
-export async function diffFromRevision(root: string, revision: string): Promise<string> {
+function matchesSensitivePath(relative: string, patterns: string[]): boolean {
+  const normalized = relative.replaceAll("\\", "/");
+  return patterns.some((value) => {
+    const pattern = value.replaceAll("\\", "/").replace(/^\.\//, "");
+    const escaped = pattern
+      .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+      .replaceAll("**", "\0")
+      .replaceAll("*", "[^/]*")
+      .replaceAll("\0", ".*")
+      .replaceAll("?", "[^/]");
+    return new RegExp(`^(?:${escaped})(?:/.*)?$`).test(normalized);
+  });
+}
+
+export async function diffFromRevision(
+  root: string,
+  revision: string,
+  sensitivePaths: string[] = [],
+): Promise<string> {
+  const tracked = await git(root, ["diff", "--name-only", "-z", revision, "--"], 100_000);
+  if (tracked.exitCode !== 0) return `Diff unavailable: ${tracked.stderr.trim()}`;
+  const protectedTracked: Array<{ path: string; symlink: boolean }> = [];
+  for (const relative of tracked.stdout.split("\0").filter(Boolean)) {
+    let symlink = false;
+    try {
+      symlink = (await lstat(resolveWithin(root, relative))).isSymbolicLink();
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    if (symlink || isSuspectedSecret(relative) || matchesSensitivePath(relative, sensitivePaths)) {
+      protectedTracked.push({ path: relative, symlink });
+    }
+  }
   const result = await git(
     root,
-    ["diff", "--no-ext-diff", "--no-color", "--unified=20", revision, "--"],
+    [
+      "diff",
+      "--no-ext-diff",
+      "--no-color",
+      "--unified=20",
+      revision,
+      "--",
+      ".",
+      ...protectedTracked.map((entry) => `:(top,exclude,literal)${entry.path}`),
+    ],
     100_000,
   );
   if (result.exitCode !== 0) return `Diff unavailable: ${result.stderr.trim()}`;
@@ -62,13 +104,29 @@ export async function diffFromRevision(root: string, revision: string): Promise<
   if (untracked.exitCode !== 0) return result.stdout;
   let remaining = Math.max(0, 100_000 - Buffer.byteLength(result.stdout));
   const additions: string[] = [];
+  for (const entry of protectedTracked) {
+    if (remaining <= 0) break;
+    const redacted = `\ndiff --git a/${entry.path} b/${entry.path}\n--- a/${entry.path}\n+++ b/${entry.path}\n${entry.symlink ? `Symlink target and content omitted for ${entry.path}.` : `Content omitted for sensitive path ${entry.path}.`}\n`;
+    const bounded = Buffer.from(redacted).subarray(0, remaining).toString("utf8");
+    additions.push(bounded);
+    remaining -= Buffer.byteLength(bounded);
+  }
   for (const relative of untracked.stdout.split("\0").filter(Boolean).sort()) {
     if (remaining <= 0) break;
-    const source = await readFile(path.resolve(root, relative));
-    const header = `\ndiff --git a/${relative} b/${relative}\nnew file mode 100644\n--- /dev/null\n+++ b/${relative}\n`;
-    const body = source.includes(0)
-      ? `Binary file ${relative} (${source.byteLength} bytes)\n`
-      : source.toString("utf8");
+    const absolute = resolveWithin(root, relative);
+    const file = await lstat(absolute);
+    const header = `\ndiff --git a/${relative} b/${relative}\nnew file mode ${file.isSymbolicLink() ? "120000" : "100644"}\n--- /dev/null\n+++ b/${relative}\n`;
+    let body: string;
+    if (isSuspectedSecret(relative) || matchesSensitivePath(relative, sensitivePaths)) {
+      body = `Content omitted for sensitive path ${relative}.\n`;
+    } else if (file.isSymbolicLink()) {
+      body = `Symlink target and content omitted for ${relative}.\n`;
+    } else {
+      const source = await readFile(absolute);
+      body = source.includes(0)
+        ? `Binary file ${relative} (${source.byteLength} bytes)\n`
+        : source.toString("utf8");
+    }
     const entry = `${header}${body}`;
     const bounded = Buffer.from(entry).subarray(0, remaining).toString("utf8");
     additions.push(bounded);
@@ -107,12 +165,9 @@ export async function prepareIsolatedWorktree(
   };
 }
 
-export async function boundedDiff(worktree: IsolatedWorktree): Promise<string> {
-  const result = await git(
-    worktree.path,
-    ["diff", "--no-ext-diff", "--no-color", "--unified=20", worktree.baseRevision, "--"],
-    100_000,
-  );
-  if (result.exitCode !== 0) return `Diff unavailable: ${result.stderr.trim()}`;
-  return result.stdout;
+export async function boundedDiff(
+  worktree: IsolatedWorktree,
+  sensitivePaths: string[] = [],
+): Promise<string> {
+  return diffFromRevision(worktree.path, worktree.baseRevision, sensitivePaths);
 }

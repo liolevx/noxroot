@@ -78,7 +78,9 @@ checked changes become `completed` without a reviewer. User-facing, security-sen
 unusually broad diffs produce a review package and may become `review-pending`. Only a schema-valid
 reviewer can produce `approved`. No matching or available check becomes `incomplete`: local handoff
 can continue, but approval cannot. Finish also reports a deterministic documentation/learning
-assessment without a new model call.
+assessment without a new model call. When no deterministic documentation signal exists,
+documentation is reported as `not-assessed`; an empty deterministic learning assessment is reported
+as `no-candidate`, not as proof that no documentation could help.
 
 ## `learn`
 
