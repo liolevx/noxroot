@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2024"],
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "ignoreDeprecations": "6.0",
+    "skipLibCheck": true
+  },
+  "include": ["src", "tests", "vitest.config.ts", "tsup.config.ts"],
+  "exclude": ["tests/fixtures"]
+}
