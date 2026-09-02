@@ -129,7 +129,7 @@ commands:
       record: { status: string; calls: unknown[] };
       completion: { learning: { status: string } };
     };
-    expect(pendingValue.record.status).toBe("review-pending");
+    expect(pendingValue.record.status).toBe("completed");
     expect(pendingValue.record.calls).toEqual([]);
     expect(pendingValue.completion.learning.status).toBe("no-update-needed");
 
@@ -217,9 +217,9 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
       adapter: new ManualAgentAdapter(),
       reviewAuthorized: false,
     });
-    expect(pending.status).toBe("review-pending");
+    expect(pending.status).toBe("completed");
     expect(pending.changedPaths).toEqual(["src/new.ts", "src/value.ts"]);
-    expect(JSON.stringify(pending.reviewerPackage)).toContain("export const added = true");
+    expect(pending.reviewerPackage).toBeUndefined();
     expect(pending.verification.at(-1)?.[0]?.status).toBe("passed");
 
     const reviewPath = "review.json";
@@ -243,6 +243,42 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(approved.calls.at(-1)?.result.invoked).toBe(false);
     expect(approved.reviewDecision).toBe("approved");
     expect(await readFile(path.join(root, reviewPath), "utf8")).toContain('"approved"');
+  });
+
+  it("requests UX review from the actual UI diff even without Playwright", async () => {
+    const root = await repository();
+    await writeFile(path.join(root, "src", "App.tsx"), "export const App = () => <main />;\n");
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "frontend fixture"]);
+    const command = {
+      id: "node-check",
+      executable: process.execPath,
+      args: ["-e", "process.exit(0)"],
+      cwd: ".",
+      timeoutMs: 10_000,
+      appliesTo: ["src/**"],
+    };
+    const record = await startGuidedRun({
+      id: "guided-ui",
+      task: "improve the page",
+      root,
+      context,
+      effectiveAutonomy: effectiveAutonomy(undefined),
+      trustedVerificationPolicy: [command],
+    });
+    await writeFile(
+      path.join(root, "src", "App.tsx"),
+      "export const App = () => <main>Ready</main>;\n",
+    );
+    const finished = await finishGuidedRun({
+      root,
+      record,
+      adapter: new ManualAgentAdapter(),
+      reviewAuthorized: false,
+    });
+    expect(finished.status).toBe("review-pending");
+    expect(finished.reviewAssessment).toMatchObject({ required: true, kinds: ["ux"] });
+    expect(JSON.stringify(finished.reviewerPackage)).toContain("<main>Ready</main>");
   });
 
   it("permits an incomplete handoff without approving when no check matches", async () => {

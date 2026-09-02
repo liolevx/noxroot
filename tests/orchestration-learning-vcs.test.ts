@@ -141,13 +141,35 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
           verifies += 1;
           return [check("passed")];
         },
-        diff: async () => "diff --git a/src/greet.ts b/src/greet.ts",
+        diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
       },
     );
     expect(adapter.roles).toEqual(["worker", "reviewer"]);
     expect(verifies).toBe(1);
     expect(record.status).toBe("approved");
     expect(record.handoff).toContain("Noxroot did not merge or push it");
+  });
+
+  it("completes a routine checked change without an unnecessary reviewer", async () => {
+    const adapter = new FakeAdapter();
+    const record = await orchestrateRun(
+      {
+        id: "task-routine",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => [check("passed")],
+        diff: async () => "diff --git a/src/greet.ts b/src/greet.ts",
+      },
+    );
+    expect(record.status).toBe("completed");
+    expect(record.reviewDecision).toBeUndefined();
+    expect(adapter.roles).toEqual(["worker"]);
   });
 
   it("bounds one reviewer-requested repair and re-verifies before re-review", async () => {
@@ -168,7 +190,7 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
           verifies += 1;
           return [check("passed")];
         },
-        diff: async () => "diff",
+        diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
       },
     );
     expect(adapter.roles).toEqual(["worker", "reviewer", "repair", "reviewer"]);

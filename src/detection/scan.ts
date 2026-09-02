@@ -305,6 +305,26 @@ function detectEvidence(
         });
       }
       const allDependencies = { ...manifest.dependencies, ...manifest.devDependencies };
+      const userFacingDependencies = [
+        "react",
+        "next",
+        "vue",
+        "nuxt",
+        "svelte",
+        "solid-js",
+        "@angular/core",
+      ].filter((name) => name in allDependencies);
+      const userFacingSources = files.filter((file) => /\.(?:tsx|jsx|vue|svelte)$/.test(file));
+      if (userFacingDependencies.length > 0 || userFacingSources.length > 0) {
+        evidence.push({
+          status: "confirmed",
+          claim: "User-facing web application",
+          sources: [
+            ...(userFacingDependencies.length > 0 ? ["package.json"] : []),
+            ...userFacingSources.slice(0, 4),
+          ],
+        });
+      }
       if (
         Object.keys(allDependencies).some(
           (name) => name.startsWith("@playwright/") || name === "playwright",

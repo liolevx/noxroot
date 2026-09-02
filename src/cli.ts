@@ -603,7 +603,8 @@ export function createProgram(customIo?: Partial<Io>): Command {
             `${record.handoff}\n\nEvidence: ${recordPath}\n`,
           );
           if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
-          else if (record.status !== "approved") process.exitCode = EXIT.agent;
+          else if (!["approved", "completed"].includes(record.status))
+            process.exitCode = EXIT.agent;
         } finally {
           process.removeListener("SIGINT", interrupt);
           process.removeListener("SIGTERM", interrupt);
@@ -658,7 +659,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         );
         if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
         else if (finished.status === "incomplete") process.exitCode = EXIT.verification;
-        else if (!["approved", "review-pending"].includes(finished.status))
+        else if (!["approved", "completed", "review-pending"].includes(finished.status))
           process.exitCode = EXIT.agent;
       } finally {
         process.removeListener("SIGINT", interrupt);

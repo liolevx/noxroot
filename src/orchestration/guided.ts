@@ -9,6 +9,7 @@ import { resolveWithin } from "../security/paths.js";
 import { changedFiles, executeVerification, selectVerification } from "../verification/index.js";
 import type { EffectiveAutonomy } from "./autonomy.js";
 import type { RunRecord } from "./run.js";
+import { assessReviewNeed, type ReviewAssessment } from "./review.js";
 
 export interface GuidedRunRecord extends RunRecord {
   mode: "guided";
@@ -24,6 +25,7 @@ export interface GuidedRunRecord extends RunRecord {
   diffHash?: string;
   reviewerPackage?: unknown;
   learningCandidates?: ReviewerResponse["learningCandidates"];
+  reviewAssessment?: ReviewAssessment;
 }
 
 function policyHash(policy: VerificationCommand[]): string {
@@ -56,7 +58,11 @@ function guidedHandoff(
       "Verification incomplete: no applicable approved checks ran.",
     "",
     "REVIEW",
-    review ? `${review.decision}: ${review.summary}` : "Independent review is still required.",
+    review
+      ? `${review.decision}: ${review.summary}`
+      : record.reviewAssessment?.required
+        ? `Pending ${record.reviewAssessment.kinds.join("/")} review: ${record.reviewAssessment.reasons.join(" ")}`
+        : "Not required for this bounded change.",
     "",
     "LEARNING",
     record.learningCandidates?.length
@@ -127,6 +133,7 @@ export async function finishGuidedRun(input: {
   for (const changedPath of changedPaths) resolveWithin(input.root, changedPath);
   const diff = await diffFromRevision(input.root, record.baseline.revision);
   const diffHash = createHash("sha256").update(diff).digest("hex");
+  const reviewAssessment = assessReviewNeed(changedPaths, diff);
   const commands = selectVerification(record.trustedVerificationPolicy, changedPaths);
   const checks = await executeVerification(input.root, commands, {
     ...(input.signal === undefined ? {} : { signal: input.signal }),
@@ -135,6 +142,7 @@ export async function finishGuidedRun(input: {
     ...record,
     changedPaths,
     diffHash,
+    reviewAssessment,
     verification: [...record.verification, checks],
     verificationGaps: [],
   };
@@ -169,12 +177,21 @@ export async function finishGuidedRun(input: {
     return next;
   }
 
+  if (!reviewAssessment.required && !input.reviewFile) {
+    next.status = "completed";
+    next.finishedAt = new Date().toISOString();
+    next.learningCandidates = [];
+    next.handoff = guidedHandoff(next, checks);
+    return next;
+  }
+
   const reviewerPackage = {
     task: record.task,
     context: record.context,
     changedPaths,
     diff,
     verification: checks,
+    reviewAssessment,
     responseContract: {
       decision: "approved | changes-requested | blocked",
       summary: "short factual summary",

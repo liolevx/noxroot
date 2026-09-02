@@ -1,0 +1,11 @@
+{
+  "name": "fixture-frontend",
+  "private": true,
+  "packageManager": "npm@11.0.0",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "^19.0.0"
+  }
+}

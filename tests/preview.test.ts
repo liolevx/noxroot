@@ -256,7 +256,21 @@ describe("read-only preview", () => {
     cleanup.push(fixture.cleanup);
     const result = await previewRepository(fixture.root);
     expect(result.modules.find((item) => item.id === "browser-qa")?.status).toBe("recommended");
-    expect(result.modules.find((item) => item.id === "product-ux")?.status).toBe("optional");
+    expect(result.modules.find((item) => item.id === "product-ux")?.status).toBe("not applicable");
+  });
+
+  it("detects a user-facing product independently from Playwright", async () => {
+    const fixture = await fixtureCopy("frontend");
+    cleanup.push(fixture.cleanup);
+    const result = await previewRepository(fixture.root);
+    expect(result.profile.evidence).toContainEqual(
+      expect.objectContaining({ claim: "User-facing web application" }),
+    );
+    expect(result.modules.find((item) => item.id === "product-ux")?.status).toBe("recommended");
+    expect(result.modules.find((item) => item.id === "browser-qa")?.status).toBe("not applicable");
+    expect(result.proposedFiles.map((item) => item.path)).toContain(
+      ".noxroot/skills/product-ux-review/SKILL.md",
+    );
   });
 
   it("never follows a symlink escape", async () => {
