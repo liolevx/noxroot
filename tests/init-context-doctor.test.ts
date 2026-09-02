@@ -89,14 +89,15 @@ describe("initialization, sync safety, context, and doctor", () => {
     expect(after.toString("utf8")).not.toMatch(/(?<!\r)\n/);
   });
 
-  it("reuses an equivalent existing entrypoint without patching it", async () => {
+  it("preserves an equivalent entrypoint when its referenced knowledge is unavailable", async () => {
     const fixture = await fixtureCopy("equivalent-agents");
     cleanup.push(fixture.cleanup);
     const before = await readFile(path.join(fixture.root, "AGENTS.md"), "utf8");
     const preview = await previewRepository(fixture.root);
-    expect(preview.proposedFiles.find((file) => file.path === "AGENTS.md")?.action).toBe(
-      "reference",
-    );
+    expect(preview.proposedFiles.find((file) => file.path === "AGENTS.md")).toBeUndefined();
+    expect(preview.capabilities.find((item) => item.id === "project-knowledge")).toMatchObject({
+      decision: "not-assessed",
+    });
     await applyProposals(preview);
     expect(await readFile(path.join(fixture.root, "AGENTS.md"), "utf8")).toBe(before);
   });
