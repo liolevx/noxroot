@@ -1,4 +1,4 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { runProcess } from "./process.js";
 import { localStateRoot } from "../state/local.js";
@@ -43,8 +43,9 @@ export async function captureRepositoryBaseline(root: string): Promise<Repositor
   if (topLevel.exitCode !== 0 || revision.exitCode !== 0 || status.exitCode !== 0) {
     throw new Error("Guided completion requires a Git repository with at least one commit.");
   }
-  const repositoryRoot = path.resolve(topLevel.stdout.trim());
-  if (path.resolve(root).toLowerCase() !== repositoryRoot.toLowerCase()) {
+  const repositoryRoot = await realpath(path.resolve(topLevel.stdout.trim()));
+  const requestedRoot = await realpath(path.resolve(root));
+  if (requestedRoot.toLowerCase() !== repositoryRoot.toLowerCase()) {
     throw new Error(`Guided tasks must start at the Git repository root: ${repositoryRoot}`);
   }
   return { root: repositoryRoot, revision: revision.stdout.trim(), status: status.stdout };
