@@ -94,7 +94,7 @@ async function selectModules(preview: PreviewResult, io: Io): Promise<PreviewRes
             reason: "Disabled during confirmed selection.",
           },
     );
-    return { ...preview, modules, proposedFiles: buildProposals(preview.profile, modules) };
+    return { ...preview, modules, proposedFiles: await buildProposals(preview.profile, modules) };
   } finally {
     readline.close();
   }

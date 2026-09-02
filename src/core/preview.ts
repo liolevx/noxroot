@@ -22,7 +22,7 @@ export async function previewRepository(root = process.cwd()): Promise<PreviewRe
   }
   const profile = await scanRepository(canonicalRoot, { sensitivePaths });
   const modules = assessModules(profile, configuredModules);
-  const proposedFiles = buildProposals(profile, modules);
+  const proposedFiles = await buildProposals(profile, modules);
   const existingSetup = profile.evidence
     .filter((item) => item.status === "confirmed")
     .map((item) => `${item.claim}: ${item.sources.join(", ")}`);

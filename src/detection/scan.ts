@@ -1,6 +1,12 @@
 import { lstat, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import type { CandidateCommand, Evidence, InspectionLimits, RepositoryProfile } from "../model.js";
+import type {
+  CandidateCommand,
+  Evidence,
+  InspectionLimits,
+  RepositoryDocument,
+  RepositoryProfile,
+} from "../model.js";
 import { isSuspectedSecret, normalizeRelative } from "../security/paths.js";
 
 const DEFAULT_LIMITS: InspectionLimits = {
@@ -65,6 +71,40 @@ interface IgnorePattern {
   pattern: string;
   negated: boolean;
   directoryOnly: boolean;
+}
+
+function classifyDocument(file: string): RepositoryDocument | undefined {
+  const lower = file.toLowerCase();
+  const basename = path.posix.basename(lower);
+  if (["agents.md", "claude.md", "copilot-instructions.md"].includes(basename)) {
+    return { path: file, kind: "instructions", authoritative: true };
+  }
+  if (
+    basename === "architecture.md" ||
+    basename === "architecture.mdx" ||
+    /(?:^|\/)docs?\/(?:system-)?architecture\.(?:md|mdx)$/.test(lower)
+  ) {
+    return { path: file, kind: "architecture", authoritative: true };
+  }
+  if (/^(?:product|requirements|product-requirements)\.(?:md|mdx)$/.test(basename)) {
+    return { path: file, kind: "product", authoritative: true };
+  }
+  if (/^(?:ux|design-system|accessibility)\.(?:md|mdx)$/.test(basename)) {
+    return { path: file, kind: "ux", authoritative: true };
+  }
+  if (/^(?:testing|test-strategy|quality)\.(?:md|mdx)$/.test(basename)) {
+    return { path: file, kind: "testing", authoritative: true };
+  }
+  if (basename === "security.md") {
+    return { path: file, kind: "security", authoritative: true };
+  }
+  if (/^(?:contributing|contribution)\.(?:md|mdx)$/.test(basename)) {
+    return { path: file, kind: "contribution", authoritative: true };
+  }
+  if (/\.(?:md|mdx)$/.test(lower)) {
+    return { path: file, kind: "ordinary", authoritative: false };
+  }
+  return undefined;
 }
 
 function globExpression(pattern: string): RegExp {
@@ -342,6 +382,29 @@ export async function scanRepository(
     .then((gitStat) => gitStat.isDirectory() || gitStat.isFile())
     .catch(() => false);
   const { evidence, commands } = detectEvidence(files, contents);
+  const documents = files
+    .map(classifyDocument)
+    .filter((document): document is RepositoryDocument => document !== undefined);
+  for (const kind of [
+    "architecture",
+    "product",
+    "ux",
+    "testing",
+    "security",
+    "contribution",
+  ] as const) {
+    const matches = documents.filter((document) => document.kind === kind);
+    if (matches.length > 0) {
+      evidence.push({
+        status: kind === "architecture" && matches.length > 1 ? "conflicting" : "confirmed",
+        claim:
+          kind === "architecture" && matches.length > 1
+            ? "Multiple architecture documents require reconciliation"
+            : `Existing ${kind} documentation`,
+        sources: matches.map((document) => document.path).slice(0, 10),
+      });
+    }
+  }
   if (git) {
     evidence.unshift({ status: "confirmed", claim: "Git repository", sources: [".git"] });
     evidence.push({
@@ -387,6 +450,7 @@ export async function scanRepository(
     suspectedSecrets,
     blockedSymlinks,
     candidateCommands: commands,
+    documents,
     stats: {
       filesVisited: files.length,
       contentBytesRead,

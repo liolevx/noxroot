@@ -59,15 +59,31 @@ export interface RepositoryProfile {
   suspectedSecrets: string[];
   blockedSymlinks: string[];
   candidateCommands: CandidateCommand[];
+  documents: RepositoryDocument[];
   stats: InspectionStats;
+}
+
+export interface RepositoryDocument {
+  path: string;
+  kind:
+    | "instructions"
+    | "architecture"
+    | "product"
+    | "ux"
+    | "testing"
+    | "security"
+    | "contribution"
+    | "ordinary";
+  authoritative: boolean;
 }
 
 export interface ProposedFile {
   path: string;
-  action: "create" | "reference";
+  action: "create" | "reference" | "patch";
   reason: string;
   content?: string;
   patch?: string;
+  expectedHash?: string;
 }
 
 export interface PreviewResult {

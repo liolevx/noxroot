@@ -30,7 +30,7 @@ Detected
 ✓ [confirmed] Node.js project — package.json
 ✓ [confirmed] TypeScript source — tsconfig.json
 
-Proposed changes: 6 files
+Proposed changes: 5 files
 
 No repository changes were made.
 ```
