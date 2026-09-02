@@ -7,6 +7,13 @@ const commandAdapterSchema = z.object({
   executable: z.string().min(1),
   args: z.array(z.string()).default([]),
   timeoutMs: z.number().int().positive().max(3_600_000).default(600_000),
+  healthCheck: z
+    .object({
+      executable: z.string().min(1),
+      args: z.array(z.string()).default([]),
+      timeoutMs: z.number().int().positive().max(120_000).default(10_000),
+    })
+    .optional(),
 });
 
 const manualAdapterSchema = z.object({

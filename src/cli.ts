@@ -63,6 +63,10 @@ function emit(io: Io, asJson: boolean | undefined, value: unknown, human: string
   else io.stdout(human);
 }
 
+function progress(io: Io, message: string): void {
+  io.stderr(`${message}\n`);
+}
+
 function globals(command: Command): GlobalOptions {
   return command.optsWithGlobals<GlobalOptions>();
 }
@@ -409,6 +413,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
       ) => {
         const common = globals(command);
         const root = path.resolve(common.root);
+        progress(io, "Preparing context");
         const context = await buildContext(task, root);
         const config = await loadConfig(root);
         const adapter = options.guided ? new ManualAgentAdapter() : configuredAgent(config);
@@ -528,7 +533,31 @@ export function createProgram(customIo?: Partial<Io>): Command {
           io.stderr("Run cancelled; no branch, worktree, agent call, or check was created.\n");
           return;
         }
+        progress(io, "Checking configured agent and repository prerequisites");
+        const preflight = adapter.preflight
+          ? await adapter.preflight({ cwd: root, repositoryRoot: root, verification: checks })
+          : {
+              ok: true,
+              checks: [],
+              diagnostics: [],
+              retry: "Rerun the same command after correcting the reported prerequisite.",
+            };
+        if (!preflight.ok) {
+          const human = `${[
+            "NOXROOT PREFLIGHT",
+            ...preflight.checks.map((check) => `- ${check.id}: ${check.status} — ${check.detail}`),
+            ...(preflight.diagnostics.length
+              ? ["", "Diagnostics", ...preflight.diagnostics.map((line) => `  ${line}`)]
+              : []),
+            "",
+            `Next: ${preflight.retry}`,
+          ].join("\n")}\n`;
+          emit(io, common.json, { plan, context, preflight }, human);
+          process.exitCode = EXIT.agent;
+          return;
+        }
         const worktree = await prepareIsolatedWorktree(root, task, id);
+        progress(io, "Starting coding agent");
         const controller = new AbortController();
         const interrupt = (): void => controller.abort();
         process.once("SIGINT", interrupt);
@@ -554,8 +583,10 @@ export function createProgram(customIo?: Partial<Io>): Command {
             },
             {
               verify: async () => {
+                progress(io, "Checking changed files");
                 const actualChanged = await changedFiles(worktree.path, worktree.baseRevision);
                 const affectedChecks = selectVerification(checks, actualChanged);
+                progress(io, `Running ${affectedChecks.length} approved check(s)`);
                 return executeVerification(worktree.path, affectedChecks, {
                   signal: controller.signal,
                 });
@@ -564,6 +595,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             },
           );
           const recordPath = await writeRunRecord(root, id, record);
+          progress(io, "Preparing handoff");
           emit(
             io,
             common.json,
