@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -70,7 +70,6 @@ try {
     throw new Error("The packed CLI entrypoint is missing its Node shebang.");
   }
   if (process.platform !== "win32") {
-    await chmod(entrypoint, 0o755);
     if (((await stat(entrypoint)).mode & 0o111) === 0) {
       throw new Error("The packed CLI entrypoint is not executable.");
     }
