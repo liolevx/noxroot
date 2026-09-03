@@ -164,9 +164,14 @@ commands:
       "--root",
       root,
     ]);
-    expect((JSON.parse(approved.stdout) as { record: { status: string } }).record.status).toBe(
-      "approved",
-    );
+    const approvedRecord = (
+      JSON.parse(approved.stdout) as {
+        record: { status: string; handoff: string };
+      }
+    ).record;
+    expect(approvedRecord.status).toBe("approved");
+    expect(approvedRecord.handoff).toContain("1 documentation candidate identified by review");
+    expect(approvedRecord.handoff).not.toContain("candidate(s) proposed");
     const learned = await cli(["learn", "--task", startValue.record.id, "--json", "--root", root]);
     const learning = JSON.parse(learned.stdout) as { proposals: Array<{ kind: string }> };
     expect(learning.proposals).toEqual([expect.objectContaining({ kind: "procedure" })]);

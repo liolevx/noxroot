@@ -161,7 +161,7 @@ function guidedHandoff(
     "",
     "LEARNING",
     record.learningCandidates?.length
-      ? `${record.learningCandidates.length} reusable project-knowledge candidate(s) proposed.`
+      ? `${record.learningCandidates.length} documentation candidate${record.learningCandidates.length === 1 ? "" : "s"} identified by review; duplication and ownership still need checking.`
       : "No reusable project-knowledge candidate identified.",
     "",
     "NEXT",
