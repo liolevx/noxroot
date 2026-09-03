@@ -161,12 +161,14 @@ describe("CLI contracts", () => {
     cleanup.push(fixture.cleanup);
     const concise = await run(["context", "change greeting", "--root", fixture.root]);
     expect(concise.stdout).toContain("NOXROOT  task brief");
-    expect(concise.stdout).toContain("Selected");
+    expect(concise.stdout).toContain("Task context");
+    expect(concise.stdout).not.toMatch(/\d+ of \d+ files/);
     expect(concise.stdout).toContain("Checks");
     expect(concise.stdout).toMatch(/Excluded\n {2}\d+ files left out/);
     expect(concise.stdout).not.toContain("outside the active route candidate pool");
 
     const verbose = await run(["context", "change greeting", "--verbose", "--root", fixture.root]);
+    expect(verbose.stdout).toMatch(/\d+ of \d+ files/);
     expect(verbose.stdout).toContain("Selection reasons");
     expect(verbose.stdout).toContain("Excluded files");
   });

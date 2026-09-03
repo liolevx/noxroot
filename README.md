@@ -140,14 +140,13 @@ $ noxroot context "improve reviewer decision safety"
 
 NOXROOT  task brief
 
-improve reviewer decision safety
-Confidence  High
-
 Outcome
   improve reviewer decision safety
 
-Selected
-  6 of 128 files · ~3,230 tokens
+Confidence  High
+
+Task context
+  6 files · ~3,230 tokens
   src/adapters/agents.ts
   .noxroot/skills/independent-review/SKILL.md
   .noxroot/knowledge/INDEX.md

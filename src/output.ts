@@ -244,12 +244,11 @@ export function renderPreview(
 }
 
 export function renderContext(context: ContextPackage, options: RenderOptions = {}): string {
-  const selectedSummary = `${context.selected.length} of ${context.repositoryFileCount} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`;
+  const selectedSummary = options.verbose
+    ? `${context.selected.length} of ${context.repositoryFileCount} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`
+    : `${context.selected.length} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`;
   const lines = [
     title("task brief", options),
-    "",
-    context.task,
-    `Confidence  ${sentenceCase(context.confidence)}`,
     "",
     ...section(
       "Outcome",
@@ -259,11 +258,13 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
       options,
       ANSI.blue,
     ),
+    `Confidence  ${sentenceCase(context.confidence)}`,
+    "",
     ...(context.intent.explicitExclusions.length
       ? section("Do not", context.intent.explicitExclusions, options, ANSI.yellow)
       : []),
     ...section(
-      "Selected",
+      "Task context",
       [selectedSummary, ...context.selected.map((item) => item.path)],
       options,
       ANSI.green,

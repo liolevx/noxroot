@@ -38,7 +38,7 @@ describe("documentation examples", () => {
     const relatedTests =
       context.likelyTests.length > 1 ? ` (+${context.likelyTests.length - 1} related)` : "";
     for (const line of [
-      `${context.selected.length} of ${context.repositoryFileCount} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
+      `${context.selected.length} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
       context.likelyOwningSource[0]!,
       `${context.likelyTests[0]}${relatedTests}`,
       ...context.requiredVerification.map((item) => [item.executable, ...item.args].join(" ")),
