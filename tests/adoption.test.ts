@@ -176,6 +176,15 @@ describe("mature repository adoption", () => {
     );
   });
 
+  it("does not mistake an internal review ledger for an adjacent coordination capability", async () => {
+    const fixture = await fixtureCopy("review-procedure-ledger");
+    cleanup.push(fixture.cleanup);
+
+    const preview = await previewRepository(fixture.root);
+
+    expect(preview.capabilities.find((item) => item.id === "coordination-ledger")).toBeUndefined();
+  });
+
   it("detects coordinator behavior without relying on a filename or implementation language", async () => {
     const fixture = await fixtureCopy("behavioral-coordinator");
     cleanup.push(fixture.cleanup);

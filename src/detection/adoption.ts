@@ -287,7 +287,7 @@ const ADJACENT_LEDGER_BEHAVIORS = [
   {
     label: "durable work state",
     match:
-      /\b(?:ledger|journal|issue tracker|work log)\b.{0,180}\b(?:decisions?|open items?|unresolved items?|handoffs?|session notes?)\b|\b(?:decisions?|open items?|unresolved items?|handoffs?)\b.{0,180}\b(?:ledger|journal|issue tracker|work log)\b/i,
+      /\b(?:coordination ledger|session journal|issue tracker|work log|append-only (?:event )?log)\b.{0,180}\b(?:records?|stores?|preserves?|tracks?|holds?|captures?)\b.{0,180}\b(?:state of the work|decisions?|open items?|unresolved items?|handoffs?|session notes?)\b|\brecords?\b.{0,120}\b(?:state of the work|decisions?|open items?|unresolved items?|handoffs?|session notes?)\b.{0,120}\b(?:local |shared |append-only (?:event )?)?log\b/i,
   },
   {
     label: "cross-session continuity",
@@ -296,7 +296,7 @@ const ADJACENT_LEDGER_BEHAVIORS = [
   {
     label: "coding-work coordination",
     match:
-      /\b(?:coding agents?|repository(?:-development)? (?:work|workflow)|development workflow|implementation work)\b/i,
+      /\bcoding\b.{0,24}\bagents?\b|\b(?:agent|session)\s+records?\s+(?:the\s+)?state of the work\b|\b(?:repository(?:-development)? (?:work|workflow)|development workflow|implementation work)\b/i,
   },
 ] as const;
 
@@ -495,7 +495,6 @@ export async function inspectRepositoryAdoption(
     if (NON_PROJECT_SURFACE.test(sourcePath)) continue;
     const evidence = adjacentLedgerBehaviors(source);
     if (evidence.length !== ADJACENT_LEDGER_BEHAVIORS.length) continue;
-    if (declaredCoordinatorBehaviors(source).length === COORDINATOR_BEHAVIORS.length) continue;
     adjacentCapabilities.push({ path: sourcePath, evidence });
   }
 
