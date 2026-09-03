@@ -367,6 +367,36 @@ describe("read-only preview", () => {
     );
   });
 
+  it("does not mistake ordinary examples and a separate tutorial for a project collection", async () => {
+    const root = await temporaryDirectory("noxroot-rust-workspace-");
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await writeFile(
+      path.join(root, "README.md"),
+      `# Search tool\n\n## Quick examples\n\nSearch recursively.\n${"details\n".repeat(80)}## Tutorial\n`,
+    );
+    await writeFile(path.join(root, "Cargo.toml"), "[workspace]\nmembers = ['crates/*']\n");
+    for (const name of ["core", "glob", "printer", "searcher"]) {
+      await mkdir(path.join(root, "crates", name), { recursive: true });
+      await writeFile(
+        path.join(root, "crates", name, "Cargo.toml"),
+        `[package]\nname = '${name}'\nversion = '0.1.0'\n`,
+      );
+    }
+
+    const result = await previewRepository(root);
+
+    expect(result.initializationAllowed).toBe(true);
+    expect(result.profile.evidence).not.toContainEqual(
+      expect.objectContaining({ claim: "Independent example collection" }),
+    );
+    expect(result.profile.candidateCommands.map((command) => command.id)).toEqual([
+      "cargo-check",
+      "cargo-test",
+    ]);
+  });
+
   it("aggregates repeated architecture evidence across a monorepo", async () => {
     const root = await temporaryDirectory();
     cleanup.push(async () =>

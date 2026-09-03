@@ -458,9 +458,13 @@ function nativeVerificationCommands(
       commands.push(scopedCommand(tool, runner[0]!, args, cwd, `${manifest} [tool.${tool}]`));
     }
   }
-  for (const manifest of files.filter(
+  const cargoManifests = files.filter(
     (file) => projectManifest(file) && path.posix.basename(file) === "Cargo.toml",
-  )) {
+  );
+  const rootCargoWorkspace = /^\s*\[workspace(?:\.|])/m.test(contents["Cargo.toml"] ?? "");
+  for (const manifest of rootCargoWorkspace
+    ? cargoManifests.filter((file) => file === "Cargo.toml")
+    : cargoManifests) {
     const cwd = path.posix.dirname(manifest);
     commands.push(scopedCommand("cargo-test", "cargo", ["test"], cwd, manifest));
     commands.push(scopedCommand("cargo-check", "cargo", ["check"], cwd, manifest));
@@ -536,11 +540,12 @@ function detectEvidence(
       file,
     ),
   );
+  const readme = (contents["README.md"] ?? "").replace(/\s+/g, " ");
+  const collectionKind = String.raw`(?:course|workshop|tutorial (?:repository|series)|collection)`;
+  const collectionUnits = String.raw`(?:examples?|lessons?|chapters?|starter (?:projects?|templates?)|sample projects?|final code)`;
   const readmeDescribesCollection =
-    /\b(?:course|tutorial|workshop|collection)\b/i.test(contents["README.md"] ?? "") &&
-    /\b(?:examples?|lessons?|chapters?|starter projects?|sample projects?)\b/i.test(
-      contents["README.md"] ?? "",
-    );
+    new RegExp(`\\b${collectionKind}\\b.{0,180}\\b${collectionUnits}\\b`, "i").test(readme) ||
+    new RegExp(`\\b${collectionUnits}\\b.{0,180}\\b${collectionKind}\\b`, "i").test(readme);
   if (
     (!hasRootManifest || readmeDescribesCollection) &&
     nestedManifests.length >= 4 &&
