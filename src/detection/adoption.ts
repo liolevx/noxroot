@@ -401,7 +401,9 @@ export async function inspectRepositoryAdoption(
   ].map((file): RepositoryDocument => ({ path: file, kind: "ordinary", authoritative: true }));
   const routeReferences = references.filter(
     (item) =>
-      /\broutes?\b/i.test(item.context) && !INSTRUCTION_NAME.test(path.posix.basename(item.path)),
+      /\broutes?\b/i.test(item.context) &&
+      /\b(?:tasks?|agents?|context|project|repository|knowledge|memory)\b/i.test(item.context) &&
+      !INSTRUCTION_NAME.test(path.posix.basename(item.path)),
   );
   const missingRouteReferences = missing.filter((item) => /\broutes?\b/i.test(item.context));
   const knowledgeReferences = references.filter(

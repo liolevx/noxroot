@@ -19,7 +19,8 @@ name, filename, or implementation language. Proposal decisions are deliberately 
 proven gap, reuse explicit evidence, disable an overlapping capability, or preserve a capability
 that could not be assessed. An existing coordinator keeps lifecycle, review, and learning authority
 while Noxroot may add only non-overlapping context and verification support. Noxroot does not
-interpret arbitrary route schemas or integrate coordinators.
+interpret arbitrary route schemas or integrate coordinators. Task-route reuse requires a
+repository-work context in the reference, not merely API documentation containing the word "routes".
 
 Generated knowledge indexes link at most twelve high-signal documents. Additional documentation
 stays in its original location and remains available through repository instructions and task
