@@ -1,7 +1,6 @@
 import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildContext } from "../src/core/context.js";
 import { previewRepository } from "../src/core/preview.js";
 import { renderPreview } from "../src/output.js";
 import { fixtures } from "./helpers.js";
@@ -36,20 +35,19 @@ describe("documentation examples", () => {
     }
   });
 
-  it("keeps the README context proof synchronized with the dogfood route", async () => {
+  it("labels the terminal illustration without inventing a successful run", async () => {
     const readme = await readFile(path.resolve("README.md"), "utf8");
-    const context = await buildContext("improve reviewer decision safety", path.resolve("."));
-    const relatedTests =
-      context.likelyTests.length > 1 ? ` (+${context.likelyTests.length - 1} related)` : "";
-    for (const line of [
-      `${context.selected.length} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
-      context.likelyOwningSource[0]!,
-      `${context.likelyTests[0]}${relatedTests}`,
-      ...context.requiredVerification.map((item) => [item.executable, ...item.args].join(" ")),
-      `${context.excluded.length} files left out`,
-    ]) {
-      expect(readme).toContain(line);
-    }
+    expect(readme).toContain(
+      "Output excerpt with illustrative project paths and checks, not a captured test run.",
+    );
+    expect(readme).toContain(
+      '`context "<task>"` is read-only. It does not start a task or run checks.',
+    );
+    expect(readme).not.toContain("improve reviewer decision safety");
+    const png = await readFile(path.resolve("docs/assets/noxroot-terminal.png"));
+    expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+    expect(png.readUInt32BE(16)).toBe(594);
+    expect(png.readUInt32BE(20)).toBe(867);
   });
 
   it("documents the application-agent framework boundary", async () => {
@@ -94,10 +92,9 @@ describe("documentation examples", () => {
       if (/^(?:https?:|mailto:|#)/.test(target)) continue;
       await expect(access(path.resolve(target.split("#")[0]!))).resolves.toBeUndefined();
     }
-    const assets = ["noxroot-logo.svg", "noxroot-workflow.svg"];
+    const assets = ["noxroot-logo.svg", "noxroot-terminal.png"];
     expect((await readdir(path.resolve("docs", "assets"))).sort()).toEqual(assets);
-    expect(readme).toContain("This transcript illustrates the stable information hierarchy");
-    for (const asset of assets) {
+    for (const asset of assets.filter((name) => name.endsWith(".svg"))) {
       const svg = await readFile(path.resolve("docs", "assets", asset), "utf8");
       expect(svg).toContain("<svg");
       expect(svg).toContain('role="img"');
@@ -105,19 +102,11 @@ describe("documentation examples", () => {
       expect(svg).toContain("<title");
       expect(svg).toContain("<desc");
     }
-    const workflow = await readFile(path.resolve("docs/assets/noxroot-workflow.svg"), "utf8");
-    expect(workflow).toContain('viewBox="0 0 1100 1040"');
-    expect(workflow).toContain("PROJECT MEMORY");
-    expect(workflow).toContain("TASK BRIEF");
-    expect(workflow).toContain("Noxroot selects what matters for this task");
-    expect(workflow).toContain("YOUR CODING AGENT");
-    expect(workflow).toContain("VERIFICATION");
-    expect(workflow).toContain("LEARNING LOOP");
     const logo = await readFile(path.resolve("docs/assets/noxroot-logo.svg"), "utf8");
     expect(logo).toContain('viewBox="0 0 1600 440"');
     expect(logo).toContain("Noxroot owl mark");
-    expect(readme).toContain('src="docs/assets/noxroot-workflow.svg"');
-    expect(readme).toContain('width="900"');
+    expect(readme).toContain('src="docs/assets/noxroot-terminal.png"');
+    expect(readme).toContain('width="594"');
     expect(readme).toContain(".noxroot/skills/verify-change/SKILL.md");
     expect(readme).toContain(".git/noxroot/runs/*.json");
     expect(readme).not.toContain("—");

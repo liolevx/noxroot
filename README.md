@@ -32,11 +32,15 @@ Code, Cursor, OpenCode, Copilot CLI, and other coding agents.
 New chats do not require another `init`. Ordinary questions need no Noxroot task. Noxroot stays in
 the background until code-changing work needs it.
 
-When Noxroot owns the lifecycle, the workflow is:
+Inspect the relevant files and checks before the agent starts editing:
 
 <p align="center">
-  <img src="docs/assets/noxroot-workflow.svg" alt="When Noxroot owns the lifecycle, it reuses repository knowledge, prepares focused context, supports your coding agent, checks the change, and keeps useful project knowledge" width="900">
+  <img src="docs/assets/noxroot-terminal.png" alt="Noxroot terminal example: preserve project filters on back navigation, with likely source files, a navigation test, and checks to run" width="594">
 </p>
+
+Output excerpt with illustrative project paths and checks, not a captured test run. The brief
+identifies likely source files, related tests, and commands to run. It does not claim those checks
+have passed.
 
 ## Project memory, not chat history
 
@@ -73,14 +77,14 @@ npx noxroot@latest init
 Then keep talking to your coding agent normally:
 
 ```text
-Add a page where users can save favourite restaurants.
+Fix project filters resetting on back navigation.
 ```
 
 For a code-changing task, compatible agents are instructed to use the pinned repository commands
 behind the scenes:
 
 ```bash
-npx --yes noxroot@0.1.0 start "add a page where users can save favourite restaurants"
+npx --yes noxroot@0.1.0 start "fix project filters resetting on back navigation"
 # your existing coding agent builds the change
 npx --yes noxroot@0.1.0 finish
 ```
@@ -127,74 +131,9 @@ Skills do not prove that code works. The actual tests, type checks, builds, eval
 results do. An incomplete result can be handed off locally, but it cannot become approved or qualify
 for a future automatic merge. Noxroot does not push, merge, publish, or deploy.
 
-## See what the agent gets
-
-This tested example comes from Noxroot's own repository:
-
-```text
-$ noxroot context "improve reviewer decision safety"
-
-NOXROOT  task brief
-
-Outcome
-  improve reviewer decision safety
-
-Confidence  High
-
-Task context
-  6 files · ~3,344 tokens
-  src/adapters/agents.ts
-  src/orchestration/review.ts
-  .noxroot/skills/independent-review/SKILL.md
-  .noxroot/knowledge/INDEX.md
-  AGENTS.md
-  .noxroot/config.yml
-
-Likely owner
-  src/adapters/agents.ts
-
-Likely tests
-  tests/agent-review.test.ts (+2 related)
-
-Checks
-  npm run format:check
-  npm run lint
-  npm run typecheck
-  npm run test
-  npm run build
-
-Excluded
-  20 files left out
-
-Next
-  Build the requested change.
-```
-
-Selection is advisory, not permission to edit. "Do not deploy" remains an exclusion; it never
-activates deployment work.
-
-Completion stays compact:
-
-```text
-Changed
-  3 navigation files
-
-Checked
-  TypeScript       passed
-  Navigation tests passed
-
-Review
-  Not required for this bounded change
-
-Learning
-  No reusable project-knowledge candidate
-
-Next
-  Review the resulting change.
-```
-
-This transcript illustrates the stable information hierarchy; repository-specific commands and
-counts come from the recorded run rather than fixed example data.
+`context "<task>"` is read-only. It does not start a task or run checks. Selection is advisory, not
+permission to edit. "Do not deploy" remains an exclusion; it never activates deployment work. Use
+`start` to record the task baseline and `finish` to check the resulting change.
 
 ## Try the read-only diagnosis
 
