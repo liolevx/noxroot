@@ -4,8 +4,9 @@
 
 `noxroot --help`, `noxroot <command> --help`, and `noxroot --version` are stable discovery surfaces.
 `--root <path>` selects a repository. `--json` writes one machine-readable JSON value to standard
-output; diagnostics remain on standard error. `--no-color` and `NO_COLOR` disable color (current
-output is plain by default).
+output; diagnostics remain on standard error. Interactive output uses color, while piped output is
+plain. `--no-color` and `NO_COLOR` disable color. `--verbose` adds detailed human-readable evidence
+without changing JSON.
 
 Exit codes:
 
@@ -61,9 +62,10 @@ does not broadly rewrite the repository.
 
 ## `context`
 
-`context "task"` returns task interpretation, applicable areas, selected paths and reasons, likely
-source/tests, constraints, approved checks, conflicts, unknowns, exclusions, bytes, and estimated
-tokens. It stores paths and evidence, not copied source files.
+`context "task"` shows the outcome, selected paths, likely source and tests, approved checks, an
+exclusion count, and estimated tokens. `--verbose` adds selection reasons, individual exclusions,
+constraints, conflicts, unknowns, and byte counts. It stores paths and evidence, not copied source
+files.
 
 ## `verify`
 

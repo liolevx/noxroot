@@ -34,7 +34,15 @@ import {
   type GuidedRunRecord,
 } from "./orchestration/guided.js";
 import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
-import { renderContext, renderPreview, renderVerification } from "./output.js";
+import {
+  renderContext,
+  renderInitMark,
+  renderPreview,
+  renderVerification,
+  renderVerificationPlan,
+  renderWelcome,
+  type RenderOptions,
+} from "./output.js";
 import {
   listRunRecords,
   localStateRoot,
@@ -50,7 +58,7 @@ import {
 } from "./verification/index.js";
 
 const DESCRIPTION =
-  "Noxroot gives coding agents focused repository context, runs checks that match each change, and keeps validated project knowledge current.";
+  "Noxroot gives coding agents relevant repository context, checks each change, and proposes validated lessons as reusable project documentation.";
 
 export const EXIT = {
   success: 0,
@@ -65,12 +73,14 @@ interface Io {
   stdout: (value: string) => void;
   stderr: (value: string) => void;
   isTTY: boolean;
+  columns: number;
 }
 
 interface GlobalOptions {
   root: string;
   json?: boolean;
   color?: boolean;
+  verbose?: boolean;
 }
 
 function writeJson(io: Io, value: unknown): void {
@@ -111,6 +121,14 @@ function refuseDisabledModule(
 
 function globals(command: Command): GlobalOptions {
   return command.optsWithGlobals<GlobalOptions>();
+}
+
+function renderOptions(io: Io, options: GlobalOptions): RenderOptions {
+  return {
+    color: io.isTTY && options.color !== false && process.env.NO_COLOR === undefined,
+    verbose: options.verbose ?? false,
+    width: io.columns,
+  };
 }
 
 async function confirm(io: Io, prompt: string, assumed = false): Promise<boolean> {
@@ -335,6 +353,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
     stdout: customIo?.stdout ?? ((value) => process.stdout.write(value)),
     stderr: customIo?.stderr ?? ((value) => process.stderr.write(value)),
     isTTY: customIo?.isTTY ?? Boolean(process.stdin.isTTY && process.stdout.isTTY),
+    columns: customIo?.columns ?? process.stdout.columns ?? 80,
   };
   const program = new Command();
   program
@@ -344,11 +363,22 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .version(VERSION)
     .addOption(new Option("--root <path>", "repository root").default(process.cwd()))
     .option("--json", "emit machine-readable JSON to stdout")
+    .option("--verbose", "show detailed human-readable evidence")
     .option("--no-color", "disable color output")
     .showHelpAfterError()
     .configureOutput({
       writeOut: io.stdout,
       writeErr: io.stderr,
+    })
+    .action((_options: unknown, command: Command) => {
+      const common = globals(command);
+      if (common.json) {
+        writeJson(io, { name: "noxroot", version: VERSION, description: DESCRIPTION });
+      } else if (io.isTTY) {
+        io.stdout(renderWelcome(renderOptions(io, common)));
+      } else {
+        command.outputHelp();
+      }
     });
 
   program
@@ -364,7 +394,16 @@ export function createProgram(customIo?: Partial<Io>): Command {
         if (!modules.length) throw new Error(`Unknown module id: ${options.module}`);
         result = { ...result, modules };
       }
-      emit(io, common.json, result, renderPreview(result, { diff: options.diff ?? false }));
+      emit(
+        io,
+        common.json,
+        result,
+        renderPreview(result, {
+          ...renderOptions(io, common),
+          diff: options.diff ?? false,
+          verbose: common.verbose === true || options.diff === true,
+        }),
+      );
     });
 
   program
@@ -383,7 +422,16 @@ export function createProgram(customIo?: Partial<Io>): Command {
             "Mutating init with --json requires --yes after a separate reviewed preview.",
           );
         }
-        if (!common.json) io.stdout(renderPreview(preview, { diff: !options.dryRun }));
+        if (!common.json) {
+          if (io.isTTY && !options.dryRun) io.stdout(renderInitMark(renderOptions(io, common)));
+          io.stdout(
+            renderPreview(preview, {
+              ...renderOptions(io, common),
+              diff: !options.dryRun,
+              verbose: common.verbose || !options.dryRun,
+            }),
+          );
+        }
         if (options.dryRun) {
           if (common.json) writeJson(io, preview);
           return;
@@ -439,7 +487,13 @@ export function createProgram(customIo?: Partial<Io>): Command {
           );
         }
         if (!common.json)
-          io.stdout(renderPreview(preview, { diff: options.diff || !options.dryRun }));
+          io.stdout(
+            renderPreview(preview, {
+              ...renderOptions(io, common),
+              diff: options.diff || !options.dryRun,
+              verbose: common.verbose || options.diff || !options.dryRun,
+            }),
+          );
         if (options.dryRun) {
           if (common.json) writeJson(io, { preview, applied: { created: [] } });
           return;
@@ -490,7 +544,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .action(async (task: string, _options: unknown, command: Command) => {
       const common = globals(command);
       const result = await buildContext(task, common.root);
-      emit(io, common.json, result, renderContext(result));
+      emit(io, common.json, result, renderContext(result, renderOptions(io, common)));
     });
 
   program
@@ -510,7 +564,10 @@ export function createProgram(customIo?: Partial<Io>): Command {
             io,
             common.json,
             result,
-            `NOXROOT VERIFY PLAN\nChecks planned: ${checks.length}\n${checks.map((check) => `- ${check.executable} ${check.args.join(" ")}`).join("\n")}\n`,
+            renderVerificationPlan(changed, checks, {
+              ...renderOptions(io, common),
+              changedOnly: options.changed === true,
+            }),
           );
           return;
         }
@@ -522,7 +579,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           const results = await executeVerification(common.root, checks, {
             signal: controller.signal,
           });
-          emit(io, common.json, results, renderVerification(results));
+          emit(io, common.json, results, renderVerification(results, renderOptions(io, common)));
           if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
           else if (results.length === 0 || results.some((result) => result.status !== "passed"))
             process.exitCode = EXIT.verification;

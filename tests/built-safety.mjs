@@ -42,7 +42,7 @@ try {
   if (result.status !== 0) {
     throw new Error(`Permission-confined preview failed:\n${result.stderr}\n${result.stdout}`);
   }
-  if (!result.stdout.includes("network requests 0")) {
+  if (!result.stdout.includes("No network requests were made.")) {
     throw new Error("Compiled preview did not report its network guarantee.");
   }
   if (await readFile(marker, "utf8").catch(() => undefined)) {
