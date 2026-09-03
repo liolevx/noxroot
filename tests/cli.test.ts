@@ -34,7 +34,7 @@ async function run(args: string[], options: { isTTY?: boolean; columns?: number 
 
 describe("CLI contracts", () => {
   it("shows the compact Noxroot welcome only at the interactive entry point", async () => {
-    const interactive = await run([], { isTTY: true });
+    const interactive = await run(["--no-color"], { isTTY: true });
     expect(interactive.stdout).toContain("╭─ NOXROOT ◆ 0.1.0");
     expect(interactive.stdout).toContain("Project memory and verification for coding agents.");
     expect(interactive.stdout).toContain(
