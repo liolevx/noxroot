@@ -818,6 +818,9 @@ export async function scanRepository(
       const absolute = path.join(current.absolute, entry.name);
       if (
         entry.name !== ".gitignore" &&
+        // Local root instructions remain authoritative even when not versioned.
+        // Sensitive-path exclusions and symlink checks below still take precedence.
+        !["AGENTS.md", "CLAUDE.md"].includes(relative) &&
         ignoredByGit(relative, entry.isDirectory(), ignorePatterns)
       ) {
         continue;

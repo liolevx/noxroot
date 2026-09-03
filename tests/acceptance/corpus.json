@@ -1,0 +1,148 @@
+[
+  {
+    "repo": "sindresorhus/p-limit",
+    "task": "preserve concurrency limits when clearing pending tasks",
+    "stack": "JavaScript"
+  },
+  {
+    "repo": "sindresorhus/p-queue",
+    "task": "preserve queue concurrency when a task is aborted",
+    "stack": "TypeScript"
+  },
+  {
+    "repo": "sindresorhus/execa",
+    "task": "handle subprocess cancellation without losing stderr",
+    "stack": "JavaScript"
+  },
+  {
+    "repo": "tj/commander.js",
+    "task": "validate required options and display helpful errors",
+    "stack": "JavaScript"
+  },
+  {
+    "repo": "lukeed/kleur",
+    "task": "preserve nested colors when formatting terminal text",
+    "stack": "JavaScript"
+  },
+  {
+    "repo": "fastify/fastify",
+    "task": "validate request schema before invoking a route handler",
+    "stack": "JavaScript"
+  },
+  {
+    "repo": "koajs/koa",
+    "task": "preserve middleware error handling when a response fails",
+    "stack": "JavaScript"
+  },
+  {
+    "repo": "reduxjs/redux",
+    "task": "preserve subscription ordering during dispatch",
+    "stack": "TypeScript"
+  },
+  {
+    "repo": "pmndrs/zustand",
+    "task": "preserve persisted state during hydration",
+    "stack": "React/TypeScript"
+  },
+  {
+    "repo": "TanStack/query",
+    "task": "invalidate query cache after a successful mutation",
+    "stack": "TypeScript monorepo"
+  },
+  {
+    "repo": "pallets/click",
+    "task": "validate command line options and show usage errors",
+    "stack": "Python"
+  },
+  {
+    "repo": "pallets/itsdangerous",
+    "task": "reject expired timestamp signatures",
+    "stack": "Python"
+  },
+  {
+    "repo": "pallets/jinja",
+    "task": "preserve template escaping for undefined values",
+    "stack": "Python"
+  },
+  {
+    "repo": "pydantic/pydantic",
+    "task": "preserve validator errors when parsing nested models",
+    "stack": "Python/Rust"
+  },
+  {
+    "repo": "python-attrs/attrs",
+    "task": "validate default attribute values in generated classes",
+    "stack": "Python"
+  },
+  {
+    "repo": "pytest-dev/pluggy",
+    "task": "preserve hook ordering when a plugin is unregistered",
+    "stack": "Python"
+  },
+  {
+    "repo": "BurntSushi/toml",
+    "task": "decode quoted TOML keys without losing type information",
+    "stack": "Go"
+  },
+  {
+    "repo": "go-chi/chi",
+    "task": "preserve route parameters through nested middleware",
+    "stack": "Go"
+  },
+  {
+    "repo": "rs/zerolog",
+    "task": "preserve structured fields when formatting log events",
+    "stack": "Go"
+  },
+  {
+    "repo": "stretchr/testify",
+    "task": "compare nested values in assertion failure messages",
+    "stack": "Go"
+  },
+  {
+    "repo": "junegunn/fzf",
+    "task": "preserve query selection when reloading results",
+    "stack": "Go/terminal"
+  },
+  {
+    "repo": "serde-rs/json",
+    "task": "report invalid JSON numbers with useful errors",
+    "stack": "Rust"
+  },
+  {
+    "repo": "clap-rs/clap",
+    "task": "validate conflicting command line arguments",
+    "stack": "Rust workspace"
+  },
+  {
+    "repo": "sharkdp/bat",
+    "task": "preserve syntax highlighting when paging a file",
+    "stack": "Rust"
+  },
+  {
+    "repo": "tokio-rs/axum",
+    "task": "preserve request extraction errors in routing",
+    "stack": "Rust workspace"
+  },
+  { "repo": "ruby/rake", "task": "invoke prerequisite tasks in dependency order", "stack": "Ruby" },
+  {
+    "repo": "sinatra/sinatra",
+    "task": "handle route errors without losing response headers",
+    "stack": "Ruby"
+  },
+  {
+    "repo": "slimphp/Slim",
+    "task": "preserve request routing and error middleware behavior",
+    "stack": "PHP"
+  },
+  {
+    "repo": "dorny/paths-filter",
+    "task": "match changed paths against exclusion rules",
+    "stack": "GitHub Action/TypeScript"
+  },
+  {
+    "repo": "neovim/nvim-lspconfig",
+    "task": "find language server root directories correctly",
+    "stack": "Lua"
+  }
+]

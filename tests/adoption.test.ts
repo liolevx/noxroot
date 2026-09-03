@@ -22,6 +22,20 @@ async function root(): Promise<string> {
 }
 
 describe("mature repository adoption", () => {
+  it("does not reuse HTTP route documentation as agent task routes", async () => {
+    const repository = await root();
+    await mkdir(path.join(repository, "docs"));
+    await writeFile(path.join(repository, "package.json"), '{"name":"http-library"}\n');
+    await writeFile(path.join(repository, "AGENTS.md"), "Read [API routes](docs/routes.md).\n");
+    await writeFile(
+      path.join(repository, "docs/routes.md"),
+      "# Routes\nHTTP GET and POST endpoints.\n",
+    );
+    const preview = await previewRepository(repository);
+    expect(preview.capabilities.find((item) => item.id === "task-routes")?.decision).toBe("create");
+    expect(preview.proposedFiles.map((item) => item.path)).toContain(".noxroot/routes.yml");
+  });
+
   it("follows explicit references, recognizes forwarding instructions, and reuses procedures", async () => {
     const repository = await root();
     await mkdir(path.join(repository, "docs"), { recursive: true });

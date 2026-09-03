@@ -6,6 +6,9 @@ uses bounded filesystem APIs, groups repeated monorepo evidence, and never runs 
 LLM. Proposal generation produces complete file contents and unified creation patches.
 Initialization is the only component that applies those proposals.
 
+Root `AGENTS.md` and `CLAUDE.md` remain instruction evidence when Git ignores them. Explicit
+sensitive-path exclusions and symlink protections still apply. Ordinary ignored files stay excluded.
+
 Mature-repository adoption follows explicit repository-relative references from agent instructions.
 It recognizes thin forwarding files, existing Agent Skills, documented verification wrappers, and
 clear repository-development coordinator overlap. Behavioral ownership determines the boundary: a
@@ -16,7 +19,8 @@ name, filename, or implementation language. Proposal decisions are deliberately 
 proven gap, reuse explicit evidence, disable an overlapping capability, or preserve a capability
 that could not be assessed. An existing coordinator keeps lifecycle, review, and learning authority
 while Noxroot may add only non-overlapping context and verification support. Noxroot does not
-interpret arbitrary route schemas or integrate coordinators.
+interpret arbitrary route schemas or integrate coordinators. Task-route reuse requires a
+repository-work context in the reference, not merely API documentation containing the word "routes".
 
 Generated knowledge indexes link at most twelve high-signal documents. Additional documentation
 stays in its original location and remains available through repository instructions and task
@@ -62,8 +66,10 @@ semantic modules are deferred.
 Controlled learning consumes deterministic verification evidence or already parsed structured
 reviewer candidates. Deterministic signatures deduplicate Noxroot-owned knowledge; first creation
 also updates the index. Every proposed entry names its confirmation date and source task. Per-file
-and total corpus bounds prevent accumulated Markdown from silently consuming future context; a full
-destination requires deliberate consolidation before another write. Canonical
+and total corpus bounds prevent accumulated Markdown from silently consuming future context.
+Learning writes are capped at 1,000,000 bytes across Markdown files, including nested files and
+index growth. The limit is rechecked when a proposal is applied. Symbolic-link destinations are
+refused. A full destination requires deliberate consolidation before another write. Canonical
 `.noxroot/skills/*/SKILL.md` files are short, standards-compatible procedures selected through
 ordinary routing, not a new skill runtime or vendor-specific tree.
 
