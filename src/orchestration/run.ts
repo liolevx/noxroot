@@ -1,5 +1,6 @@
 import type { AgentAdapter, AgentResult } from "../adapters/agents.js";
 import type { ContextPackage, VerificationResult } from "../model.js";
+import { cliCommand } from "../invocation.js";
 import { assessReviewNeed } from "./review.js";
 
 export interface RunBudgets {
@@ -92,7 +93,7 @@ function handoff(record: Omit<RunRecord, "handoff">): string {
     "",
     "LEARNING PROPOSALS",
     record.verificationGaps.length
-      ? "Review the verification gaps with noxroot learn."
+      ? `Review the verification gaps with ${cliCommand("learn")}.`
       : "No durable learning identified.",
   ].join("\n");
 }

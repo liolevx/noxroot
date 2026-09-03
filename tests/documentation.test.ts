@@ -12,19 +12,20 @@ describe("documentation examples", () => {
     expect(readme.startsWith('<p align="center">\n  <img src="docs/assets/noxroot-logo.svg"')).toBe(
       true,
     );
-    expect(readme).toContain(
-      "Focused repository context, verification, and durable project memory for the coding agent you",
-    );
+    expect(readme).toContain("Project memory and verification for coding agents.");
+    expect(readme).toContain("A CLI for task context, project checks, and reusable documentation.");
+    expect(readme).toContain("Then keep talking to your coding agent normally:");
+    expect(readme).toContain("actions/workflows/ci.yml/badge.svg?branch=main");
+    expect(readme).toContain("license-Apache--2.0-blue.svg");
     const output = renderPreview(await previewRepository(path.join(fixtures, "typescript")));
     for (const line of [
-      "NOXROOT PREVIEW",
-      "Detected: Node.js project, TypeScript (npm)",
-      "Approved check candidates found: lint, typecheck, test, build",
-      "Proposed (7): create 7",
-      "Unknown: Continuous integration",
-      "Trust: files changed 0; repository commands 0; agent calls 0; network requests 0.",
-      "No repository files changed. No project command, agent, or network request ran.",
-      "Next: noxroot preview --diff",
+      "NOXROOT  preview",
+      "Node.js · TypeScript · npm",
+      "Mode\n  Full",
+      "Project knowledge",
+      "Product and UX guidance",
+      "No files changed. No project commands or agents ran. No network requests were made.",
+      "npx --yes noxroot@0.1.0 preview --diff",
     ]) {
       expect(output).toContain(line);
       expect(readme).toContain(line);
@@ -34,15 +35,14 @@ describe("documentation examples", () => {
   it("keeps the README context proof synchronized with the dogfood route", async () => {
     const readme = await readFile(path.resolve("README.md"), "utf8");
     const context = await buildContext("improve reviewer decision safety", path.resolve("."));
-    const checks = context.requiredVerification.map((item) => item.id).join(", ");
     const relatedTests =
       context.likelyTests.length > 1 ? ` (+${context.likelyTests.length - 1} related)` : "";
     for (const line of [
-      `Selected ${context.selected.length} of ${context.repositoryFileCount} repository files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
-      `Likely owner: ${context.likelyOwningSource[0]}`,
-      `Likely tests: ${context.likelyTests[0]}${relatedTests}`,
-      `Approved checks: ${checks}`,
-      `Deliberately excluded: ${context.repositoryFileCount - context.selected.length} unrelated files`,
+      `${context.selected.length} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
+      context.likelyOwningSource[0]!,
+      `${context.likelyTests[0]}${relatedTests}`,
+      ...context.requiredVerification.map((item) => [item.executable, ...item.args].join(" ")),
+      `${context.excluded.length} files left out`,
     ]) {
       expect(readme).toContain(line);
     }
@@ -104,7 +104,8 @@ describe("documentation examples", () => {
     const workflow = await readFile(path.resolve("docs/assets/noxroot-workflow.svg"), "utf8");
     expect(workflow).toContain('viewBox="0 0 1100 1040"');
     expect(workflow).toContain("PROJECT MEMORY");
-    expect(workflow).toContain("TASK CONTEXT");
+    expect(workflow).toContain("TASK BRIEF");
+    expect(workflow).toContain("Noxroot selects what matters for this task");
     expect(workflow).toContain("YOUR CODING AGENT");
     expect(workflow).toContain("VERIFICATION");
     expect(workflow).toContain("LEARNING LOOP");

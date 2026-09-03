@@ -230,12 +230,14 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
       current: false,
     });
     expect(second.continuation.nextAction).toBe(
-      "Run noxroot finish when the change is ready to check.",
+      "Run npx --yes noxroot@0.1.0 finish when the change is ready to check.",
     );
     const brief = await cli(["start", "change the value safely", "--root", root]);
     expect(brief.stdout).toContain("Changed: 1 file since baseline (src/value.ts)");
     expect(brief.stdout).toContain("Verification: Not run for the current diff.");
-    expect(brief.stdout).toContain("Next: Run noxroot finish when the change is ready to check.");
+    expect(brief.stdout).toContain(
+      "Next: Run npx --yes noxroot@0.1.0 finish when the change is ready to check.",
+    );
     const records = await (
       await import("node:fs/promises")
     ).readdir(path.join(root, ".git", "noxroot", "runs"));
@@ -304,7 +306,7 @@ commands:
     };
     expect(stale.continuation.verification).toMatchObject({ status: "stale", current: false });
     expect(stale.continuation.nextAction).toBe(
-      "Run noxroot finish when the change is ready to check.",
+      "Run npx --yes noxroot@0.1.0 finish when the change is ready to check.",
     );
   });
 
@@ -518,7 +520,7 @@ commands:
       "missing-check: unavailable | definitely-not-installed-noxroot-check --verify | cwd . | exit not started",
     );
     expect(result.stdout).toContain("Make the approved check runnable");
-    expect(result.stdout).toContain("rerun noxroot finish --task");
+    expect(result.stdout).toContain("rerun npx --yes noxroot@0.1.0 finish --task");
     expect(result.stderr).toContain("Inspecting changed files and running affected checks");
     expect(result.stderr).toContain("Assessing reusable learning");
     expect(result.stderr).toContain("Preparing handoff");

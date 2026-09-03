@@ -79,6 +79,11 @@ evidence and enforces the configured byte budget.
 `browser` is optional and must reference an already confirmed verification command; preview never
 installs browser tooling or starts an application.
 
+When an existing repository coordinator owns code-changing work, generated companion configuration
+omits `orchestration` and `learning`. The CLI then refuses Noxroot lifecycle commands instead of
+creating a second authority. A documented repository verification wrapper can be reused directly
+without copying its policy into `.noxroot/verification.yml`.
+
 For JavaScript repositories, candidate commands use an authoritative `packageManager` declaration,
 then an unambiguous lockfile, then consistent CI evidence. npm, pnpm, Yarn, and Bun are supported.
 Missing or conflicting evidence produces no guessed command and preview never installs a manager or

@@ -20,6 +20,7 @@ const STOP_WORDS = new Set([
   "and",
   "change",
   "changing",
+  "can",
   "component",
   "components",
   "do",
@@ -35,6 +36,8 @@ const STOP_WORDS = new Set([
   "modifying",
   "new",
   "not",
+  "page",
+  "pages",
   "pattern",
   "patterns",
   "reuse",
@@ -44,6 +47,8 @@ const STOP_WORDS = new Set([
   "the",
   "this",
   "top",
+  "user",
+  "users",
   "with",
   "without",
 ]);
@@ -285,8 +290,9 @@ function addAdjacency(candidates: RankedCandidate[]): void {
 function approvedCommands(
   config: Awaited<ReturnType<typeof loadVerification>>,
   relevantPaths: string[],
+  reused: CandidateCommand[] = [],
 ): CandidateCommand[] {
-  return (config?.commands ?? [])
+  return (config?.commands ?? reused)
     .filter(
       (command) =>
         relevantPaths.length === 0 ||
@@ -299,7 +305,7 @@ function approvedCommands(
       executable: command.executable,
       args: command.args,
       cwd: command.cwd,
-      source: ".noxroot/verification.yml",
+      source: "source" in command ? command.source : ".noxroot/verification.yml",
       appliesTo: command.appliesTo,
     }));
 }
@@ -492,7 +498,9 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     .slice(0, 5)
     .map((item) => item.file);
   const relevantPaths = [...likelyOwningSource, ...likelyTests];
-  const requiredVerification = approvedCommands(verification, relevantPaths);
+  const reusedVerification =
+    !verification && config?.modules.includes("verification") ? adoption.verificationWrappers : [];
+  const requiredVerification = approvedCommands(verification, relevantPaths, reusedVerification);
   const conflicts = profile.evidence
     .filter((item) => item.status === "conflicting")
     .map((item) => item.claim);

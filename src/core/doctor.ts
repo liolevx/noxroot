@@ -2,7 +2,9 @@ import { access, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { ConfigurationError, loadConfig, loadRoutes, loadVerification } from "../config/load.js";
 import type { NoxrootConfig, RoutesConfig, VerificationConfig } from "../config/schema.js";
+import { inspectRepositoryAdoption } from "../detection/adoption.js";
 import { scanRepository } from "../detection/scan.js";
+import { cliCommand } from "../invocation.js";
 import { isWithin } from "../security/paths.js";
 import { localStateRoot } from "../state/local.js";
 
@@ -79,20 +81,21 @@ export async function doctorRepository(root = process.cwd()): Promise<DoctorResu
           "error",
           "invalid-configuration",
           error.message,
-          "Correct the reported path and run noxroot doctor again.",
+          `Correct the reported path and run ${cliCommand("doctor")} again.`,
         ),
       );
     } else throw error;
   }
 
   const profile = await scanRepository(root, { sensitivePaths: config?.sensitivePaths ?? [] });
+  const adoption = await inspectRepositoryAdoption(profile);
   if (!config) {
     findings.push(
       finding(
         "warning",
         "not-initialized",
         "No valid .noxroot/config.yml was found.",
-        "Run noxroot preview, inspect the complete patch, then run noxroot init.",
+        `Run ${cliCommand("preview --diff")}, inspect the complete patch, then run ${cliCommand("init")}.`,
       ),
     );
   } else {
@@ -116,7 +119,7 @@ export async function doctorRepository(root = process.cwd()): Promise<DoctorResu
             "warning",
             "missing-entrypoint",
             `Configured agent entrypoint is missing: ${entrypoint}`,
-            "Run noxroot sync --dry-run or remove the stale declaration.",
+            `Run ${cliCommand("sync --dry-run")} or remove the stale declaration.`,
           ),
         );
       }
@@ -133,13 +136,17 @@ export async function doctorRepository(root = process.cwd()): Promise<DoctorResu
         );
       }
     }
-    if (config.modules.includes("verification") && !verification) {
+    if (
+      config.modules.includes("verification") &&
+      !verification &&
+      adoption.verificationWrappers.length === 0
+    ) {
       findings.push(
         finding(
           "warning",
           "verification-module-drift",
           "Verification is enabled but .noxroot/verification.yml is missing.",
-          "Run noxroot sync --dry-run and confirm only authoritative commands.",
+          `Run ${cliCommand("sync --dry-run")} and confirm only authoritative commands.`,
         ),
       );
     }

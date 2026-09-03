@@ -4,8 +4,9 @@
 
 `noxroot --help`, `noxroot <command> --help`, and `noxroot --version` are stable discovery surfaces.
 `--root <path>` selects a repository. `--json` writes one machine-readable JSON value to standard
-output; diagnostics remain on standard error. `--no-color` and `NO_COLOR` disable color (current
-output is plain by default).
+output; diagnostics remain on standard error. Interactive output uses color, while piped output is
+plain. `--no-color` and `NO_COLOR` disable color. `--verbose` adds detailed human-readable evidence
+without changing JSON.
 
 Exit codes:
 
@@ -28,7 +29,8 @@ discovered-but-unrun commands, proposed context estimate, and zero-side-effect c
 
 Preview classifies relevant setup capabilities as `create`, `reuse`, `conflict`, or `not-assessed`.
 `create` requires evidence that the capability is absent. `reuse` names the existing repository
-source. A repository-development orchestration conflict refuses initialization. When evidence is
+source. A repository-development orchestration conflict disables Noxroot's lifecycle and learning
+capabilities while permitting non-overlapping context and verification setup. When evidence is
 incomplete, `not-assessed` preserves that capability unchanged and explains what could not be
 established.
 
@@ -39,8 +41,13 @@ writes each file through a same-directory temporary file, and rolls back files i
 operation fails. Existing files are never overwritten.
 
 Explicitly referenced project knowledge, task routes, Agent Skills, and documented verification
-wrappers are reused rather than copied. Noxroot does not automatically integrate with or replace an
-existing repository-development coordinator.
+wrappers are reused rather than copied. Noxroot does not integrate with or replace an existing
+repository-development coordinator. In companion mode, `start`, `run`, `finish`, and `learn` refuse
+instead of creating a second lifecycle.
+
+Generated instructions use a version-pinned `npx --yes noxroot@<version>` invocation. This needs no
+global or project installation; npm retrieves the package through its normal cache. Running sync
+with a newer Noxroot release is the explicit upgrade path for the managed instruction block.
 
 `init --select` interactively accepts explicit module ids. `sync --dry-run` re-diagnoses an
 initialized repository; add `--diff` for patches. Mutating init and sync always show exact patches
@@ -55,9 +62,10 @@ does not broadly rewrite the repository.
 
 ## `context`
 
-`context "task"` returns task interpretation, applicable areas, selected paths and reasons, likely
-source/tests, constraints, approved checks, conflicts, unknowns, exclusions, bytes, and estimated
-tokens. It stores paths and evidence, not copied source files.
+`context "task"` shows the outcome, selected paths, likely source and tests, approved checks, an
+exclusion count, and estimated tokens. `--verbose` adds selection reasons, individual exclusions,
+constraints, conflicts, unknowns, and byte counts. It stores paths and evidence, not copied source
+files.
 
 ## `verify`
 

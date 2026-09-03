@@ -1,8 +1,13 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { parse } from "yaml";
+import { buildContext } from "../src/core/context.js";
+import { doctorRepository } from "../src/core/doctor.js";
 import { applyProposals } from "../src/core/init.js";
 import { previewRepository } from "../src/core/preview.js";
+import { inspectRepositoryAdoption } from "../src/detection/adoption.js";
+import { planVerification } from "../src/verification/index.js";
 import { fixtureCopy, hashTree, temporaryDirectory } from "./helpers.js";
 
 const cleanup: Array<() => Promise<void>> = [];
@@ -77,9 +82,24 @@ describe("mature repository adoption", () => {
     expect(preview.proposedFiles.map((item) => item.path)).not.toContain(
       ".noxroot/skills/verify-change/SKILL.md",
     );
+    await applyProposals(preview);
+    expect(await planVerification(repository)).toEqual([
+      expect.objectContaining({
+        executable: "project-check",
+        args: ["--changed"],
+        cwd: ".",
+      }),
+    ]);
+    const context = await buildContext("change repository quality checks", repository);
+    expect(context.requiredVerification).toEqual([
+      expect.objectContaining({ executable: "project-check", args: ["--changed"] }),
+    ]);
+    expect((await doctorRepository(repository)).findings).not.toContainEqual(
+      expect.objectContaining({ code: "verification-module-drift" }),
+    );
   });
 
-  it("refuses initialization when an existing tool owns repository-development orchestration", async () => {
+  it("keeps an existing repository coordinator authoritative while adding only companion capabilities", async () => {
     const repository = await root();
     await mkdir(path.join(repository, "tools"), { recursive: true });
     await writeFile(
@@ -108,13 +128,25 @@ describe("mature repository adoption", () => {
     const before = await hashTree(repository);
     const preview = await previewRepository(repository);
 
-    expect(preview.initializationAllowed).toBe(false);
+    expect(preview.initializationAllowed).toBe(true);
     const orchestration = preview.capabilities.find((item) => item.id === "task-orchestration");
     expect(orchestration).toMatchObject({ decision: "conflict" });
     expect(orchestration?.evidence.some((item) => item.includes("repo-flow"))).toBe(true);
-    expect(preview.proposedFiles).toEqual([]);
-    await expect(applyProposals(preview)).rejects.toThrow("initialization is refused");
-    expect(await hashTree(repository)).toBe(before);
+    expect(preview.proposedFiles.map((item) => item.path)).not.toContain(
+      ".noxroot/skills/independent-review/SKILL.md",
+    );
+
+    await applyProposals(preview);
+    const config = parse(
+      await readFile(path.join(repository, ".noxroot", "config.yml"), "utf8"),
+    ) as { modules: string[] };
+    expect(config.modules).not.toContain("orchestration");
+    expect(config.modules).not.toContain("learning");
+    const instructions = await readFile(path.join(repository, "AGENTS.md"), "utf8");
+    expect(instructions).toContain("existing repository coordinator remains authoritative");
+    expect(instructions).toContain('npx --yes noxroot@0.1.0 context "<task>"');
+    expect(instructions).not.toContain("noxroot@0.1.0 start");
+    expect(await hashTree(repository)).not.toBe(before);
   });
 
   it("keeps an adjacent coordination ledger compatible without reusing task orchestration", async () => {
@@ -141,12 +173,14 @@ describe("mature repository adoption", () => {
     const preview = await previewRepository(fixture.root);
     const orchestration = preview.capabilities.find((item) => item.id === "task-orchestration");
 
-    expect(preview.initializationAllowed).toBe(false);
+    expect(preview.initializationAllowed).toBe(true);
     expect(orchestration).toMatchObject({ decision: "conflict" });
     expect(orchestration?.evidence).toContain(
       "docs/automation.md (AGENTS.md; Git/worktree control, code-change execution, verification, independent review)",
     );
-    expect(preview.proposedFiles).toEqual([]);
+    expect(preview.proposedFiles.map((item) => item.path)).not.toContain(
+      ".noxroot/skills/independent-review/SKILL.md",
+    );
   });
 
   it("preserves an uncertain capability instead of generating a parallel system", async () => {
@@ -183,6 +217,47 @@ describe("mature repository adoption", () => {
     expect(preview.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
       decision: "create",
     });
+  });
+
+  it("reuses clear repository-native review skills instead of creating Noxroot copies", async () => {
+    const repository = await root();
+    await mkdir(path.join(repository, ".agents", "skills", "change-review"), {
+      recursive: true,
+    });
+    await mkdir(path.join(repository, ".agents", "skills", "product-review"), {
+      recursive: true,
+    });
+    await writeFile(
+      path.join(repository, ".agents", "skills", "change-review", "SKILL.md"),
+      "---\nname: change-review\ndescription: Independently review a repository diff for correctness and regression risk.\n---\n",
+    );
+    await writeFile(
+      path.join(repository, ".agents", "skills", "product-review", "SKILL.md"),
+      "---\nname: product-review\ndescription: Review user-facing product and UX changes for usability.\n---\n",
+    );
+    await writeFile(
+      path.join(repository, "package.json"),
+      JSON.stringify({
+        name: "frontend",
+        packageManager: "npm@11.6.2",
+        scripts: { test: "vitest run" },
+        dependencies: { next: "16.0.0", react: "19.0.0" },
+      }),
+    );
+
+    const preview = await previewRepository(repository);
+    const adoption = await inspectRepositoryAdoption(preview.profile);
+    const proposed = preview.proposedFiles.map((item) => item.path);
+    expect(adoption.reviewSkillPaths).toEqual([".agents/skills/change-review/SKILL.md"]);
+    expect(adoption.productUxSkillPaths).toEqual([".agents/skills/product-review/SKILL.md"]);
+    expect(proposed).not.toContain(".noxroot/skills/independent-review/SKILL.md");
+    expect(proposed).not.toContain(".noxroot/skills/product-ux-review/SKILL.md");
+    expect(
+      preview.proposedFiles.find((item) => item.path === ".noxroot/routes.yml")?.content,
+    ).toContain(".agents/skills/change-review/SKILL.md");
+    expect(
+      preview.proposedFiles.find((item) => item.path === ".noxroot/routes.yml")?.content,
+    ).toContain(".agents/skills/product-review/SKILL.md");
   });
 
   it("does not treat extra prohibitions as a thin forwarding file", async () => {

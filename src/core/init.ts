@@ -31,7 +31,7 @@ function writableProposal(
 export async function applyProposals(preview: PreviewResult): Promise<ApplyResult> {
   if (!preview.initializationAllowed) {
     throw new Error(
-      "Initialization stopped because initialization is refused by the reviewed preview.",
+      "Initialization stopped because the reviewed preview reported an unresolved instruction conflict.",
     );
   }
   const writable = preview.proposedFiles.filter(writableProposal);
