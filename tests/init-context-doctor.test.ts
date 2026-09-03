@@ -177,6 +177,54 @@ describe("initialization, sync safety, context, and doctor", () => {
     expect(await readFile(path.join(fixture.root, "AGENTS.md"), "utf8")).toBe(before);
   });
 
+  it("upgrades an older knowledge-only entrypoint with the managed lifecycle block", async () => {
+    const root = await temporaryDirectory("noxroot-legacy-entrypoint-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
+    await mkdir(path.join(root, "src"));
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      "Start with [.noxroot/knowledge/INDEX.md](.noxroot/knowledge/INDEX.md).\n",
+    );
+    await writeFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "# Knowledge\n");
+    await writeFile(path.join(root, "src", "index.ts"), "export {};\n");
+    await writeFile(
+      path.join(root, "package.json"),
+      JSON.stringify({ scripts: { test: "node --test" } }),
+    );
+
+    const preview = await previewRepository(root);
+    const agents = preview.proposedFiles.find((item) => item.path === "AGENTS.md");
+
+    expect(agents).toMatchObject({ action: "patch" });
+    expect(agents?.content).toContain("<!-- noxroot:start -->");
+    expect(agents?.content).toContain('noxroot@0.1.0 start "<task>"');
+    expect(agents?.content).toContain("noxroot@0.1.0 finish");
+  });
+
+  it("preserves custom instructions that already provide an equivalent lifecycle", async () => {
+    const root = await temporaryDirectory("noxroot-equivalent-lifecycle-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
+    await mkdir(path.join(root, "src"));
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      [
+        "Read [.noxroot/knowledge/INDEX.md](.noxroot/knowledge/INDEX.md).",
+        'Before edits run `npx --yes noxroot@0.1.0 start "<task>"`.',
+        "Afterward run `npx --yes noxroot@0.1.0 finish`.",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "# Knowledge\n");
+    await writeFile(path.join(root, "src", "index.ts"), "export {};\n");
+    await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
+
+    const preview = await previewRepository(root);
+
+    expect(preview.proposedFiles.find((item) => item.path === "AGENTS.md")).toBeUndefined();
+  });
+
   it("reports conflicting architecture documents instead of choosing one silently", async () => {
     const fixture = await fixtureCopy("conflicting-docs");
     cleanup.push(fixture.cleanup);

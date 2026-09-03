@@ -405,7 +405,14 @@ Active run state, application runtime sessions, application memory, user data, a
 function integrateAgents(source: string, block: string): ProposedFile {
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
   const managedBlock = block.replaceAll("\n", newline);
-  if (source.includes(".noxroot/knowledge/INDEX.md") && !source.includes(MANAGED_START)) {
+  const equivalentLifecycle = ["start", "finish"].every((command) =>
+    new RegExp(`\\bnoxroot(?:@[^\\s\`]+)?\\s+${command}\\b`, "i").test(source),
+  );
+  if (
+    source.includes(".noxroot/knowledge/INDEX.md") &&
+    equivalentLifecycle &&
+    !source.includes(MANAGED_START)
+  ) {
     return reference("AGENTS.md", "Reuse the existing equivalent Noxroot knowledge entrypoint.");
   }
   const start = source.indexOf(MANAGED_START);

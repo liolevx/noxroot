@@ -142,14 +142,13 @@ Outcome
 Confidence  High
 
 Task context
-  7 files · ~3,980 tokens
+  6 files · ~3,344 tokens
   src/adapters/agents.ts
   src/orchestration/review.ts
   .noxroot/skills/independent-review/SKILL.md
   .noxroot/knowledge/INDEX.md
   AGENTS.md
   .noxroot/config.yml
-  tests/agent-review.test.ts
 
 Likely owner
   src/adapters/agents.ts
