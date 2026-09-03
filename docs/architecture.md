@@ -10,9 +10,11 @@ Mature-repository adoption follows explicit repository-relative references from 
 It recognizes thin forwarding files, existing Agent Skills, documented verification wrappers, and
 clear repository-development coordinator overlap. Behavioral ownership determines the boundary: a
 coordination ledger, session journal, or issue tracker does not satisfy Noxroot task orchestration.
-Proposal decisions are deliberately small: create a proven gap, reuse explicit evidence, refuse a
-conflict, or preserve a capability that could not be assessed. Noxroot does not interpret arbitrary
-route schemas or integrate coordinators.
+Proposal decisions are deliberately small: create a proven gap, reuse explicit evidence, disable an
+overlapping capability, or preserve a capability that could not be assessed. An existing coordinator
+keeps lifecycle, review, and learning authority while Noxroot may add only non-overlapping context
+and verification support. Noxroot does not interpret arbitrary route schemas or integrate
+coordinators.
 
 Verification configuration distinguishes candidate discovery from executable trust. The process
 adapter accepts an executable and argument array, validates the working directory, uses
