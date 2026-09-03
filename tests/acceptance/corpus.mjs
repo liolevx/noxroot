@@ -17,6 +17,7 @@ import path from "node:path";
 const source = path.resolve(import.meta.dirname, "../..");
 const manifest = JSON.parse(await readFile(path.join(import.meta.dirname, "corpus.json"), "utf8"));
 const destination = process.argv[2];
+const previous = process.argv[3] ? JSON.parse(await readFile(process.argv[3], "utf8")) : undefined;
 if (!destination || process.platform === "win32")
   throw new Error("Run in WSL/Linux and supply an output JSON path.");
 const scratch = await mkdtemp(path.join(tmpdir(), "noxroot-thirty-"));
@@ -142,6 +143,11 @@ try {
         `https://github.com/${spec.repo}.git`,
         root,
       ]);
+      const pinned = previous?.results.find((item) => item.repo === spec.repo)?.revision;
+      if (pinned) {
+        git(["fetch", "--depth", "1", "origin", pinned], root);
+        git(["checkout", "--detach", pinned], root);
+      }
       row.revision = git(["rev-parse", "HEAD"], root).trim();
       const before = await tree(root);
       const first = invoke(root, ["preview"]);
@@ -158,6 +164,7 @@ try {
       row.files = preview.profile.files.length;
       row.limits = preview.profile.stats.incompleteReasons;
       row.initializationAllowed = preview.initializationAllowed;
+      row.conflicts = preview.conflicts;
       row.capabilities = preview.capabilities;
       row.proposals = preview.proposedFiles.map(({ path, action }) => ({ path, action }));
       row.growth = preview.setupImpact;
@@ -200,7 +207,12 @@ try {
         );
         const secondInit = invoke(root, ["init", "--yes"]);
         row.idempotent = secondInit.code === 0 && same(after, await tree(root));
-        demand(row.idempotent, "second init changed setup");
+        demand(
+          row.idempotent,
+          secondInit.code !== 0
+            ? `second init failed: ${secondInit.stderr.slice(0, 500)}`
+            : "second init changed setup",
+        );
         const sync = invoke(root, ["sync", "--dry-run"]);
         row.syncProposals = sync.value?.preview?.proposedFiles?.length ?? null;
         row.init = "applied-only-proposed-files";
