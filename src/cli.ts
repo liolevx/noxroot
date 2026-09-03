@@ -44,6 +44,7 @@ import {
   type RenderOptions,
 } from "./output.js";
 import {
+  enforceRunRetention,
   listRunRecords,
   localStateRoot,
   readRunRecord,
@@ -846,11 +847,15 @@ export function createProgram(customIo?: Partial<Io>): Command {
             },
           );
           const recordPath = await writeRunRecord(root, id, record);
+          const retention = await enforceRunRetention(
+            root,
+            config?.retention ?? { evidenceDays: 30, maximumRuns: 100 },
+          );
           progress(io, "Preparing handoff");
           emit(
             io,
             common.json,
-            { plan, context, record, recordPath },
+            { plan, context, record, recordPath, retention },
             `${record.handoff}\n\nEvidence: ${recordPath}\n`,
           );
           if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
@@ -898,6 +903,10 @@ export function createProgram(customIo?: Partial<Io>): Command {
         const recordPath = await replaceRunRecord(root, taskId, finished);
         progress(io, "Assessing reusable learning");
         const learning = await proposeLearnings(root, finished);
+        const retention = await enforceRunRetention(
+          root,
+          config?.retention ?? { evidenceDays: 30, maximumRuns: 100 },
+        );
         const completion = {
           documentation: {
             status: "not-assessed" as const,
@@ -913,7 +922,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         emit(
           io,
           common.json,
-          { record: finished, recordPath, completion, learning },
+          { record: finished, recordPath, completion, learning, retention },
           `${finished.handoff}\n\nDocumentation\n  Not assessed automatically; no deterministic documentation signal was produced.\n\nLearning\n  ${learning.proposals.length ? `${learning.proposals.length} reusable proposal(s) available; inspect with ${cliCommand(`learn --task ${taskId}`)}.` : "No reusable project-knowledge candidate identified."}\n\nLocal record: ${recordPath}\n`,
         );
         if (controller.signal.aborted) process.exitCode = EXIT.interrupted;

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
-import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 async function pathType(candidate: string): Promise<"file" | "directory" | undefined> {
@@ -90,4 +90,82 @@ export async function listRunRecords<T>(root: string): Promise<T[]> {
     }
   }
   return records;
+}
+
+export interface RunRetentionResult {
+  removed: string[];
+  retained: number;
+  protected: number;
+}
+
+interface RetentionRecord {
+  id?: unknown;
+  status?: unknown;
+  startedAt?: unknown;
+  finishedAt?: unknown;
+}
+
+const TERMINAL_RUN_STATUSES = new Set(["approved", "completed"]);
+
+function recordTime(record: RetentionRecord): number {
+  const value =
+    typeof record.finishedAt === "string"
+      ? record.finishedAt
+      : typeof record.startedAt === "string"
+        ? record.startedAt
+        : undefined;
+  const timestamp = value ? Date.parse(value) : Number.NaN;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+export async function enforceRunRetention(
+  root: string,
+  policy: { evidenceDays: number; maximumRuns: number },
+  now = Date.now(),
+): Promise<RunRetentionResult> {
+  const directory = path.join(await localStateRoot(root), "runs");
+  let names: string[];
+  try {
+    names = (await readdir(directory)).filter((name) => /^[a-z0-9-]+\.json$/i.test(name)).sort();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return { removed: [], retained: 0, protected: 0 };
+    }
+    throw error;
+  }
+
+  const removable: Array<{ name: string; timestamp: number }> = [];
+  let protectedCount = 0;
+  for (const name of names) {
+    try {
+      const record = JSON.parse(await readFile(path.join(directory, name), "utf8")) as RetentionRecord;
+      if (typeof record.status === "string" && TERMINAL_RUN_STATUSES.has(record.status)) {
+        removable.push({ name, timestamp: recordTime(record) });
+      } else {
+        protectedCount += 1;
+      }
+    } catch {
+      protectedCount += 1;
+    }
+  }
+
+  removable.sort(
+    (left, right) => right.timestamp - left.timestamp || left.name.localeCompare(right.name),
+  );
+  const cutoff = now - policy.evidenceDays * 24 * 60 * 60 * 1000;
+  const capacity = Math.max(0, policy.maximumRuns - protectedCount);
+  const keep = new Set(
+    removable
+      .filter((item) => item.timestamp >= cutoff)
+      .slice(0, capacity)
+      .map((item) => item.name),
+  );
+  const removed = removable.filter((item) => !keep.has(item.name)).map((item) => item.name);
+  for (const name of removed) await unlink(path.join(directory, name));
+
+  return {
+    removed: removed.map((name) => name.replace(/\.json$/i, "")),
+    retained: names.length - removed.length,
+    protected: protectedCount,
+  };
 }
