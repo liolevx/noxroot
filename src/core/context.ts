@@ -70,10 +70,11 @@ const TOKEN_ALIASES: Record<string, string> = {
 };
 
 const SOURCE_EXTENSION = /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php)$/;
-const TEST_PATH = /(?:^|\/)(?:tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\./;
+const TEST_PATH =
+  /(?:^|\/)(?:__tests__|tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\.|(?:^|\/)(?:test_[^/]+|[^/]+_(?:test|spec))\.(?:go|py|rb)$/;
 const DOCUMENT_PATH = /(?:^|\/)(?:docs?|adr|adrs)(?:\/|$)|\.(?:md|mdx)$/;
 const NON_AUTHORITATIVE_PATH =
-  /(?:^|\/)(?:fixtures?|snapshots?|examples?|generated|vendor|cassettes?|recordings?|testdata|canary|payloads?)(?:\/|$)/i;
+  /(?:^|\/)(?:expected|fixtures?|golden|snapshots?|examples?|generated|vendor|cassettes?|recordings?|testdata|canary|payloads?)(?:\/|$)/i;
 
 type Category = "entrypoint" | "manifest" | "source" | "test" | "document" | "other";
 
@@ -367,7 +368,9 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       "canary",
       "cassette",
       "example",
+      "expected",
       "fixture",
+      "golden",
       "payload",
       "recording",
       "sample",

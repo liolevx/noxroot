@@ -187,12 +187,36 @@ describe("bounded relevance routing", () => {
     }
   });
 
+  it("recognizes language-native test filenames outside a test directory", async () => {
+    const root = await temporaryDirectory("noxroot-context-native-tests-");
+    try {
+      await mkdir(path.join(root, "binding"), { recursive: true });
+      await writeFile(path.join(root, "go.mod"), "module example.test/sample\n");
+      await writeFile(
+        path.join(root, "binding", "multipart_form_mapping.go"),
+        "package binding\nfunc cleanupMultipart() {}\n",
+      );
+      await writeFile(
+        path.join(root, "binding", "multipart_form_mapping_test.go"),
+        "package binding\nfunc TestCleanupMultipart() {}\n",
+      );
+
+      const context = await buildContext("fix multipart form cleanup", root);
+
+      expect(context.likelyOwningSource).toContain("binding/multipart_form_mapping.go");
+      expect(context.likelyTests).toContain("binding/multipart_form_mapping_test.go");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("keeps generated recordings and payload artifacts out of focused context", async () => {
     const root = await temporaryDirectory("noxroot-context-artifacts-");
     try {
       await mkdir(path.join(root, "src"), { recursive: true });
       await mkdir(path.join(root, "tests", "cassettes"), { recursive: true });
       await mkdir(path.join(root, "tests", "canary", "payloads"), { recursive: true });
+      await mkdir(path.join(root, "tests", "golden"), { recursive: true });
       await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
       await writeFile(path.join(root, "src", "retry.ts"), "export function retry() {}\n");
       await writeFile(path.join(root, "tests", "retry.test.ts"), "// retry behavior\n");
@@ -205,6 +229,7 @@ describe("bounded relevance routing", () => {
         path.join(root, "tests", "canary", "retry-findings.md"),
         "# Retry canary findings\n\nRetry behavior notes.\n",
       );
+      await writeFile(path.join(root, "tests", "golden", "retry-output.md"), "retry output\n");
 
       const context = await buildContext("improve retry behavior", root);
       const selected = context.selected.map((item) => item.path);
@@ -213,6 +238,7 @@ describe("bounded relevance routing", () => {
       expect(selected).not.toContain("tests/cassettes/retry.yaml");
       expect(selected).not.toContain("tests/canary/payloads/retry.json");
       expect(selected).not.toContain("tests/canary/retry-findings.md");
+      expect(selected).not.toContain("tests/golden/retry-output.md");
 
       const explicit = await buildContext("update the retry canary findings", root);
       expect(explicit.selected.map((item) => item.path)).toContain(
