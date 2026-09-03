@@ -59,11 +59,42 @@ try {
   const filename = packed[0]?.filename;
   if (typeof filename !== "string") throw new Error("npm pack did not report a tarball filename.");
   const tarball = path.join(packRoot, filename);
+  const dependencyTarballs = [];
+  for (const dependency of ["commander", "yaml", "zod"]) {
+    const dependencyPack = JSON.parse(
+      npm(
+        [
+          "pack",
+          path.join(repositoryRoot, "node_modules", dependency),
+          "--pack-destination",
+          packRoot,
+          "--json",
+        ],
+        repositoryRoot,
+      ),
+    );
+    const dependencyFilename = dependencyPack[0]?.filename;
+    if (typeof dependencyFilename !== "string") {
+      throw new Error(`npm pack did not report a tarball for ${dependency}.`);
+    }
+    dependencyTarballs.push(path.join(packRoot, dependencyFilename));
+  }
   await writeFile(
     path.join(installRoot, "package.json"),
     `${JSON.stringify({ name: "noxroot-installed-smoke", private: true })}\n`,
   );
-  npm(["install", tarball, "--ignore-scripts", "--no-audit", "--no-fund"], installRoot);
+  npm(
+    [
+      "install",
+      tarball,
+      ...dependencyTarballs,
+      "--offline",
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+    ],
+    installRoot,
+  );
 
   const installedPackage = path.join(installRoot, "node_modules", "noxroot");
   for (const requiredFile of [

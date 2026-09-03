@@ -80,21 +80,18 @@ export function renderWelcome(options: RenderOptions = {}): string {
     "Project memory and verification for coding agents.",
     "A CLI for task context, project checks, and reusable documentation.",
   ];
-  const bannerWidth = Math.max(...promise.map((line) => line.length));
-  const bannerTitle = `NOXROOT ◆ ${VERSION}`;
-  const compact = (options.width ?? 80) < bannerWidth + 4;
+  const wordmark = ["█▄ █  █▀█  ▀▄▀  █▀█  █▀█  █▀█  ▀█▀", "█ ▀█  █▄█  █ █  █▀▄  █▄█  █▄█   █"];
+  const compact = (options.width ?? 80) < 52;
   const mark = compact
     ? [
         `${style("NOXROOT", ANSI.violet, options)} ${style("◆", ANSI.blue, options)} ${style(VERSION, ANSI.dim, options)}`,
         ...promise.map((line) => style(line, ANSI.bold, options)),
       ]
     : [
-        `${style("╭─ ", ANSI.dim, options)}${style("NOXROOT", ANSI.violet, options)} ${style("◆", ANSI.blue, options)} ${style(VERSION, ANSI.dim, options)} ${style("─".repeat(bannerWidth - bannerTitle.length - 1), ANSI.dim, options)}${style("╮", ANSI.dim, options)}`,
-        ...promise.map(
-          (line) =>
-            `${style("│", ANSI.dim, options)} ${style(line.padEnd(bannerWidth), ANSI.bold, options)} ${style("│", ANSI.dim, options)}`,
-        ),
-        style(`╰${"─".repeat(bannerWidth + 2)}╯`, ANSI.dim, options),
+        ...wordmark.map((line) => style(line, ANSI.violet, options)),
+        `${style("◆", ANSI.blue, options)} ${style(VERSION, ANSI.dim, options)}`,
+        "",
+        ...promise.map((line) => style(line, ANSI.bold, options)),
       ];
   return `${[
     ...mark,
@@ -142,6 +139,9 @@ export function renderPreview(
   const companionMode = result.capabilities.some(
     (item) => item.id === "task-orchestration" && item.decision === "conflict",
   );
+  const contextOnlyMode = result.capabilities.some(
+    (item) => item.id === "task-orchestration" && item.decision === "not-assessed",
+  );
   const setupOnly = result.profile.empty;
   const conflictDetails = [
     ...result.conflicts,
@@ -160,7 +160,19 @@ export function renderPreview(
         : ["No application architecture detected"],
       options,
     ),
-    ...section("Mode", [companionMode ? "Companion" : setupOnly ? "Setup only" : "Full"], options),
+    ...section(
+      "Mode",
+      [
+        companionMode
+          ? "Companion"
+          : setupOnly
+            ? "Setup only"
+            : contextOnlyMode
+              ? "Context only"
+              : "Full",
+      ],
+      options,
+    ),
     ...section(
       "Reuse",
       capabilityLines(result.capabilities, "reuse", options),
@@ -245,6 +257,9 @@ export function renderPreview(
 }
 
 export function renderContext(context: ContextPackage, options: RenderOptions = {}): string {
+  const selectedPaths = new Set(context.selected.map((item) => item.path));
+  const candidatePath = (pathname: string): string =>
+    selectedPaths.has(pathname) ? pathname : `${pathname} (path match; inspect selectively)`;
   const selectedSummary = options.verbose
     ? `${context.selected.length} of ${context.repositoryFileCount} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`
     : `${context.selected.length} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`;
@@ -272,12 +287,14 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
     ),
     ...section(
       "Likely owner",
-      context.likelyOwningSource.length ? context.likelyOwningSource : ["Not established"],
+      context.likelyOwningSource.length
+        ? context.likelyOwningSource.map(candidatePath)
+        : ["Not established"],
       options,
     ),
     ...section(
       "Likely tests",
-      context.likelyTests.length ? context.likelyTests : ["Not established"],
+      context.likelyTests.length ? context.likelyTests.map(candidatePath) : ["Not established"],
       options,
     ),
     ...section(

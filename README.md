@@ -120,7 +120,8 @@ Instruction discovery varies by coding tool, so the commands remain available fo
 | Local task state created by start | `.git/noxroot/runs/*.json` in a standard checkout                                                           | Store baselines and results without treating them as project documentation |
 
 Only missing capabilities are proposed. A mature repository may need only a small entrypoint and
-configuration, or no setup changes at all.
+configuration, or nothing. The knowledge index stays bounded; other documentation remains
+discoverable through existing instructions and task context.
 
 `SKILL.md` files are portable, on-demand instructions. The generated verification skill tells an
 agent how to check a change; the independent-review and optional product/UX skills describe their
@@ -158,7 +159,7 @@ Likely owner
   src/adapters/agents.ts
 
 Likely tests
-  tests/agent-review.test.ts
+  tests/agent-review.test.ts (+2 related)
 
 Checks
   npm run format:check

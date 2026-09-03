@@ -33,9 +33,11 @@ async function run(args: string[], options: { isTTY?: boolean; columns?: number 
 }
 
 describe("CLI contracts", () => {
-  it("shows the compact Noxroot welcome only at the interactive entry point", async () => {
+  it("shows the compact Noxroot wordmark only at the interactive entry point", async () => {
     const interactive = await run(["--no-color"], { isTTY: true });
-    expect(interactive.stdout).toContain("╭─ NOXROOT ◆ 0.1.0");
+    expect(interactive.stdout).toContain("█▄ █  █▀█  ▀▄▀  █▀█  █▀█  █▀█  ▀█▀");
+    expect(interactive.stdout).toContain("█ ▀█  █▄█  █ █  █▀▄  █▄█  █▄█   █");
+    expect(interactive.stdout).toContain("◆ 0.1.0");
     expect(interactive.stdout).toContain("Project memory and verification for coding agents.");
     expect(interactive.stdout).toContain(
       "A CLI for task context, project checks, and reusable documentation.",
@@ -45,6 +47,10 @@ describe("CLI contracts", () => {
     const piped = await run([]);
     expect(piped.stdout).toContain("Usage: noxroot [options] [command]");
     expect(piped.stdout).not.toContain("◆");
+
+    const narrow = await run(["--no-color"], { isTTY: true, columns: 44 });
+    expect(narrow.stdout).toContain("NOXROOT ◆ 0.1.0");
+    expect(narrow.stdout).not.toContain("█▄ █");
   });
 
   it("shows the small mark for interactive setup but not routine commands", async () => {
