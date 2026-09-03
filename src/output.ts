@@ -76,31 +76,35 @@ function capabilityLines(
 }
 
 export function renderWelcome(options: RenderOptions = {}): string {
-  const detail =
-    (options.width ?? 80) < 64
-      ? "Context · checks · memory"
-      : "Repository context · checks · project memory";
-  const mark = [
-    style("  \\ ^ /", ANSI.violet, options),
-    `${style("  (o o)", ANSI.violet, options)}  ${style(`NOXROOT ${VERSION}`, ANSI.violet, options)}`,
-    `${style("   \\v/", ANSI.violet, options)}   ${style(detail, ANSI.dim, options)}`,
+  const promise = [
+    "Project memory and verification for coding agents.",
+    "A CLI for task context, project checks, and reusable documentation.",
   ];
+  const bannerWidth = Math.max(...promise.map((line) => line.length));
+  const bannerTitle = `NOXROOT ◆ ${VERSION}`;
+  const compact = (options.width ?? 80) < bannerWidth + 4;
+  const mark = compact
+    ? [
+        `${style("NOXROOT", ANSI.violet, options)} ${style("◆", ANSI.blue, options)} ${style(VERSION, ANSI.dim, options)}`,
+        ...promise.map((line) => style(line, ANSI.bold, options)),
+      ]
+    : [
+        `${style("╭─ ", ANSI.dim, options)}${style("NOXROOT", ANSI.violet, options)} ${style("◆", ANSI.blue, options)} ${style(VERSION, ANSI.dim, options)} ${style("─".repeat(bannerWidth - bannerTitle.length - 1), ANSI.dim, options)}${style("╮", ANSI.dim, options)}`,
+        ...promise.map(
+          (line) =>
+            `${style("│", ANSI.dim, options)} ${style(line.padEnd(bannerWidth), ANSI.bold, options)} ${style("│", ANSI.dim, options)}`,
+        ),
+        style(`╰${"─".repeat(bannerWidth + 2)}╯`, ANSI.dim, options),
+      ];
   return `${[
     ...mark,
-    "",
-    style("Your project remembers. Every change gets checked.", ANSI.bold, options),
     "",
     ...section("Start here", ["noxroot preview", "noxroot init", "noxroot --help"], options),
   ].join("\n")}\n`;
 }
 
 export function renderInitMark(options: RenderOptions = {}): string {
-  return `${[
-    style("  \\ ^ /", ANSI.violet, options),
-    `${style("  (o o)", ANSI.violet, options)}  ${style("NOXROOT", ANSI.violet, options)}`,
-    `${style("   \\v/", ANSI.violet, options)}   ${style("setup", ANSI.dim, options)}`,
-    "",
-  ].join("\n")}\n`;
+  return `${style("NOXROOT", ANSI.violet, options)} ${style("◆", ANSI.blue, options)} ${style("setup", ANSI.dim, options)}\n\n`;
 }
 
 export function renderPreview(

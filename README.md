@@ -9,7 +9,9 @@
 
 # Noxroot
 
-**Your project remembers. Every change gets checked.**
+**Project memory and verification for coding agents.**
+
+A CLI for task context, project checks, and reusable documentation.
 
 Noxroot gives coding agents the repository context each task needs, checks the resulting diff with
 approved commands, and proposes useful lessons as project documentation for the next task.
