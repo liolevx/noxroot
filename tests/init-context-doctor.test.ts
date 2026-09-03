@@ -23,6 +23,9 @@ describe("initialization, sync safety, context, and doctor", () => {
       ".noxroot/config.yml",
       ".noxroot/knowledge/INDEX.md",
     ]);
+    const instructions = await readFile(path.join(root, "AGENTS.md"), "utf8");
+    expect(instructions).toContain("Noxroot's task lifecycle is not enabled");
+    expect(instructions).not.toContain("existing repository coordinator remains authoritative");
     const after = await previewRepository(root);
     expect(after.proposedFiles).toEqual([]);
     expect(after.profile.files).not.toContain(".noxroot/knowledge/architecture.md");

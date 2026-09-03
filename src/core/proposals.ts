@@ -16,14 +16,21 @@ import { cliCommand } from "../invocation.js";
 
 const MANAGED_START = "<!-- noxroot:start -->";
 const MANAGED_END = "<!-- noxroot:end -->";
-function managedBlock(lifecycleEnabled: boolean): string {
-  const workflow = lifecycleEnabled
-    ? `For a code-changing task, run \`${cliCommand('start "<task>"')}\` before editing and \`${cliCommand("finish")}\` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.
+type WorkflowMode = "full" | "companion" | "context-only";
+
+function managedBlock(mode: WorkflowMode): string {
+  const workflow =
+    mode === "full"
+      ? `For a code-changing task, run \`${cliCommand('start "<task>"')}\` before editing and \`${cliCommand("finish")}\` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.
 
 When \`.noxroot/skills/\` exists, load only the task-relevant \`SKILL.md\`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.`
-    : `The existing repository coordinator remains authoritative for code-changing work. Noxroot does not add a second task lifecycle, reviewer, or learning loop.
+      : mode === "companion"
+        ? `The existing repository coordinator remains authoritative for code-changing work. Noxroot does not add a second task lifecycle, reviewer, or learning loop.
 
-Use \`${cliCommand('context "<task>"')}\` when focused repository context would help and \`${cliCommand("verify --plan")}\` to inspect applicable approved checks. Follow the existing repository workflow for implementation, review, and durable learning.`;
+Use \`${cliCommand('context "<task>"')}\` when focused repository context would help and \`${cliCommand("verify --plan")}\` to inspect applicable approved checks. Follow the existing repository workflow for implementation, review, and durable learning.`
+        : `Noxroot's task lifecycle is not enabled for this repository because the available project evidence is incomplete.
+
+Use \`${cliCommand('context "<task>"')}\` when focused repository context would help and \`${cliCommand("verify --plan")}\` to inspect applicable approved checks. Do not claim verification until the repository provides an approved check.`;
   return `${MANAGED_START}
 ## Noxroot workflow
 
@@ -508,7 +515,9 @@ export async function buildProposals(
       ...(adoption?.productUxSkillPaths ?? []),
     ]),
   ];
-  const instructions = managedBlock(active("orchestration"));
+  const instructions = managedBlock(
+    orchestrationConflict ? "companion" : active("orchestration") ? "full" : "context-only",
+  );
   const needsIndex =
     (active("agent-routing") || active("project-knowledge")) &&
     decision("project-knowledge") !== "not-assessed" &&
