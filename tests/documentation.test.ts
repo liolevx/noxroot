@@ -12,9 +12,10 @@ describe("documentation examples", () => {
     expect(readme.startsWith('<p align="center">\n  <img src="docs/assets/noxroot-logo.svg"')).toBe(
       true,
     );
-    expect(readme).toContain(
-      "Noxroot gives coding agents focused repository context, runs checks that match each change, and",
-    );
+    expect(readme).toContain("The right repository context before a change.");
+    expect(readme).toContain("Then keep talking to your coding agent normally:");
+    expect(readme).toContain("actions/workflows/ci.yml/badge.svg?branch=main");
+    expect(readme).toContain("license-Apache--2.0-blue.svg");
     const output = renderPreview(await previewRepository(path.join(fixtures, "typescript")));
     for (const line of [
       "NOXROOT PREVIEW",
