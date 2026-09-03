@@ -101,6 +101,41 @@ describe("mature repository adoption", () => {
     );
   });
 
+  it("adds a reversible entrypoint beside compatible framework-managed instructions", async () => {
+    const repository = await root();
+    await mkdir(path.join(repository, "app"), { recursive: true });
+    const frameworkInstructions = [
+      "<!-- BEGIN:framework-agent-rules -->",
+      "# Framework instructions",
+      "APIs, conventions, and file structure may differ from training data. Read the relevant guide in `node_modules/framework/docs/` before writing code.",
+      "This block is maintained by the framework.",
+      "<!-- END:framework-agent-rules -->",
+      "",
+    ].join("\n");
+    await writeFile(path.join(repository, "AGENTS.md"), frameworkInstructions);
+    await writeFile(path.join(repository, "CLAUDE.md"), "@AGENTS.md\n");
+    await writeFile(path.join(repository, "app", "page.tsx"), "export default function Page() {}\n");
+    await writeFile(
+      path.join(repository, "package.json"),
+      JSON.stringify({ scripts: { build: "framework build", lint: "eslint ." } }),
+    );
+
+    const preview = await previewRepository(repository);
+
+    expect(preview.initializationAllowed).toBe(true);
+    expect(preview.capabilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "project-knowledge", decision: "create" }),
+        expect.objectContaining({ id: "task-orchestration", decision: "create" }),
+      ]),
+    );
+    const agents = preview.proposedFiles.find((item) => item.path === "AGENTS.md");
+    expect(agents).toMatchObject({ action: "patch" });
+    expect(agents?.content).toContain(frameworkInstructions.trim());
+    expect(agents?.content).toContain("<!-- noxroot:start -->");
+    expect(preview.proposedFiles.map((item) => item.path)).not.toContain("CLAUDE.md");
+  });
+
   it("keeps an existing repository coordinator authoritative while adding only companion capabilities", async () => {
     const repository = await root();
     await mkdir(path.join(repository, "tools"), { recursive: true });

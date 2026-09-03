@@ -16,6 +16,8 @@ const TEXT_REFERENCE = /\.(?:md|mdx|ya?ml)$/i;
 const INSTRUCTION_NAME = /^(?:AGENTS|CLAUDE|copilot-instructions)\.md$/i;
 const NON_PROJECT_SURFACE =
   /(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?|playgrounds?|sandboxes?)(?:\/|$)/i;
+const EXTERNAL_DEPENDENCY_REFERENCE =
+  /(?:^|\/)(?:node_modules|\.venv|venv|site-packages)(?:\/|$)/i;
 
 interface Reference {
   from: string;
@@ -86,7 +88,10 @@ function extractReferences(from: string, source: string): Array<Reference & { ex
     capture(match[1] ?? "", match.index ?? 0);
   }
   for (const match of source.matchAll(/`([^`\r\n]+)`/g)) {
-    capture(match[1] ?? "", match.index ?? 0);
+    const target = match[1] ?? "";
+    if (/[\\/]/.test(target) || /\.(?:md|mdx|ya?ml)$/i.test(target)) {
+      capture(target, match.index ?? 0);
+    }
   }
   for (const match of source.matchAll(/(?:^|\s)@([A-Za-z0-9._/-]+\.(?:md|mdx))/gim)) {
     capture(match[1] ?? "", match.index ?? 0);
@@ -349,7 +354,7 @@ export async function inspectRepositoryAdoption(
         ) {
           queue.push({ file: reference.path, depth: next.depth + 1 });
         }
-      } else {
+      } else if (!EXTERNAL_DEPENDENCY_REFERENCE.test(reference.path)) {
         missing.push(reference);
       }
     }
