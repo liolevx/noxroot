@@ -333,6 +333,29 @@ describe("read-only preview", () => {
     expect(renderPreview(result)).toContain("Select one project with --root before initializing.");
   });
 
+  it("recognizes a course collection even when its root has a tooling manifest", async () => {
+    const root = await temporaryDirectory("noxroot-course-collection-");
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await writeFile(
+      path.join(root, "README.md"),
+      "# Application course\n\nA collection of lessons and starter projects.\n",
+    );
+    await writeFile(path.join(root, "package.json"), '{"name":"course-tooling"}\n');
+    for (const directory of ["chapter-1/app", "chapter-2/app", "chapter-3/app", "chapter-4/app"]) {
+      await mkdir(path.join(root, directory), { recursive: true });
+      await writeFile(path.join(root, directory, "package.json"), '{"scripts":{"build":"x"}}\n');
+    }
+
+    const result = await previewRepository(root);
+
+    expect(result.initializationAllowed).toBe(false);
+    expect(result.profile.evidence).toContainEqual(
+      expect.objectContaining({ claim: "Independent example collection" }),
+    );
+  });
+
   it("aggregates repeated architecture evidence across a monorepo", async () => {
     const root = await temporaryDirectory();
     cleanup.push(async () =>

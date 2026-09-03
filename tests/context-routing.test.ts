@@ -106,6 +106,33 @@ describe("bounded relevance routing", () => {
     }
   });
 
+  it("does not let a large instruction entrypoint consume the entire task budget", async () => {
+    const root = await temporaryDirectory("noxroot-context-large-instructions-");
+    try {
+      await mkdir(path.join(root, "src"));
+      await mkdir(path.join(root, "tests"));
+      await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
+      await writeFile(
+        path.join(root, "AGENTS.md"),
+        `# Repository instructions\n\n${"General repository guidance.\n".repeat(700)}`,
+      );
+      await writeFile(path.join(root, "src", "retry.ts"), "export const retry = true;\n");
+      await writeFile(path.join(root, "tests", "retry.test.ts"), "// retry test\n");
+
+      const context = await buildContext("improve retry behavior", root);
+      const selected = context.selected.map((item) => item.path);
+
+      expect(selected).not.toContain("AGENTS.md");
+      expect(selected).toContain("src/retry.ts");
+      expect(selected).toContain("tests/retry.test.ts");
+      expect(context.constraints).toContain(
+        "Follow AGENTS.md as the repository instruction entrypoint; load its relevant references selectively.",
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("builds a bounded task brief for a conventional Next.js feature", async () => {
     const fixture = await fixtureCopy("nextjs");
     try {

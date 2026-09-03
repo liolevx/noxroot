@@ -527,7 +527,7 @@ function detectEvidence(
       contents["README.md"] ?? "",
     );
   if (
-    !hasRootManifest &&
+    (!hasRootManifest || readmeDescribesCollection) &&
     nestedManifests.length >= 4 &&
     (exampleLikeManifests.length >= Math.ceil(nestedManifests.length / 2) ||
       readmeDescribesCollection)

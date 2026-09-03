@@ -295,7 +295,8 @@ const ADJACENT_LEDGER_BEHAVIORS = [
   },
   {
     label: "coding-work coordination",
-    match: /\b(?:coding|repository|development|implementation|work)\b/i,
+    match:
+      /\b(?:coding agents?|repository(?:-development)? (?:work|workflow)|development workflow|implementation work)\b/i,
   },
 ] as const;
 

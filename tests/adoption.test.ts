@@ -285,6 +285,22 @@ describe("mature repository adoption", () => {
     });
   });
 
+  it("does not confuse application-agent sessions and handoffs with a coding-work ledger", async () => {
+    const repository = await root();
+    await writeFile(
+      path.join(repository, "README.md"),
+      "# Agent SDK\n\nBuild agent workflows with sessions, handoffs, tools, and durable application state.\n",
+    );
+    await writeFile(path.join(repository, "package.json"), '{"name":"agent-sdk"}\n');
+
+    const preview = await previewRepository(repository);
+
+    expect(preview.capabilities.find((item) => item.id === "coordination-ledger")).toBeUndefined();
+    expect(preview.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
+      decision: "create",
+    });
+  });
+
   it("reuses clear repository-native review skills instead of creating Noxroot copies", async () => {
     const repository = await root();
     await mkdir(path.join(repository, ".agents", "skills", "change-review"), {

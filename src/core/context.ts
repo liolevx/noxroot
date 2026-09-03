@@ -167,7 +167,7 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
     reasons.push("authoritative project manifest");
   }
 
-  for (const term of taskTerms) {
+  for (const term of ALWAYS_CONTEXT.has(file) ? [] : taskTerms) {
     if (stemTerms.includes(term)) {
       score += 50;
       matchedTerms.add(term);
@@ -431,7 +431,9 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     item.category === "source" &&
     item.reasons.some((reason) => reason.startsWith("basename matches task term"));
   const fitsSelection = (item: RankedCandidate): boolean =>
-    item.bytes <= selectionFileLimit || (item.bytes <= budget && directlyMatchedOwner(item));
+    item.category === "entrypoint"
+      ? item.bytes <= Math.min(selectionFileLimit, Math.floor(budget * 0.4))
+      : item.bytes <= selectionFileLimit || (item.bytes <= budget && directlyMatchedOwner(item));
   const topOwner = candidates.find(
     (item) =>
       item.category === "source" &&
@@ -506,7 +508,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       const match = /^source\/test counterpart of (.+)$/.exec(reason);
       return Boolean(match?.[1] && priorityPaths.has(match[1]));
     });
-    if (!fitsSelection(item) && !ALWAYS_CONTEXT.has(item.file)) {
+    if (!fitsSelection(item)) {
       if (excluded.length < 20) excluded.push({ path: item.file, reason: "per-file context cap" });
       continue;
     }
@@ -625,6 +627,11 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     likelyTests,
     constraints: [
       ...intent.explicitExclusions,
+      ...(profile.files.includes("AGENTS.md") && !selectedSet.has("AGENTS.md")
+        ? [
+            "Follow AGENTS.md as the repository instruction entrypoint; load its relevant references selectively.",
+          ]
+        : []),
       ...selected
         .filter((item) => item.path.includes("knowledge/") || item.path.endsWith("AGENTS.md"))
         .map((item) => `Read ${item.path} before changing its routed surface.`),
