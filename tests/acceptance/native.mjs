@@ -8,7 +8,7 @@ const destination = process.argv[2];
 if (!destination || process.platform === "win32") throw Error("Use WSL/Linux and an output path.");
 const scratch = await mkdtemp("/tmp/noxroot-native-");
 const previous = JSON.parse(
-  await readFile(path.join(import.meta.dirname, "results-2026-09-03.json"), "utf8"),
+  await readFile(path.join(import.meta.dirname, "results-2026-09-03-final.json"), "utf8"),
 );
 const env = Object.fromEntries(
   ["PATH", "HOME", "LANG", "TMPDIR"].filter((k) => process.env[k]).map((k) => [k, process.env[k]]),

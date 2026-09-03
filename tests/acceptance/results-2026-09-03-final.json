@@ -1,0 +1,5623 @@
+{
+  "candidate": "330d9848dcb4845ba9cb6ff2f958e368701c7d64",
+  "startedAt": "2026-09-03T20:03:50.756Z",
+  "method": "Sequential read-only preview/context, disposable init/sync, and no-authorized-checks lifecycle smoke. No application dependencies installed, native project commands executed, agent calls, or commits to tested repositories.",
+  "results": [
+    {
+      "repo": "sindresorhus/p-limit",
+      "task": "preserve concurrency limits when clearing pending tasks",
+      "stack": "JavaScript",
+      "failures": [],
+      "revision": "783068bb9e967fd7bea8642e1bf5a3627fe38bdf",
+      "readOnly": true,
+      "previewMs": 149,
+      "files": 16,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": [".github/security.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".github/security.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 112,
+        "documentationNetLines": 48
+      },
+      "commands": [
+        {
+          "id": "test",
+          "executable": "npm",
+          "args": ["run", "test"],
+          "cwd": ".",
+          "source": "package.json scripts.test",
+          "appliesTo": ["scripts/**", "*.js", "*.ts", "package.json"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 158,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13154,
+          "estimatedTokens": 3289
+        },
+        "selected": ["index.d.ts", "readme.md", "index.js"],
+        "owners": ["index.d.ts", "index.js"],
+        "tests": [],
+        "unknowns": ["Directly related test path", "Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "sindresorhus/p-queue",
+      "task": "preserve queue concurrency when a task is aborted",
+      "stack": "TypeScript",
+      "failures": [],
+      "revision": "180ab9e25cd10b6f548767d7176076b50d25e188",
+      "readOnly": true,
+      "previewMs": 150,
+      "files": 24,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": [".github/security.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".github/security.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 125,
+        "documentationNetLines": 48
+      },
+      "commands": [
+        {
+          "id": "build",
+          "executable": "npm",
+          "args": ["run", "build"],
+          "cwd": ".",
+          "source": "package.json scripts.build",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test",
+          "executable": "npm",
+          "args": ["run", "test"],
+          "cwd": ".",
+          "source": "package.json scripts.test",
+          "appliesTo": ["source/**", "test-d/**", "test/**", "*.ts", "package.json"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 171,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 11015,
+          "estimatedTokens": 2754
+        },
+        "selected": [
+          "source/priority-queue.ts",
+          "test/priority-queue.ts",
+          "source/queue.ts",
+          "package.json"
+        ],
+        "owners": ["source/priority-queue.ts", "source/queue.ts"],
+        "tests": ["test/priority-queue.ts"],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "sindresorhus/execa",
+      "task": "handle subprocess cancellation without losing stderr",
+      "stack": "JavaScript",
+      "failures": [],
+      "revision": "8017b279e19347efaf2587711c2d57dbd4330740",
+      "readOnly": true,
+      "previewMs": 232,
+      "files": 644,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": [".github/security.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".github/security.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 128,
+        "documentationNetLines": 48
+      },
+      "commands": [
+        {
+          "id": "lint",
+          "executable": "npm",
+          "args": ["run", "lint"],
+          "cwd": ".",
+          "source": "package.json scripts.lint",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test",
+          "executable": "npm",
+          "args": ["run", "test"],
+          "cwd": ".",
+          "source": "package.json scripts.test",
+          "appliesTo": [
+            "lib/**",
+            "test-d/**",
+            "test/**",
+            "types/**",
+            "*.js",
+            "*.ts",
+            "package.json"
+          ]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 391,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 15061,
+          "estimatedTokens": 3766
+        },
+        "selected": [
+          "lib/stdio/handle.js",
+          "lib/resolve/wait-subprocess.js",
+          "test/stdio/handle-normal.js"
+        ],
+        "owners": [
+          "lib/stdio/handle.js",
+          "lib/resolve/wait-subprocess.js",
+          "lib/stdio/handle-async.js",
+          "lib/stdio/handle-sync.js",
+          "test-d/subprocess/subprocess.test-d.ts"
+        ],
+        "tests": [
+          "test/stdio/handle-normal.js",
+          "test/stdio/handle-options.js",
+          "test/resolve/wait-subprocess.js",
+          "test/stdio/handle-invalid.js"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "tj/commander.js",
+      "task": "validate required options and display helpful errors",
+      "stack": "JavaScript",
+      "failures": [],
+      "revision": "ba6d13ddb4243e5913367734f8c159089ffe7834",
+      "readOnly": true,
+      "previewMs": 191,
+      "files": 216,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [
+        "3 symbolic link(s) were not followed: tests/fixtures/another-dir/pm, tests/fixtures/other-dir/pm, tests/fixtures/pmlink"
+      ],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md", "SECURITY.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "SECURITY.md",
+          "action": "reference"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 2,
+        "netLines": 119,
+        "documentationNetLines": 49
+      },
+      "commands": [
+        {
+          "id": "test",
+          "executable": "npm",
+          "args": ["run", "test"],
+          "cwd": ".",
+          "source": "package.json scripts.test",
+          "appliesTo": ["examples/**", "lib/**", "tests/**", "typings/**", "*.js", "package.json"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 266,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13779,
+          "estimatedTokens": 3445
+        },
+        "selected": ["lib/option.js", "lib/error.js", "tests/options.required.test.js"],
+        "owners": ["lib/option.js", "lib/error.js"],
+        "tests": [
+          "tests/options.required.test.js",
+          "tests/options.mandatory.test.js",
+          "tests/command.showHelpAfterError.test.js",
+          "tests/options.variadic.test.js",
+          "tests/command.parseOptions.test.js"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "lukeed/kleur",
+      "task": "preserve nested colors when formatting terminal text",
+      "stack": "JavaScript",
+      "failures": [],
+      "revision": "fa3454483899ddab550d08c18c028e6db1aab0e5",
+      "readOnly": true,
+      "previewMs": 151,
+      "files": 20,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 0,
+        "netLines": 122,
+        "documentationNetLines": 47
+      },
+      "commands": [
+        {
+          "id": "build",
+          "executable": "npm",
+          "args": ["run", "build"],
+          "cwd": ".",
+          "source": "package.json scripts.build",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test",
+          "executable": "npm",
+          "args": ["run", "test"],
+          "cwd": ".",
+          "source": "package.json scripts.test",
+          "appliesTo": ["bench/**", "test/**", "*.mjs", "*.ts", "package.json"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 156,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13119,
+          "estimatedTokens": 3280
+        },
+        "selected": ["colors.mjs", "test/env.sh", "readme.md", "colors.d.ts", "bench/package.json"],
+        "owners": ["colors.mjs", "colors.d.ts"],
+        "tests": ["test/env.sh"],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "fastify/fastify",
+      "task": "validate request schema before invoking a route handler",
+      "stack": "JavaScript",
+      "failures": [],
+      "revision": "3aa8dfd7298c6e02399a7b3c29c637eb092dc9ef",
+      "readOnly": true,
+      "previewMs": 364,
+      "files": 389,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [
+        "JavaScript package manager: .github/workflows/backport.yml, .github/workflows/ci-alternative-runtime.yml, .github/workflows/ci.yml, .github/workflows/citgm-package.yml, .github/workflows/citgm.yml, .github/workflows/coverage-nix.yml, .github/workflows/coverage-win.yml, .github/workflows/integration-alternative-runtimes.yml, .github/workflows/integration.yml, .github/workflows/labeler.yml, .github/workflows/links-check.yml, .github/workflows/lint-ecosystem-order.yml"
+      ],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": [
+            "CONTRIBUTING.md",
+            "SECURITY.md",
+            "docs/Guides/Contributing.md",
+            "docs/Guides/Testing.md"
+          ],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": [
+            "Referenced path was not available: docs/Reference/app.get('/', () => { throw new Error('kaboom') })",
+            "Referenced path was not available: docs/Reference/.get/.post/.etc",
+            "Referenced path was not available: docs/Guides/@fastify/routes",
+            "Referenced path was not available: docs/Guides/@fastify/routes-stats",
+            "Referenced path was not available: docs/Guides/@jerome1337/fastify-enforce-routes-pattern"
+          ]
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": [
+            "No authoritative verification wrapper or candidate checks were found."
+          ]
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["Verification behavior was not assessed."]
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "docs/Guides/Testing.md",
+          "action": "reference"
+        },
+        {
+          "path": "SECURITY.md",
+          "action": "reference"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": "docs/Guides/Contributing.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 4,
+        "patchedFiles": 0,
+        "referencedFiles": 4,
+        "netLines": 71,
+        "documentationNetLines": 37
+      },
+      "commands": [],
+      "deterministic": true,
+      "context": {
+        "ms": 454,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 15820,
+          "estimatedTokens": 3955
+        },
+        "selected": ["types/request.d.ts", "scripts/validate-ecosystem-links.js", "lib/schemas.js"],
+        "owners": [
+          "types/request.d.ts",
+          "lib/route.js",
+          "lib/handle-request.js",
+          "lib/request.js",
+          "types/route.d.ts"
+        ],
+        "tests": [
+          "test/schema-validation.test.js",
+          "test/internals/request-validate.test.js",
+          "test/schema-serialization.test.js",
+          "test/types/request.tst.ts",
+          "test/types/route.tst.ts"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/skills/independent-review/SKILL.md",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "koajs/koa",
+      "task": "preserve middleware error handling when a response fails",
+      "stack": "JavaScript",
+      "failures": [],
+      "revision": "571938d1b42d5bbfbc4f203202e1095a63003f7e",
+      "readOnly": true,
+      "previewMs": 173,
+      "files": 111,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 0,
+        "netLines": 131,
+        "documentationNetLines": 47
+      },
+      "commands": [
+        {
+          "id": "build",
+          "executable": "npm",
+          "args": ["run", "build"],
+          "cwd": ".",
+          "source": "package.json scripts.build",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "lint",
+          "executable": "npm",
+          "args": ["run", "lint"],
+          "cwd": ".",
+          "source": "package.json scripts.lint",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test",
+          "executable": "npm",
+          "args": ["run", "test"],
+          "cwd": ".",
+          "source": "package.json scripts.test",
+          "appliesTo": ["__tests__/**", "lib/**", "test-helpers/**", "package.json"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 215,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 15809,
+          "estimatedTokens": 3953
+        },
+        "selected": ["lib/response.js", "docs/error-handling.md"],
+        "owners": ["lib/response.js"],
+        "tests": [
+          "__tests__/response/body.test.js",
+          "__tests__/application/response.test.js",
+          "__tests__/response/flushHeaders.test.js",
+          "__tests__/response/attachment.test.js",
+          "__tests__/response/writable.test.js"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "reduxjs/redux",
+      "task": "preserve subscription ordering during dispatch",
+      "stack": "TypeScript",
+      "failures": [],
+      "revision": "71606661ac515bdd64c199a6bb508401c7cf736f",
+      "readOnly": true,
+      "previewMs": 306,
+      "files": 477,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/product-ux-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 8,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 168,
+        "documentationNetLines": 60
+      },
+      "commands": [
+        {
+          "id": "build",
+          "executable": "yarn",
+          "args": ["build"],
+          "cwd": ".",
+          "source": "package.json scripts.build",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "format-check",
+          "executable": "yarn",
+          "args": ["format:check"],
+          "cwd": ".",
+          "source": "package.json scripts.format:check",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "lint",
+          "executable": "yarn",
+          "args": ["lint"],
+          "cwd": ".",
+          "source": "package.json scripts.lint",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test",
+          "executable": "yarn",
+          "args": ["test"],
+          "cwd": ".",
+          "source": "package.json scripts.test",
+          "appliesTo": [
+            ".yarn/**",
+            "docs/**",
+            "examples/**",
+            "scripts/**",
+            "src/**",
+            "test/**",
+            "website/**",
+            "*.cjs",
+            "*.mts",
+            "*.ts",
+            "package.json"
+          ]
+        },
+        {
+          "id": "website-build",
+          "executable": "yarn",
+          "args": ["build"],
+          "cwd": "website",
+          "source": "website/package.json scripts.build",
+          "appliesTo": ["website/**"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 432,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13637,
+          "estimatedTokens": 3410
+        },
+        "selected": [
+          "src/applyMiddleware.ts",
+          "test/applyMiddleware.spec.ts",
+          "docs/faq/StoreSetup.md"
+        ],
+        "owners": ["src/applyMiddleware.ts"],
+        "tests": [
+          "test/applyMiddleware.spec.ts",
+          "test/typescript/dispatch.test-d.ts",
+          "test/typescript/injectedDispatch.test-d.ts"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/product-ux-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "pmndrs/zustand",
+      "task": "preserve persisted state during hydration",
+      "stack": "React/TypeScript",
+      "failures": [],
+      "revision": "b57db4f86ef179285da216eeb291266da82c361c",
+      "readOnly": true,
+      "previewMs": 224,
+      "files": 144,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [
+        "JavaScript package manager: package-lock.json, package.json packageManager, pnpm-lock.yaml"
+      ],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": [
+            "CONTRIBUTING.md",
+            "docs/learn/guides/flux-inspired-practice.md",
+            "docs/learn/guides/testing.md"
+          ],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": [
+            "No authoritative verification wrapper or candidate checks were found."
+          ]
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["Verification behavior was not assessed."]
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "docs/learn/guides/testing.md",
+          "action": "reference"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/product-ux-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 6,
+        "patchedFiles": 0,
+        "referencedFiles": 2,
+        "netLines": 100,
+        "documentationNetLines": 47
+      },
+      "commands": [],
+      "deterministic": true,
+      "context": {
+        "ms": 269,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13375,
+          "estimatedTokens": 3344
+        },
+        "selected": [
+          "src/middleware/immer.ts",
+          "tests/ssr.test.tsx",
+          "docs/learn/guides/connect-to-state-with-url-hash.md",
+          "docs/learn/guides/how-to-reset-state.md",
+          "docs/learn/guides/immutable-state-and-merging.md",
+          "src/middleware/ssrSafe.ts"
+        ],
+        "owners": ["src/middleware/immer.ts", "src/middleware/ssrSafe.ts"],
+        "tests": ["tests/ssr.test.tsx"],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/product-ux-review/SKILL.md",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "TanStack/query",
+      "task": "invalidate query cache after a successful mutation",
+      "stack": "TypeScript monorepo",
+      "failures": [],
+      "revision": "b4f5736437f8ada26f7d4454606ea0c2bee0e769",
+      "readOnly": true,
+      "previewMs": 1407,
+      "files": 2427,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [
+        "38 symbolic link(s) were not followed: packages/angular-query-experimental/root.eslint.config.js, packages/angular-query-persist-client/root.eslint.config.js, packages/eslint-plugin-query/root.eslint.config.js, packages/lit-query/root.tsdown.config.js, packages/preact-query-persist-client/root.eslint.config.js, packages/preact-query-persist-client/root.tsdown.config.js, packages/preact-query/root.eslint.config.js, packages/preact-query/root.tsdown.config.js, packages/query-async-storage-persister/root.eslint.config.js, packages/query-async-storage-persister/root.tsdown.config.js, packages/query-broadcast-client-experimental/root.eslint.config.js, packages/query-broadcast-client-experimental/root.tsdown.config.js, packages/query-codemods/root.eslint.config.js, packages/query-core/root.eslint.config.js, packages/query-core/root.tsdown.config.js, packages/query-devtools/root.eslint.config.js, packages/query-persist-client-core/root.eslint.config.js, packages/query-persist-client-core/root.tsdown.config.js, packages/query-sync-storage-persister/root.eslint.config.js, packages/query-sync-storage-persister/root.tsdown.config.js, packages/query-test-utils/root.eslint.config.js, packages/react-query-devtools/root.eslint.config.js, packages/react-query-devtools/root.tsdown.config.js, packages/react-query-next-experimental/root.eslint.config.js, packages/react-query-next-experimental/root.tsdown.config.js, packages/react-query-persist-client/root.eslint.config.js, packages/react-query-persist-client/root.tsdown.config.js, packages/react-query/root.eslint.config.js, packages/react-query/root.tsdown.config.js, packages/solid-query-devtools/root.eslint.config.js, packages/solid-query-persist-client/root.eslint.config.js, packages/solid-query/root.eslint.config.js, packages/svelte-query-devtools/root.eslint.config.js, packages/svelte-query-persist-client/root.eslint.config.js, packages/svelte-query/root.eslint.config.js, packages/vue-query-devtools/root.eslint.config.js, packages/vue-query/root.eslint.config.js, packages/vue-query/root.tsdown.config.js"
+      ],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": [
+            "CONTRIBUTING.md",
+            "docs/framework/angular/guides/testing.md",
+            "docs/framework/react/guides/testing.md",
+            "docs/framework/solid/guides/testing.md",
+            "docs/framework/vue/guides/testing.md"
+          ],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "patch"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "docs/framework/angular/guides/testing.md",
+          "action": "reference"
+        },
+        {
+          "path": "docs/framework/react/guides/testing.md",
+          "action": "reference"
+        },
+        {
+          "path": "docs/framework/solid/guides/testing.md",
+          "action": "reference"
+        },
+        {
+          "path": "docs/framework/vue/guides/testing.md",
+          "action": "reference"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/product-ux-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 1,
+        "referencedFiles": 5,
+        "netLines": 510,
+        "documentationNetLines": 63
+      },
+      "commands": [
+        {
+          "id": "build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": ".",
+          "source": "package.json scripts.build",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "integrations-angular-cli-20-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/angular-cli-20",
+          "source": "integrations/angular-cli-20/package.json scripts.build",
+          "appliesTo": ["integrations/angular-cli-20/**"]
+        },
+        {
+          "id": "integrations-lit-vite-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/lit-vite",
+          "source": "integrations/lit-vite/package.json scripts.build",
+          "appliesTo": ["integrations/lit-vite/**"]
+        },
+        {
+          "id": "integrations-react-next-14-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/react-next-14",
+          "source": "integrations/react-next-14/package.json scripts.build",
+          "appliesTo": ["integrations/react-next-14/**"]
+        },
+        {
+          "id": "integrations-react-next-15-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/react-next-15",
+          "source": "integrations/react-next-15/package.json scripts.build",
+          "appliesTo": ["integrations/react-next-15/**"]
+        },
+        {
+          "id": "integrations-react-next-16-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/react-next-16",
+          "source": "integrations/react-next-16/package.json scripts.build",
+          "appliesTo": ["integrations/react-next-16/**"]
+        },
+        {
+          "id": "integrations-react-vite-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/react-vite",
+          "source": "integrations/react-vite/package.json scripts.build",
+          "appliesTo": ["integrations/react-vite/**"]
+        },
+        {
+          "id": "integrations-react-webpack-4-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/react-webpack-4",
+          "source": "integrations/react-webpack-4/package.json scripts.build",
+          "appliesTo": ["integrations/react-webpack-4/**"]
+        },
+        {
+          "id": "integrations-react-webpack-5-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/react-webpack-5",
+          "source": "integrations/react-webpack-5/package.json scripts.build",
+          "appliesTo": ["integrations/react-webpack-5/**"]
+        },
+        {
+          "id": "integrations-solid-vite-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/solid-vite",
+          "source": "integrations/solid-vite/package.json scripts.build",
+          "appliesTo": ["integrations/solid-vite/**"]
+        },
+        {
+          "id": "integrations-svelte-vite-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/svelte-vite",
+          "source": "integrations/svelte-vite/package.json scripts.build",
+          "appliesTo": ["integrations/svelte-vite/**"]
+        },
+        {
+          "id": "integrations-vue-vite-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "integrations/vue-vite",
+          "source": "integrations/vue-vite/package.json scripts.build",
+          "appliesTo": ["integrations/vue-vite/**"]
+        },
+        {
+          "id": "packages-angular-query-experimental-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/angular-query-experimental",
+          "source": "packages/angular-query-experimental/package.json scripts.build",
+          "appliesTo": ["packages/angular-query-experimental/**"]
+        },
+        {
+          "id": "packages-angular-query-persist-client-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/angular-query-persist-client",
+          "source": "packages/angular-query-persist-client/package.json scripts.build",
+          "appliesTo": ["packages/angular-query-persist-client/**"]
+        },
+        {
+          "id": "packages-eslint-plugin-query-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/eslint-plugin-query",
+          "source": "packages/eslint-plugin-query/package.json scripts.build",
+          "appliesTo": ["packages/eslint-plugin-query/**"]
+        },
+        {
+          "id": "packages-lit-query-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/lit-query",
+          "source": "packages/lit-query/package.json scripts.build",
+          "appliesTo": ["packages/lit-query/**"]
+        },
+        {
+          "id": "packages-preact-query-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/preact-query",
+          "source": "packages/preact-query/package.json scripts.build",
+          "appliesTo": ["packages/preact-query/**"]
+        },
+        {
+          "id": "packages-preact-query-devtools-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/preact-query-devtools",
+          "source": "packages/preact-query-devtools/package.json scripts.build",
+          "appliesTo": ["packages/preact-query-devtools/**"]
+        },
+        {
+          "id": "packages-preact-query-persist-client-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/preact-query-persist-client",
+          "source": "packages/preact-query-persist-client/package.json scripts.build",
+          "appliesTo": ["packages/preact-query-persist-client/**"]
+        },
+        {
+          "id": "packages-query-async-storage-persister-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/query-async-storage-persister",
+          "source": "packages/query-async-storage-persister/package.json scripts.build",
+          "appliesTo": ["packages/query-async-storage-persister/**"]
+        },
+        {
+          "id": "packages-query-broadcast-client-experimental-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/query-broadcast-client-experimental",
+          "source": "packages/query-broadcast-client-experimental/package.json scripts.build",
+          "appliesTo": ["packages/query-broadcast-client-experimental/**"]
+        },
+        {
+          "id": "packages-query-core-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/query-core",
+          "source": "packages/query-core/package.json scripts.build",
+          "appliesTo": ["packages/query-core/**"]
+        },
+        {
+          "id": "packages-query-devtools-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/query-devtools",
+          "source": "packages/query-devtools/package.json scripts.build",
+          "appliesTo": ["packages/query-devtools/**"]
+        },
+        {
+          "id": "packages-query-persist-client-core-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/query-persist-client-core",
+          "source": "packages/query-persist-client-core/package.json scripts.build",
+          "appliesTo": ["packages/query-persist-client-core/**"]
+        },
+        {
+          "id": "packages-query-sync-storage-persister-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/query-sync-storage-persister",
+          "source": "packages/query-sync-storage-persister/package.json scripts.build",
+          "appliesTo": ["packages/query-sync-storage-persister/**"]
+        },
+        {
+          "id": "packages-react-query-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/react-query",
+          "source": "packages/react-query/package.json scripts.build",
+          "appliesTo": ["packages/react-query/**"]
+        },
+        {
+          "id": "packages-react-query-devtools-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/react-query-devtools",
+          "source": "packages/react-query-devtools/package.json scripts.build",
+          "appliesTo": ["packages/react-query-devtools/**"]
+        },
+        {
+          "id": "packages-react-query-next-experimental-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/react-query-next-experimental",
+          "source": "packages/react-query-next-experimental/package.json scripts.build",
+          "appliesTo": ["packages/react-query-next-experimental/**"]
+        },
+        {
+          "id": "packages-react-query-persist-client-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/react-query-persist-client",
+          "source": "packages/react-query-persist-client/package.json scripts.build",
+          "appliesTo": ["packages/react-query-persist-client/**"]
+        },
+        {
+          "id": "packages-solid-query-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/solid-query",
+          "source": "packages/solid-query/package.json scripts.build",
+          "appliesTo": ["packages/solid-query/**"]
+        },
+        {
+          "id": "packages-solid-query-devtools-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/solid-query-devtools",
+          "source": "packages/solid-query-devtools/package.json scripts.build",
+          "appliesTo": ["packages/solid-query-devtools/**"]
+        },
+        {
+          "id": "packages-solid-query-persist-client-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/solid-query-persist-client",
+          "source": "packages/solid-query-persist-client/package.json scripts.build",
+          "appliesTo": ["packages/solid-query-persist-client/**"]
+        },
+        {
+          "id": "packages-svelte-query-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/svelte-query",
+          "source": "packages/svelte-query/package.json scripts.build",
+          "appliesTo": ["packages/svelte-query/**"]
+        },
+        {
+          "id": "packages-svelte-query-devtools-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/svelte-query-devtools",
+          "source": "packages/svelte-query-devtools/package.json scripts.build",
+          "appliesTo": ["packages/svelte-query-devtools/**"]
+        },
+        {
+          "id": "packages-svelte-query-persist-client-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/svelte-query-persist-client",
+          "source": "packages/svelte-query-persist-client/package.json scripts.build",
+          "appliesTo": ["packages/svelte-query-persist-client/**"]
+        },
+        {
+          "id": "packages-vue-query-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/vue-query",
+          "source": "packages/vue-query/package.json scripts.build",
+          "appliesTo": ["packages/vue-query/**"]
+        },
+        {
+          "id": "packages-vue-query-devtools-build",
+          "executable": "pnpm",
+          "args": ["run", "build"],
+          "cwd": "packages/vue-query-devtools",
+          "source": "packages/vue-query-devtools/package.json scripts.build",
+          "appliesTo": ["packages/vue-query-devtools/**"]
+        },
+        {
+          "id": "test",
+          "executable": "pnpm",
+          "args": ["run", "test"],
+          "cwd": ".",
+          "source": "package.json scripts.test",
+          "appliesTo": [
+            "examples/**",
+            "integrations/**",
+            "packages/**",
+            "scripts/**",
+            "*.js",
+            "package.json"
+          ]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 1937,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 14697,
+          "estimatedTokens": 3675
+        },
+        "selected": [
+          "packages/preact-query/src/useMutationState.ts",
+          "packages/query-core/src/mutationCache.ts",
+          "AGENTS.md",
+          "packages/vue-query/src/__tests__/mutationCache.test.ts"
+        ],
+        "owners": [
+          "packages/preact-query/src/useMutationState.ts",
+          "packages/react-query/src/useMutationState.ts",
+          "packages/solid-query/src/useMutationState.ts",
+          "packages/query-core/src/queryClient.ts",
+          "packages/query-core/src/mutationCache.ts"
+        ],
+        "tests": [
+          "packages/preact-query/src/__tests__/useMutation.test.tsx",
+          "packages/react-query/src/__tests__/useMutation.test.tsx",
+          "packages/query-core/src/__tests__/mutationCache.test.tsx",
+          "packages/solid-query/src/__tests__/useMutation.test.tsx",
+          "packages/query-core/src/__tests__/queryCache.test.tsx"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        "AGENTS.md",
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/product-ux-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "skipped": "Tracked setup edits require a commit; this test does not commit to external repositories."
+      }
+    },
+    {
+      "repo": "pallets/click",
+      "task": "validate command line options and show usage errors",
+      "stack": "Python",
+      "failures": [],
+      "revision": "36baa15ff831b939a22bc527cd76ce653ef6f66d",
+      "readOnly": true,
+      "previewMs": 188,
+      "files": 166,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["docs/contributing.md", "docs/testing.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "docs/testing.md",
+          "action": "reference"
+        },
+        {
+          "path": "docs/contributing.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 2,
+        "netLines": 134,
+        "documentationNetLines": 49
+      },
+      "commands": [
+        {
+          "id": "mypy",
+          "executable": "uv",
+          "args": ["run", "mypy", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.mypy]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "pytest",
+          "executable": "uv",
+          "args": ["run", "pytest"],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.pytest]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "ruff",
+          "executable": "uv",
+          "args": ["run", "ruff", "check", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.ruff]",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 260,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13561,
+          "estimatedTokens": 3391
+        },
+        "selected": [
+          "src/click/__init__.py",
+          "docs/command-line-reference.md",
+          "docs/option-decorators.md",
+          "docs/exceptions.md",
+          "tests/typing/typing_version_option.py",
+          "tests/typing/typing_help_option.py",
+          "tests/test_utils/__init__.py"
+        ],
+        "owners": ["src/click/__init__.py"],
+        "tests": [
+          "tests/test_commands.py",
+          "tests/typing/typing_version_option.py",
+          "tests/typing/typing_confirmation_option.py",
+          "tests/typing/typing_help_option.py",
+          "tests/typing/typing_options.py"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "pallets/itsdangerous",
+      "task": "reject expired timestamp signatures",
+      "stack": "Python",
+      "failures": [],
+      "revision": "672971d66a2ef9f85151e53283113f33d642dabd",
+      "readOnly": true,
+      "previewMs": 166,
+      "files": 50,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 0,
+        "netLines": 130,
+        "documentationNetLines": 47
+      },
+      "commands": [
+        {
+          "id": "mypy",
+          "executable": "uv",
+          "args": ["run", "mypy", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.mypy]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "pytest",
+          "executable": "uv",
+          "args": ["run", "pytest"],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.pytest]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "ruff",
+          "executable": "uv",
+          "args": ["run", "ruff", "check", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.ruff]",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 187,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13580,
+          "estimatedTokens": 3395
+        },
+        "selected": [
+          "src/itsdangerous/__init__.py",
+          "tests/test_itsdangerous/test_timed.py",
+          "docs/timed.rst",
+          "src/itsdangerous/exc.py",
+          "tests/test_itsdangerous/test_signer.py",
+          "tests/test_itsdangerous/__init__.py",
+          "docs/exceptions.rst",
+          "docs/signer.rst"
+        ],
+        "owners": ["src/itsdangerous/__init__.py", "src/itsdangerous/exc.py"],
+        "tests": [
+          "tests/test_itsdangerous/test_timed.py",
+          "tests/test_itsdangerous/test_signer.py",
+          "tests/test_itsdangerous/__init__.py"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "pallets/jinja",
+      "task": "preserve template escaping for undefined values",
+      "stack": "Python",
+      "failures": [],
+      "revision": "5ef70112a1ff19c05324ff889dd30405b1002044",
+      "readOnly": true,
+      "previewMs": 173,
+      "files": 107,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 0,
+        "netLines": 130,
+        "documentationNetLines": 47
+      },
+      "commands": [
+        {
+          "id": "mypy",
+          "executable": "uv",
+          "args": ["run", "mypy", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.mypy]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "pytest",
+          "executable": "uv",
+          "args": ["run", "pytest"],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.pytest]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "ruff",
+          "executable": "uv",
+          "args": ["run", "ruff", "check", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.ruff]",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 233,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13410,
+          "estimatedTokens": 3353
+        },
+        "selected": [
+          "src/jinja2/tests.py",
+          "docs/integration.rst",
+          "src/jinja2/nativetypes.py",
+          "tests/res/templates/broken.html",
+          "tests/res/templates/foo/test.html",
+          "tests/res/templates/mojibake.txt",
+          "tests/res/templates/syntaxerror.html",
+          "tests/res/templates/test.html",
+          "tests/res/templates2/foo",
+          ".github/ISSUE_TEMPLATE/config.yml"
+        ],
+        "owners": ["src/jinja2/tests.py", "src/jinja2/nativetypes.py"],
+        "tests": [
+          "tests/res/templates/broken.html",
+          "tests/res/templates/foo/test.html",
+          "tests/res/templates/mojibake.txt",
+          "tests/res/templates/syntaxerror.html",
+          "tests/res/templates/test.html"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "pydantic/pydantic",
+      "task": "preserve validator errors when parsing nested models",
+      "stack": "Python/Rust",
+      "failures": [],
+      "revision": "74a852ea4838a03519e09a9dae4806dcdc026bf5",
+      "readOnly": true,
+      "previewMs": 349,
+      "files": 589,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": ["2 symbolic link(s) were not followed: CONTRIBUTING.md, tests/pydantic_core"],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["docs/contributing.md", "docs/internals/architecture.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "docs/internals/architecture.md",
+          "action": "reference"
+        },
+        {
+          "path": "docs/contributing.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 2,
+        "netLines": 216,
+        "documentationNetLines": 49
+      },
+      "commands": [
+        {
+          "id": "core-test-debug-8",
+          "executable": "uv",
+          "args": ["run", "pytest"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.core-test-debug.steps[7].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "core-test-os-7",
+          "executable": "uv",
+          "args": ["run", "pytest", "tests/pydantic_core"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.core-test-os.steps[6].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "pydantic-core-cargo-check",
+          "executable": "cargo",
+          "args": ["check"],
+          "cwd": "pydantic-core",
+          "source": "pydantic-core/Cargo.toml",
+          "appliesTo": ["pydantic-core/**"]
+        },
+        {
+          "id": "pydantic-core-core-test-os-8",
+          "executable": "cargo",
+          "args": ["test"],
+          "cwd": "pydantic-core",
+          "source": ".github/workflows/ci.yml jobs.core-test-os.steps[7].run",
+          "appliesTo": ["pydantic-core/**"]
+        },
+        {
+          "id": "pydantic-core-pytest",
+          "executable": "uv",
+          "args": ["run", "pytest"],
+          "cwd": "pydantic-core",
+          "source": "pydantic-core/pyproject.toml [tool.pytest]",
+          "appliesTo": ["pydantic-core/**"]
+        },
+        {
+          "id": "pydantic-core-ruff",
+          "executable": "uv",
+          "args": ["run", "ruff", "check", "."],
+          "cwd": "pydantic-core",
+          "source": "pydantic-core/pyproject.toml [tool.ruff]",
+          "appliesTo": ["pydantic-core/**"]
+        },
+        {
+          "id": "ruff",
+          "executable": "uv",
+          "args": ["run", "ruff", "check", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.ruff]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "run-pytest-no-coverage",
+          "executable": "uv",
+          "args": ["run", "pytest", "--durations=10"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test.steps[6].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "run-tests",
+          "executable": "uv",
+          "args": [
+            "run",
+            "pytest",
+            "--ignore=tests/mypy/",
+            "--ignore=tests/test_docs.py",
+            "--memray"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test-memray.steps[3].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-plugin-5",
+          "executable": "uv",
+          "args": ["run", "pytest", "tests/plugin"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test-plugin.steps[4].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "tests-typechecking-mypy",
+          "executable": "python",
+          "args": ["-m", "mypy", "."],
+          "cwd": "tests/typechecking",
+          "source": "tests/typechecking/pyproject.toml [tool.mypy]",
+          "appliesTo": ["tests/typechecking/**"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 445,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 15872,
+          "estimatedTokens": 3968
+        },
+        "selected": [
+          "pydantic/deprecated/class_validators.py",
+          "pydantic-core/src/validators/custom_error.rs",
+          "tests/mypy/outputs/mypy-default_ini/root_models.py"
+        ],
+        "owners": [
+          "pydantic-core/src/validators/model.rs",
+          "pydantic/functional_validators.py",
+          "pydantic-core/src/validators/model_fields.rs",
+          "pydantic/_internal/_model_construction.py",
+          "pydantic/v1/validators.py"
+        ],
+        "tests": [
+          "tests/mypy/outputs/mypy-default_ini/root_models.py",
+          "tests/mypy/outputs/pyproject-default_toml/root_models.py",
+          "tests/mypy/outputs/mypy-plugin_ini/root_models.py",
+          "tests/typechecking/base_model.py",
+          "pydantic-core/tests/benchmarks/nested_schema.py"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "python-attrs/attrs",
+      "task": "validate default attribute values in generated classes",
+      "stack": "Python",
+      "failures": [],
+      "revision": "8f767776326faaed11e6c2974798787f6e19b343",
+      "readOnly": true,
+      "previewMs": 193,
+      "files": 140,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": [".github/CONTRIBUTING.md", ".github/SECURITY.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".github/SECURITY.md",
+          "action": "reference"
+        },
+        {
+          "path": ".github/CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 2,
+        "netLines": 136,
+        "documentationNetLines": 49
+      },
+      "commands": [
+        {
+          "id": "mypy",
+          "executable": "uv",
+          "args": ["run", "mypy", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.mypy]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "pytest",
+          "executable": "uv",
+          "args": ["run", "pytest"],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.pytest]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "ruff",
+          "executable": "uv",
+          "args": ["run", "ruff", "check", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.ruff]",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 261,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13468,
+          "estimatedTokens": 3367
+        },
+        "selected": [
+          "src/attr/filters.py",
+          "tests/strategies.py",
+          "docs/how-does-it-work.md",
+          ".python-version-default"
+        ],
+        "owners": ["src/attr/filters.py"],
+        "tests": ["tests/strategies.py"],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "pytest-dev/pluggy",
+      "task": "preserve hook ordering when a plugin is unregistered",
+      "stack": "Python",
+      "failures": [],
+      "revision": "4821148db2f4c6daa62ad8bdcae2918ecf27a731",
+      "readOnly": true,
+      "previewMs": 178,
+      "files": 79,
+      "limits": [],
+      "initializationAllowed": false,
+      "conflicts": [
+        "Multiple root agent instruction sources require reconciliation: AGENTS.md, CLAUDE.md"
+      ],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": [".pre-commit-config.yaml", "SECURITY.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [],
+      "growth": {
+        "createdFiles": 0,
+        "patchedFiles": 0,
+        "referencedFiles": 0,
+        "netLines": 0,
+        "documentationNetLines": 0
+      },
+      "commands": [
+        {
+          "id": "mypy",
+          "executable": "uv",
+          "args": ["run", "mypy", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.mypy]",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "ruff",
+          "executable": "uv",
+          "args": ["run", "ruff", "check", "."],
+          "cwd": ".",
+          "source": "pyproject.toml [tool.ruff]",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 204,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 8537,
+          "estimatedTokens": 2135
+        },
+        "selected": [
+          "AGENTS.md",
+          "CLAUDE.md",
+          "docs/api_reference.rst",
+          "pyproject.toml",
+          ".pre-commit-config.yaml"
+        ],
+        "owners": ["src/pluggy/_hooks.py"],
+        "tests": ["testing/test_hookcaller.py", "testing/test_pluginmanager.py"],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "init": "refused"
+    },
+    {
+      "repo": "BurntSushi/toml",
+      "task": "decode quoted TOML keys without losing type information",
+      "stack": "Go",
+      "failures": [],
+      "revision": "d733fc535e4a9f3c454e421a87b90ade5d49bf31",
+      "readOnly": true,
+      "previewMs": 157,
+      "files": 42,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 140,
+        "documentationNetLines": 48
+      },
+      "commands": [
+        {
+          "id": "go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": ".",
+          "source": "go.mod",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-3",
+          "executable": "go",
+          "args": ["test", "-race", "./..."],
+          "cwd": ".",
+          "source": ".github/workflows/test.yml jobs.test.steps[2].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "testdata-cargo-check",
+          "executable": "cargo",
+          "args": ["check"],
+          "cwd": "testdata",
+          "source": "testdata/Cargo.toml",
+          "appliesTo": ["testdata/**"]
+        },
+        {
+          "id": "testdata-cargo-test",
+          "executable": "cargo",
+          "args": ["test"],
+          "cwd": "testdata",
+          "source": "testdata/Cargo.toml",
+          "appliesTo": ["testdata/**"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 178,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13241,
+          "estimatedTokens": 3311
+        },
+        "selected": [
+          "_example/example.go",
+          "cmd/toml-test-decoder/main.go",
+          "example_test.go",
+          "cmd/toml-test-decoder/README.md",
+          "cmd/toml-test-encoder/main.go",
+          "cmd/toml-test-encoder/README.md",
+          "cmd/toml-test-decoder/COPYING",
+          "go.mod"
+        ],
+        "owners": [
+          "decode.go",
+          "_example/example.go",
+          "cmd/toml-test-decoder/main.go",
+          "cmd/toml-test-encoder/main.go",
+          "cmd/tomlv/main.go"
+        ],
+        "tests": ["decode_test.go", "toml_test.go", "example_test.go"],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "go-chi/chi",
+      "task": "preserve route parameters through nested middleware",
+      "stack": "Go",
+      "failures": [],
+      "revision": "ae6be7469132cf471ca099d8c7bda4010c4ff7b2",
+      "readOnly": true,
+      "previewMs": 166,
+      "files": 105,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md", "SECURITY.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "SECURITY.md",
+          "action": "reference"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 2,
+        "netLines": 133,
+        "documentationNetLines": 49
+      },
+      "commands": [
+        {
+          "id": "examples-rest-go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": "_examples/rest",
+          "source": "_examples/rest/go.mod",
+          "appliesTo": ["_examples/rest/**"]
+        },
+        {
+          "id": "examples-versions-go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": "_examples/versions",
+          "source": "_examples/versions/go.mod",
+          "appliesTo": ["_examples/versions/**"]
+        },
+        {
+          "id": "go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": ".",
+          "source": "go.mod",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 221,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 14598,
+          "estimatedTokens": 3650
+        },
+        "selected": [
+          "middleware/route_headers.go",
+          "middleware/route_headers_test.go",
+          "_examples/rest/routes.md"
+        ],
+        "owners": [
+          "middleware/route_headers.go",
+          "middleware/strip.go",
+          "middleware/page_route.go",
+          "middleware/url_format.go",
+          "middleware/recoverer.go"
+        ],
+        "tests": [
+          "middleware/route_headers_test.go",
+          "middleware/strip_test.go",
+          "middleware/client_ip_test.go",
+          "middleware/middleware_test.go",
+          "middleware/url_format_test.go"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "rs/zerolog",
+      "task": "preserve structured fields when formatting log events",
+      "stack": "Go",
+      "failures": [],
+      "revision": "dfd11cca1143ba03ba0fc0ff14e5dbb4d61f6f0a",
+      "readOnly": true,
+      "previewMs": 171,
+      "files": 99,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["Referenced path was not available: log/slog"]
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 6,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 128,
+        "documentationNetLines": 48
+      },
+      "commands": [
+        {
+          "id": "cmd-lint-go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": "cmd/lint",
+          "source": "cmd/lint/go.mod",
+          "appliesTo": ["cmd/lint/**"]
+        },
+        {
+          "id": "go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": ".",
+          "source": "go.mod",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test",
+          "executable": "go",
+          "args": ["test", "-race", "-bench", ".", "-benchmem", "./..."],
+          "cwd": ".",
+          "source": ".github/workflows/test.yml jobs.test.steps[3].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-cbor",
+          "executable": "go",
+          "args": ["test", "-tags", "binary_log", "-race", "./..."],
+          "cwd": ".",
+          "source": ".github/workflows/test.yml jobs.test.steps[4].run",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 226,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 15083,
+          "estimatedTokens": 3771
+        },
+        "selected": ["log.go"],
+        "owners": ["event.go", "log.go", "log/log.go", "fields.go", "slog.go"],
+        "tests": [
+          "event_test.go",
+          "log_example_test.go",
+          "log_test.go",
+          "log/log_example_test.go",
+          "slog_test.go"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "stretchr/testify",
+      "task": "compare nested values in assertion failure messages",
+      "stack": "Go",
+      "failures": [],
+      "revision": "435c07b5cb95c88b82cf35f49da0dde33d24ad46",
+      "readOnly": true,
+      "previewMs": 172,
+      "files": 91,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 137,
+        "documentationNetLines": 48
+      },
+      "commands": [
+        {
+          "id": "build-6",
+          "executable": "go",
+          "args": ["test", "-v", "-race", "./..."],
+          "cwd": ".",
+          "source": ".github/workflows/main.yml jobs.build.steps[5].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "codegen-go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": "_codegen",
+          "source": "_codegen/go.mod",
+          "appliesTo": ["_codegen/**"]
+        },
+        {
+          "id": "go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": ".",
+          "source": "go.mod",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 227,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13541,
+          "estimatedTokens": 3386
+        },
+        "selected": [
+          "assert/assertion_compare.go",
+          "assert/forward_assertions.go",
+          "assert/assertion_format.go.tmpl",
+          "assert/assertion_forward.go.tmpl",
+          "_codegen/go.mod"
+        ],
+        "owners": [
+          "assert/assertions.go",
+          "assert/assertion_forward.go",
+          "assert/assertion_format.go",
+          "assert/assertion_compare.go",
+          "assert/assertion_order.go"
+        ],
+        "tests": [
+          "assert/assertion_compare_test.go",
+          "assert/forward_assertions_test.go",
+          "assert/http_assertions_test.go",
+          "assert/assertion_order_test.go",
+          "assert/assertions_test.go"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "junegunn/fzf",
+      "task": "preserve query selection when reloading results",
+      "stack": "Go/terminal",
+      "failures": [],
+      "revision": "52f4319a72c17e123396cc3a2e6abf2e96e9d753",
+      "readOnly": true,
+      "previewMs": 192,
+      "files": 161,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["SECURITY.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "SECURITY.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 111,
+        "documentationNetLines": 48
+      },
+      "commands": [
+        {
+          "id": "go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": ".",
+          "source": "go.mod",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 271,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13564,
+          "estimatedTokens": 3391
+        },
+        "selected": ["src/result.go", "src/tui/light_query_test.go"],
+        "owners": ["src/result.go", "src/result_others.go", "src/result_x86.go"],
+        "tests": ["src/result_test.go", "src/tui/light_query_test.go"],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "serde-rs/json",
+      "task": "report invalid JSON numbers with useful errors",
+      "stack": "Rust",
+      "failures": [],
+      "revision": "afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e",
+      "readOnly": true,
+      "previewMs": 175,
+      "files": 92,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 398,
+        "documentationNetLines": 48
+      },
+      "commands": [
+        {
+          "id": "build-10",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--manifest-path",
+            "tests/crate/Cargo.toml",
+            "--no-default-features",
+            "--features",
+            "alloc,raw_value"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[9].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "build-11",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--manifest-path",
+            "tests/crate/Cargo.toml",
+            "--features",
+            "serde_json/preserve_order"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[10].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "build-12",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--manifest-path",
+            "tests/crate/Cargo.toml",
+            "--no-default-features",
+            "--features",
+            "alloc,serde_json/preserve_order"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[11].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "build-3",
+          "executable": "cargo",
+          "args": ["check", "--manifest-path", "tests/crate/Cargo.toml"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[2].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "build-4",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--manifest-path",
+            "tests/crate/Cargo.toml",
+            "--features",
+            "float_roundtrip"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[3].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "build-5",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--manifest-path",
+            "tests/crate/Cargo.toml",
+            "--features",
+            "arbitrary_precision"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[4].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "build-6",
+          "executable": "cargo",
+          "args": ["check", "--manifest-path", "tests/crate/Cargo.toml", "--features", "raw_value"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[5].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "build-7",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--manifest-path",
+            "tests/crate/Cargo.toml",
+            "--features",
+            "unbounded_depth"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[6].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "build-8",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--manifest-path",
+            "tests/crate/Cargo.toml",
+            "--no-default-features",
+            "--features",
+            "alloc"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[7].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "build-9",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--manifest-path",
+            "tests/crate/Cargo.toml",
+            "--no-default-features",
+            "--features",
+            "alloc,arbitrary_precision"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.build.steps[8].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "cargo-check",
+          "executable": "cargo",
+          "args": ["check"],
+          "cwd": ".",
+          "source": "Cargo.toml",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "clippy-3",
+          "executable": "cargo",
+          "args": ["clippy", "--tests", "--", "-Dclippy::all", "-Dclippy::pedantic"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.clippy.steps[2].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "clippy-4",
+          "executable": "cargo",
+          "args": [
+            "clippy",
+            "--all-features",
+            "--tests",
+            "--",
+            "-Dclippy::all",
+            "-Dclippy::pedantic"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.clippy.steps[3].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "fuzz-cargo-check",
+          "executable": "cargo",
+          "args": ["check"],
+          "cwd": "fuzz",
+          "source": "fuzz/Cargo.toml",
+          "appliesTo": ["fuzz/**"]
+        },
+        {
+          "id": "fuzz-cargo-test",
+          "executable": "cargo",
+          "args": ["test"],
+          "cwd": "fuzz",
+          "source": "fuzz/Cargo.toml",
+          "appliesTo": ["fuzz/**"]
+        },
+        {
+          "id": "minimal-4",
+          "executable": "cargo",
+          "args": ["check", "--locked"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.minimal.steps[3].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-3",
+          "executable": "cargo",
+          "args": ["test"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test.steps[2].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-4",
+          "executable": "cargo",
+          "args": [
+            "test",
+            "--features",
+            "preserve_order",
+            "--tests",
+            "--",
+            "--skip",
+            "ui",
+            "--exact"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test.steps[3].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-5",
+          "executable": "cargo",
+          "args": [
+            "test",
+            "--features",
+            "float_roundtrip",
+            "--tests",
+            "--",
+            "--skip",
+            "ui",
+            "--exact"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test.steps[4].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-6",
+          "executable": "cargo",
+          "args": [
+            "test",
+            "--features",
+            "arbitrary_precision",
+            "--tests",
+            "--",
+            "--skip",
+            "ui",
+            "--exact"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test.steps[5].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-7",
+          "executable": "cargo",
+          "args": [
+            "test",
+            "--features",
+            "float_roundtrip,arbitrary_precision",
+            "--tests",
+            "--",
+            "--skip",
+            "ui",
+            "--exact"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test.steps[6].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-8",
+          "executable": "cargo",
+          "args": ["test", "--features", "raw_value", "--tests", "--", "--skip", "ui", "--exact"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test.steps[7].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-9",
+          "executable": "cargo",
+          "args": [
+            "test",
+            "--features",
+            "unbounded_depth",
+            "--tests",
+            "--",
+            "--skip",
+            "ui",
+            "--exact"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test.steps[8].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "tests-crate-cargo-check",
+          "executable": "cargo",
+          "args": ["check"],
+          "cwd": "tests/crate",
+          "source": "tests/crate/Cargo.toml",
+          "appliesTo": ["tests/crate/**"]
+        },
+        {
+          "id": "tests-crate-cargo-test",
+          "executable": "cargo",
+          "args": ["test"],
+          "cwd": "tests/crate",
+          "source": "tests/crate/Cargo.toml",
+          "appliesTo": ["tests/crate/**"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 223,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13414,
+          "estimatedTokens": 3354
+        },
+        "selected": [
+          "src/lexical/errors.rs",
+          "tests/debug.rs",
+          "CONTRIBUTING.md",
+          "tests/regression/issue845.rs",
+          "tests/lexical/num.rs",
+          "tests/ui/unexpected_after_map_entry.stderr",
+          "tests/ui/unexpected_after_map_entry.rs",
+          "tests/ui/missing_colon.stderr",
+          "fuzz/Cargo.toml"
+        ],
+        "owners": ["src/number.rs", "src/error.rs", "src/lexical/errors.rs"],
+        "tests": [
+          "tests/debug.rs",
+          "tests/regression/issue845.rs",
+          "tests/lexical/num.rs",
+          "tests/ui/unexpected_after_map_entry.stderr",
+          "tests/ui/unexpected_after_map_entry.rs"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "clap-rs/clap",
+      "task": "validate conflicting command line arguments",
+      "stack": "Rust workspace",
+      "failures": [],
+      "revision": "af3044228bd76a87a3f46a3c7c3343563c059527",
+      "readOnly": true,
+      "previewMs": 241,
+      "files": 620,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [
+        "12 symbolic link(s) were not followed: clap_builder/LICENSE-APACHE, clap_builder/LICENSE-MIT, clap_complete/LICENSE-APACHE, clap_complete/LICENSE-MIT, clap_complete_nushell/LICENSE-APACHE, clap_complete_nushell/LICENSE-MIT, clap_derive/LICENSE-APACHE, clap_derive/LICENSE-MIT, clap_lex/LICENSE-APACHE, clap_lex/LICENSE-MIT, clap_mangen/LICENSE-APACHE, clap_mangen/LICENSE-MIT"
+      ],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": [
+            "CONTRIBUTING.md",
+            "clap_builder/CONTRIBUTING.md",
+            "clap_complete/CONTRIBUTING.md",
+            "clap_derive/CONTRIBUTING.md",
+            "clap_lex/CONTRIBUTING.md",
+            "clap_mangen/CONTRIBUTING.md"
+          ],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "clap_builder/CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": "clap_complete/CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": "clap_derive/CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": "clap_lex/CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": "clap_mangen/CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 6,
+        "netLines": 173,
+        "documentationNetLines": 53
+      },
+      "commands": [
+        {
+          "id": "cargo-check",
+          "executable": "cargo",
+          "args": ["check"],
+          "cwd": ".",
+          "source": "Cargo.toml",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "cargo-test",
+          "executable": "cargo",
+          "args": ["test"],
+          "cwd": ".",
+          "source": "Cargo.toml",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "clap-complete",
+          "executable": "cargo",
+          "args": [
+            "test",
+            "-p",
+            "clap_complete",
+            "-F",
+            "unstable-dynamic",
+            "-F",
+            "unstable-shell-tests"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.shell-integration.steps[4].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "clap-complete-nu",
+          "executable": "cargo",
+          "args": ["test", "-p", "clap_complete_nushell", "-F", "unstable-shell-tests"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.shell-integration-nu.steps[3].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test-dynamic-completions",
+          "executable": "cargo",
+          "args": ["test", "-p", "clap_complete", "-F", "unstable-dynamic"],
+          "cwd": ".",
+          "source": ".github/workflows/ci.yml jobs.test.steps[7].run",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 319,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 12622,
+          "estimatedTokens": 3156
+        },
+        "selected": [
+          "tests/builder/command.rs",
+          "tests/derive/arguments.rs",
+          "tests/derive_ui/external_subcommand_wrong_type.stderr",
+          "tests/derive_ui/multiple_external_subcommand.rs",
+          "tests/derive_ui/skip_subcommand.rs",
+          "tests/derive/nested_subcommands.rs",
+          "clap_builder/src/builder/tests.rs",
+          "clap_bench/Cargo.toml"
+        ],
+        "owners": [
+          "clap_builder/src/builder/command.rs",
+          "clap_derive/src/derives/subcommand.rs",
+          "clap_builder/src/builder/tests.rs"
+        ],
+        "tests": [
+          "tests/builder/command.rs",
+          "tests/derive/arguments.rs",
+          "tests/builder/flag_subcommands.rs",
+          "tests/builder/subcommands.rs",
+          "tests/derive_ui/external_subcommand_wrong_type.stderr"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "sharkdp/bat",
+      "task": "preserve syntax highlighting when paging a file",
+      "stack": "Rust",
+      "failures": [],
+      "revision": "2ed8b010afb59c8b8463ad6818c4ee50fa1f17ee",
+      "readOnly": true,
+      "previewMs": 338,
+      "files": 909,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md", "SECURITY.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "SECURITY.md",
+          "action": "reference"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 2,
+        "netLines": 192,
+        "documentationNetLines": 49
+      },
+      "commands": [
+        {
+          "id": "cargo-check",
+          "executable": "cargo",
+          "args": ["check"],
+          "cwd": ".",
+          "source": "Cargo.toml",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "cargo-test",
+          "executable": "cargo",
+          "args": ["test"],
+          "cwd": ".",
+          "source": "Cargo.toml",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "lint-4",
+          "executable": "cargo",
+          "args": ["clippy", "--locked", "--all-targets", "--all-features", "--", "-D", "warnings"],
+          "cwd": ".",
+          "source": ".github/workflows/CICD.yml jobs.lint.steps[3].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "run-ignored-by-default-unit-tests-with-new-syntaxes-and-themes",
+          "executable": "cargo",
+          "args": ["test", "--locked", "--release", "--test", "assets", "--", "--ignored"],
+          "cwd": ".",
+          "source": ".github/workflows/CICD.yml jobs.test_with_new_syntaxes_and_themes.steps[6].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "run-unit-tests",
+          "executable": "cargo",
+          "args": ["test", "--locked", "--test", "system_wide_config", "--", "--ignored"],
+          "cwd": ".",
+          "source": ".github/workflows/CICD.yml jobs.test_with_system_config.steps[4].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "run-unit-tests-with-new-syntaxes-and-themes",
+          "executable": "cargo",
+          "args": ["test", "--locked", "--release"],
+          "cwd": ".",
+          "source": ".github/workflows/CICD.yml jobs.test_with_new_syntaxes_and_themes.steps[5].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "tests-syntax-tests-highlighted-go-go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": "tests/syntax-tests/highlighted/Go",
+          "source": "tests/syntax-tests/highlighted/Go/go.mod",
+          "appliesTo": ["tests/syntax-tests/highlighted/Go/**"]
+        },
+        {
+          "id": "tests-syntax-tests-source-go-go-test",
+          "executable": "go",
+          "args": ["test", "./..."],
+          "cwd": "tests/syntax-tests/source/Go",
+          "source": "tests/syntax-tests/source/Go/go.mod",
+          "appliesTo": ["tests/syntax-tests/source/Go/**"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 486,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13596,
+          "estimatedTokens": 3399
+        },
+        "selected": [
+          "src/syntax_mapping.rs",
+          "src/paging.rs",
+          ".github/ISSUE_TEMPLATE/syntax_request.md",
+          "src/assets/serialized_syntax_set.rs",
+          "tests/syntax-tests/source/NAnt Build File/LICENSE.md",
+          "tests/benchmarks/many-small-files/small-file-0.txt",
+          "src/syntax_mapping/builtins/bsd-family/.gitkeep",
+          "src/syntax_mapping/builtins/common/.gitkeep"
+        ],
+        "owners": [
+          "src/syntax_mapping.rs",
+          "src/assets/serialized_syntax_set.rs",
+          "src/syntax_mapping/ignored_suffixes.rs",
+          "src/syntax_mapping/builtin.rs",
+          "src/paging.rs"
+        ],
+        "tests": [
+          "tests/syntax-tests/highlighted/Diff/82e7786e747b1fcfac1f963ae6415a22ec9caae1.diff",
+          "tests/syntax-tests/highlighted/cmd-help/test.cmd-help",
+          "tests/scripts/find-slow-to-highlight-files.py",
+          "tests/syntax-tests/highlighted/Bash/batgrep.sh",
+          "tests/syntax-tests/highlighted/CMake/CMakeLists.txt"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "tokio-rs/axum",
+      "task": "preserve request extraction errors in routing",
+      "stack": "Rust workspace",
+      "failures": [],
+      "revision": "194030d7d0c9395cd98c172d1cfd08777332d7b2",
+      "readOnly": true,
+      "previewMs": 266,
+      "files": 498,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [
+        "5 symbolic link(s) were not followed: README.md, axum-core/LICENSE, axum-extra/LICENSE, axum-macros/LICENSE, axum/LICENSE"
+      ],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 1,
+        "netLines": 152,
+        "documentationNetLines": 48
+      },
+      "commands": [
+        {
+          "id": "axum-macros-run-nightly-tests",
+          "executable": "cargo",
+          "args": ["test"],
+          "cwd": "axum-macros",
+          "source": ".github/workflows/CI.yml jobs.test-nightly.steps[4].run",
+          "appliesTo": ["axum-macros/**"]
+        },
+        {
+          "id": "cargo-check",
+          "executable": "cargo",
+          "args": ["check"],
+          "cwd": ".",
+          "source": "Cargo.toml",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "cargo-test",
+          "executable": "cargo",
+          "args": ["test"],
+          "cwd": ".",
+          "source": "Cargo.toml",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "github-workflows-ci-yml-check",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--all-targets",
+            "--all-features",
+            "--target",
+            "armv5te-unknown-linux-musleabi"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/CI.yml jobs.armv5te-unknown-linux-musleabi.steps[3].run",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "github-workflows-ci-yml-check-2",
+          "executable": "cargo",
+          "args": [
+            "check",
+            "--manifest-path",
+            "./examples/simple-router-wasm/Cargo.toml",
+            "--target",
+            "wasm32-unknown-unknown"
+          ],
+          "cwd": ".",
+          "source": ".github/workflows/CI.yml jobs.wasm32-unknown-unknown.steps[3].run",
+          "appliesTo": ["**/*"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 384,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 14649,
+          "estimatedTokens": 3663
+        },
+        "selected": [
+          "axum/src/middleware/map_request.rs",
+          "axum/src/routing/tests/handle_error.rs"
+        ],
+        "owners": [
+          "axum/src/routing/mod.rs",
+          "axum-extra/src/routing/mod.rs",
+          "axum/src/middleware/map_request.rs",
+          "axum/src/routing/method_routing.rs",
+          "axum-macros/src/from_request/mod.rs"
+        ],
+        "tests": [
+          "axum/src/routing/tests/handle_error.rs",
+          "axum-macros/tests/from_request/fail/override_rejection_on_enum_without_via.stderr",
+          "axum/src/routing/tests/mod.rs",
+          "axum-macros/tests/from_request/fail/generic_without_via_rejection.stderr",
+          "axum-macros/tests/from_request/fail/generic_without_via.stderr"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "skipped": "No root README for the harmless changed-diff probe."
+      }
+    },
+    {
+      "repo": "ruby/rake",
+      "task": "invoke prerequisite tasks in dependency order",
+      "stack": "Ruby",
+      "failures": [],
+      "revision": "3834925b2d5e1cd889904eb92def1f9d4b81a66e",
+      "readOnly": true,
+      "previewMs": 178,
+      "files": 127,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": [
+            "No authoritative verification wrapper or candidate checks were found."
+          ]
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["Verification behavior was not assessed."]
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 5,
+        "patchedFiles": 0,
+        "referencedFiles": 0,
+        "netLines": 83,
+        "documentationNetLines": 33
+      },
+      "commands": [],
+      "deterministic": true,
+      "context": {
+        "ms": 229,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 14833,
+          "estimatedTokens": 3709
+        },
+        "selected": ["lib/rake/task.rb", "doc/glossary.rdoc"],
+        "owners": [
+          "lib/rake/task.rb",
+          "lib/rake/task_manager.rb",
+          "lib/rake/multi_task.rb",
+          "lib/rake/file_task.rb",
+          "lib/rake/file_creation_task.rb"
+        ],
+        "tests": [
+          "test/test_rake_task.rb",
+          "test/test_rake_test_task.rb",
+          "test/test_rake_file_task.rb",
+          "test/test_rake_multi_task.rb",
+          "test/test_rake_task_with_arguments.rb"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "skipped": "No root README for the harmless changed-diff probe."
+      }
+    },
+    {
+      "repo": "sinatra/sinatra",
+      "task": "handle route errors without losing response headers",
+      "stack": "Ruby",
+      "failures": [],
+      "revision": "cb22afd7902b566b6eaba6c4ea89739494a65d12",
+      "readOnly": true,
+      "previewMs": 213,
+      "files": 292,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md", "SECURITY.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": [
+            "No authoritative verification wrapper or candidate checks were found."
+          ]
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["Verification behavior was not assessed."]
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "SECURITY.md",
+          "action": "reference"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 5,
+        "patchedFiles": 0,
+        "referencedFiles": 2,
+        "netLines": 88,
+        "documentationNetLines": 35
+      },
+      "commands": [],
+      "deterministic": true,
+      "context": {
+        "ms": 328,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13353,
+          "estimatedTokens": 3339
+        },
+        "selected": [
+          "sinatra-contrib/lib/sinatra/multi_route.rb",
+          "test/mapped_error_test.rb",
+          "sinatra-contrib/ideas.md",
+          "sinatra-contrib/spec/multi_route_spec.rb",
+          "test/route_added_hook_test.rb",
+          "test/views/error.builder",
+          "test/views/error.erb",
+          "test/views/error.haml"
+        ],
+        "owners": ["sinatra-contrib/lib/sinatra/multi_route.rb"],
+        "tests": [
+          "test/mapped_error_test.rb",
+          "sinatra-contrib/spec/multi_route_spec.rb",
+          "test/route_added_hook_test.rb",
+          "test/views/error.builder",
+          "test/views/error.erb"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "slimphp/Slim",
+      "task": "preserve request routing and error middleware behavior",
+      "stack": "PHP",
+      "failures": [],
+      "revision": "3675bf6baac66b07032575b7bef4200b60b7974b",
+      "readOnly": true,
+      "previewMs": 178,
+      "files": 145,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md", "SECURITY.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": [
+            "No authoritative verification wrapper or candidate checks were found."
+          ]
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["Verification behavior was not assessed."]
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "SECURITY.md",
+          "action": "reference"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 5,
+        "patchedFiles": 0,
+        "referencedFiles": 2,
+        "netLines": 86,
+        "documentationNetLines": 35
+      },
+      "commands": [],
+      "deterministic": true,
+      "context": {
+        "ms": 259,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 14739,
+          "estimatedTokens": 3685
+        },
+        "selected": [
+          "Slim/Middleware/RoutingMiddleware.php",
+          "Slim/Exception/HttpBadRequestException.php",
+          "Slim/Middleware/ErrorMiddleware.php",
+          "tests/Routing/RouteRunnerTest.php",
+          "UPGRADING.md"
+        ],
+        "owners": [
+          "Slim/Middleware/RoutingMiddleware.php",
+          "Slim/Middleware/ErrorMiddleware.php",
+          "Slim/Routing/RouteRunner.php",
+          "Slim/Routing/Route.php",
+          "Slim/Middleware/BodyParsingMiddleware.php"
+        ],
+        "tests": [
+          "tests/Middleware/ErrorMiddlewareTest.php",
+          "tests/Middleware/RoutingMiddlewareTest.php",
+          "tests/Routing/RouteRunnerTest.php",
+          "tests/Routing/RouteTest.php",
+          "tests/MiddlewareDispatcherTest.php"
+        ],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "dorny/paths-filter",
+      "task": "match changed paths against exclusion rules",
+      "stack": "GitHub Action/TypeScript",
+      "failures": [],
+      "revision": "ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d",
+      "readOnly": true,
+      "previewMs": 176,
+      "files": 32,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/verification.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/verify-change/SKILL.md",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 7,
+        "patchedFiles": 0,
+        "referencedFiles": 0,
+        "netLines": 130,
+        "documentationNetLines": 47
+      },
+      "commands": [
+        {
+          "id": "build",
+          "executable": "npm",
+          "args": ["run", "build"],
+          "cwd": ".",
+          "source": "package.json scripts.build",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "lint",
+          "executable": "npm",
+          "args": ["run", "lint"],
+          "cwd": ".",
+          "source": "package.json scripts.lint",
+          "appliesTo": ["**/*"]
+        },
+        {
+          "id": "test",
+          "executable": "npm",
+          "args": ["run", "test"],
+          "cwd": ".",
+          "source": "package.json scripts.test",
+          "appliesTo": ["__tests__/**", "src/**", "*.js", "package.json"]
+        }
+      ],
+      "deterministic": true,
+      "context": {
+        "ms": 185,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 14285,
+          "estimatedTokens": 3572
+        },
+        "selected": ["src/safe-directory.ts", "__tests__/shell-escape.test.ts", "CHANGELOG.md"],
+        "owners": ["src/safe-directory.ts"],
+        "tests": ["__tests__/shell-escape.test.ts"],
+        "unknowns": ["Applicable approved verification command"]
+      },
+      "changedPaths": [
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/verification.yml",
+        "AGENTS.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "continued": true,
+        "noChange": "blocked",
+        "changedDiff": "incomplete",
+        "finishInferred": true,
+        "documentationUnchanged": true,
+        "agentCalls": 0
+      }
+    },
+    {
+      "repo": "neovim/nvim-lspconfig",
+      "task": "find language server root directories correctly",
+      "stack": "Lua",
+      "failures": [],
+      "revision": "85e732c62ac59ab7c12df71ddd020baa87948390",
+      "readOnly": true,
+      "previewMs": 247,
+      "files": 892,
+      "limits": [],
+      "initializationAllowed": true,
+      "conflicts": [],
+      "capabilities": [
+        {
+          "id": "project-knowledge",
+          "label": "Project knowledge",
+          "decision": "reuse",
+          "evidence": ["CONTRIBUTING.md"],
+          "missingEvidence": []
+        },
+        {
+          "id": "task-routes",
+          "label": "Task routes",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "verification-policy",
+          "label": "Verification",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": [
+            "No authoritative verification wrapper or candidate checks were found."
+          ]
+        },
+        {
+          "id": "verification-skill",
+          "label": "Verification skill",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["Verification behavior was not assessed."]
+        },
+        {
+          "id": "task-orchestration",
+          "label": "Task orchestration",
+          "decision": "create",
+          "evidence": [],
+          "missingEvidence": []
+        },
+        {
+          "id": "product-ux-guidance",
+          "label": "Product and UX guidance",
+          "decision": "not-assessed",
+          "evidence": [],
+          "missingEvidence": ["No user-facing product surface was detected."]
+        }
+      ],
+      "proposals": [
+        {
+          "path": "AGENTS.md",
+          "action": "patch"
+        },
+        {
+          "path": ".noxroot/config.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/knowledge/INDEX.md",
+          "action": "create"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "action": "reference"
+        },
+        {
+          "path": ".noxroot/routes.yml",
+          "action": "create"
+        },
+        {
+          "path": ".noxroot/skills/independent-review/SKILL.md",
+          "action": "create"
+        }
+      ],
+      "growth": {
+        "createdFiles": 4,
+        "patchedFiles": 1,
+        "referencedFiles": 1,
+        "netLines": 82,
+        "documentationNetLines": 33
+      },
+      "commands": [],
+      "deterministic": true,
+      "context": {
+        "ms": 272,
+        "confidence": "insufficient",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 12946,
+          "estimatedTokens": 3237
+        },
+        "selected": [
+          "AGENTS.md",
+          "CONTRIBUTING.md",
+          "lsp/anakin_language_server.lua",
+          "lsp/arduino_language_server.lua",
+          "test/test_dir/root_marker.txt",
+          "doc/server_configurations.md",
+          "doc/server_configurations.txt",
+          "scripts/docs_template.md"
+        ],
+        "owners": [],
+        "tests": ["test/test_dir/root_marker.txt"],
+        "unknowns": ["Owning source path", "Applicable approved verification command"]
+      },
+      "changedPaths": [
+        "AGENTS.md",
+        ".noxroot/config.yml",
+        ".noxroot/knowledge/INDEX.md",
+        ".noxroot/routes.yml",
+        ".noxroot/skills/independent-review/SKILL.md"
+      ],
+      "idempotent": true,
+      "syncProposals": 0,
+      "init": "applied-only-proposed-files",
+      "lifecycle": {
+        "skipped": "Tracked setup edits require a commit; this test does not commit to external repositories."
+      }
+    }
+  ],
+  "cleanup": true,
+  "package": {
+    "size": 120610,
+    "unpackedSize": 385248,
+    "sha256": "b7f74599743ba729e1c2ca6079ffa6c51d727fb16a8800f7e97335dde682e51f"
+  },
+  "finishedAt": "2026-09-03T20:06:12.530Z"
+}
