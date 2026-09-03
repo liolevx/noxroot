@@ -531,7 +531,10 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
 
   it("does not require review for a bounded UI copy change", async () => {
     const root = await repository();
-    await writeFile(path.join(root, "src", "App.tsx"), "export const App = () => <main>Old</main>;\n");
+    await writeFile(
+      path.join(root, "src", "App.tsx"),
+      "export const App = () => <main>Old</main>;\n",
+    );
     await git(root, ["add", "."]);
     await git(root, ["commit", "-m", "frontend fixture"]);
     const command = {
@@ -550,7 +553,10 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
       effectiveAutonomy: effectiveAutonomy(undefined),
       trustedVerificationPolicy: [command],
     });
-    await writeFile(path.join(root, "src", "App.tsx"), "export const App = () => <main>Ready</main>;\n");
+    await writeFile(
+      path.join(root, "src", "App.tsx"),
+      "export const App = () => <main>Ready</main>;\n",
+    );
 
     const finished = await finishGuidedRun({
       root,

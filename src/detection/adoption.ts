@@ -16,8 +16,7 @@ const TEXT_REFERENCE = /\.(?:md|mdx|ya?ml)$/i;
 const INSTRUCTION_NAME = /^(?:AGENTS|CLAUDE|copilot-instructions)\.md$/i;
 const NON_PROJECT_SURFACE =
   /(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?|playgrounds?|sandboxes?)(?:\/|$)/i;
-const EXTERNAL_DEPENDENCY_REFERENCE =
-  /(?:^|\/)(?:node_modules|\.venv|venv|site-packages)(?:\/|$)/i;
+const EXTERNAL_DEPENDENCY_REFERENCE = /(?:^|\/)(?:node_modules|\.venv|venv|site-packages)(?:\/|$)/i;
 
 interface Reference {
   from: string;

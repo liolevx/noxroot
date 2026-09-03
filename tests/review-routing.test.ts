@@ -19,11 +19,7 @@ describe("actual-diff review routing", () => {
     expect(
       assessReviewNeed(
         ["app/page.tsx"],
-        [
-          "diff --git a/app/page.tsx b/app/page.tsx",
-          "-Documentation",
-          "+Next.js Guide",
-        ].join("\n"),
+        ["diff --git a/app/page.tsx b/app/page.tsx", "-Documentation", "+Next.js Guide"].join("\n"),
       ),
     ).toEqual({ required: false, kinds: [], reasons: [] });
   });
@@ -58,7 +54,7 @@ describe("actual-diff review routing", () => {
         [],
         [
           'diff --git "a/src/components/Profile card.tsx" "b/src/components/Profile card.tsx"',
-          "+<input aria-label=\"Profile name\" />",
+          '+<input aria-label="Profile name" />',
         ].join("\n"),
       ),
     ).toMatchObject({ required: true, kinds: ["ux"] });

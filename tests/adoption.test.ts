@@ -114,7 +114,10 @@ describe("mature repository adoption", () => {
     ].join("\n");
     await writeFile(path.join(repository, "AGENTS.md"), frameworkInstructions);
     await writeFile(path.join(repository, "CLAUDE.md"), "@AGENTS.md\n");
-    await writeFile(path.join(repository, "app", "page.tsx"), "export default function Page() {}\n");
+    await writeFile(
+      path.join(repository, "app", "page.tsx"),
+      "export default function Page() {}\n",
+    );
     await writeFile(
       path.join(repository, "package.json"),
       JSON.stringify({ scripts: { build: "framework build", lint: "eslint ." } }),
