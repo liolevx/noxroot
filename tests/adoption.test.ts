@@ -7,6 +7,8 @@ import { doctorRepository } from "../src/core/doctor.js";
 import { applyProposals } from "../src/core/init.js";
 import { previewRepository } from "../src/core/preview.js";
 import { inspectRepositoryAdoption } from "../src/detection/adoption.js";
+import { scanRepository } from "../src/detection/scan.js";
+import { assessModules, buildProposals } from "../src/core/proposals.js";
 import { planVerification } from "../src/verification/index.js";
 import { fixtureCopy, hashTree, temporaryDirectory } from "./helpers.js";
 
@@ -99,6 +101,44 @@ describe("mature repository adoption", () => {
     );
   });
 
+  it("adds a reversible entrypoint beside compatible framework-managed instructions", async () => {
+    const repository = await root();
+    await mkdir(path.join(repository, "app"), { recursive: true });
+    const frameworkInstructions = [
+      "<!-- BEGIN:framework-agent-rules -->",
+      "# Framework instructions",
+      "APIs, conventions, and file structure may differ from training data. Read the relevant guide in `node_modules/framework/docs/` before writing code.",
+      "This block is maintained by the framework.",
+      "<!-- END:framework-agent-rules -->",
+      "",
+    ].join("\n");
+    await writeFile(path.join(repository, "AGENTS.md"), frameworkInstructions);
+    await writeFile(path.join(repository, "CLAUDE.md"), "@AGENTS.md\n");
+    await writeFile(
+      path.join(repository, "app", "page.tsx"),
+      "export default function Page() {}\n",
+    );
+    await writeFile(
+      path.join(repository, "package.json"),
+      JSON.stringify({ scripts: { build: "framework build", lint: "eslint ." } }),
+    );
+
+    const preview = await previewRepository(repository);
+
+    expect(preview.initializationAllowed).toBe(true);
+    expect(preview.capabilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "project-knowledge", decision: "create" }),
+        expect.objectContaining({ id: "task-orchestration", decision: "create" }),
+      ]),
+    );
+    const agents = preview.proposedFiles.find((item) => item.path === "AGENTS.md");
+    expect(agents).toMatchObject({ action: "patch" });
+    expect(agents?.content).toContain(frameworkInstructions.trim());
+    expect(agents?.content).toContain("<!-- noxroot:start -->");
+    expect(preview.proposedFiles.map((item) => item.path)).not.toContain("CLAUDE.md");
+  });
+
   it("keeps an existing repository coordinator authoritative while adding only companion capabilities", async () => {
     const repository = await root();
     await mkdir(path.join(repository, "tools"), { recursive: true });
@@ -161,9 +201,26 @@ describe("mature repository adoption", () => {
     expect(preview.capabilities.find((item) => item.id === "task-orchestration")).toEqual(
       expect.objectContaining({ decision: "create", evidence: [] }),
     );
+    expect(preview.capabilities.find((item) => item.id === "coordination-ledger")).toEqual(
+      expect.objectContaining({
+        decision: "adjacent",
+        evidence: [
+          "docs/coordination.md (durable work state, cross-session continuity, coding-work coordination)",
+        ],
+      }),
+    );
     expect(preview.conflicts).not.toContainEqual(
       expect.stringContaining("repository-development coordinator"),
     );
+  });
+
+  it("does not mistake an internal review ledger for an adjacent coordination capability", async () => {
+    const fixture = await fixtureCopy("review-procedure-ledger");
+    cleanup.push(fixture.cleanup);
+
+    const preview = await previewRepository(fixture.root);
+
+    expect(preview.capabilities.find((item) => item.id === "coordination-ledger")).toBeUndefined();
   });
 
   it("detects coordinator behavior without relying on a filename or implementation language", async () => {
@@ -180,6 +237,31 @@ describe("mature repository adoption", () => {
     );
     expect(preview.proposedFiles.map((item) => item.path)).not.toContain(
       ".noxroot/skills/independent-review/SKILL.md",
+    );
+  });
+
+  it("does not treat coordinator fixtures as live repository authority", async () => {
+    const repository = await root();
+    await mkdir(path.join(repository, "src"), { recursive: true });
+    await mkdir(path.join(repository, "tests", "fixtures", "coordinator", "docs"), {
+      recursive: true,
+    });
+    await writeFile(path.join(repository, "src", "index.ts"), "export {};\n");
+    await writeFile(
+      path.join(repository, "tests", "fixtures", "coordinator", "AGENTS.md"),
+      "Use [automation](docs/automation.md).\n",
+    );
+    await writeFile(
+      path.join(repository, "tests", "fixtures", "coordinator", "docs", "automation.md"),
+      "Manage Git worktrees. Run coding workers. Execute verification. Require independent review.\n",
+    );
+
+    const preview = await previewRepository(repository);
+    expect(preview.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
+      decision: "create",
+    });
+    expect(preview.conflicts).not.toContainEqual(
+      expect.stringContaining("repository-development coordinator"),
     );
   });
 
@@ -200,6 +282,37 @@ describe("mature repository adoption", () => {
     expect(preview.proposedFiles.map((item) => item.path)).not.toContain(".noxroot/routes.yml");
   });
 
+  it("does not enable lifecycle modules when orchestration could not be assessed", async () => {
+    const repository = await root();
+    await writeFile(path.join(repository, "AGENTS.md"), "# Repository instructions\n");
+    await writeFile(path.join(repository, "README.md"), "# Sample\n");
+    await mkdir(path.join(repository, "src"));
+    await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        writeFile(path.join(repository, "src", `${index}.ts`), "export {};\n"),
+      ),
+    );
+
+    const profile = await scanRepository(repository, { limits: { maxFiles: 3 } });
+    const adoption = await inspectRepositoryAdoption(profile);
+    const modules = assessModules(profile, undefined, adoption);
+    const proposals = await buildProposals(profile, modules, adoption);
+    const config = parse(
+      proposals.find((item) => item.path === ".noxroot/config.yml")?.content ?? "",
+    ) as { modules: string[] };
+    const instructions = proposals.find((item) => item.path === "AGENTS.md")?.content ?? "";
+
+    expect(adoption.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
+      decision: "not-assessed",
+    });
+    expect(modules.find((item) => item.id === "orchestration")?.status).toBe("blocked");
+    expect(modules.find((item) => item.id === "learning")?.status).toBe("blocked");
+    expect(config.modules).not.toContain("orchestration");
+    expect(config.modules).not.toContain("learning");
+    expect(instructions).not.toContain(' start "');
+    expect(instructions).not.toContain(" finish");
+  });
+
   it("does not confuse an application runtime entrypoint with repository orchestration", async () => {
     const repository = await root();
     await mkdir(path.join(repository, "service"), { recursive: true });
@@ -214,6 +327,22 @@ describe("mature repository adoption", () => {
 
     const preview = await previewRepository(repository);
     expect(preview.initializationAllowed).toBe(true);
+    expect(preview.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
+      decision: "create",
+    });
+  });
+
+  it("does not confuse application-agent sessions and handoffs with a coding-work ledger", async () => {
+    const repository = await root();
+    await writeFile(
+      path.join(repository, "README.md"),
+      "# Agent SDK\n\nBuild agent workflows with sessions, handoffs, tools, and durable application state.\n",
+    );
+    await writeFile(path.join(repository, "package.json"), '{"name":"agent-sdk"}\n');
+
+    const preview = await previewRepository(repository);
+
+    expect(preview.capabilities.find((item) => item.id === "coordination-ledger")).toBeUndefined();
     expect(preview.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
       decision: "create",
     });

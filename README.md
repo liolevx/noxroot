@@ -9,18 +9,15 @@
 
 # Noxroot
 
-**Project memory and verification for coding agents.**
+**Give coding agents the project context they need, then check what they changed.**
 
-A CLI for task context, project checks, and reusable documentation.
+A CLI for project memory, focused task briefs, approved checks, and reusable documentation.
 
-Noxroot gives coding agents the repository context each task needs, checks the resulting diff with
-approved commands, and proposes useful lessons as project documentation for the next task.
+Noxroot carries repository knowledge across sessions, prepares a small task brief, checks the
+resulting diff with approved commands, and proposes useful documentation for the next task.
 
 It reuses the docs, rules, skills, and checks your repository already has. Use it with Codex, Claude
 Code, Cursor, OpenCode, Copilot CLI, and other coding agents.
-
-Set up Noxroot once. Then keep working with your coding agent normally. If another tool already owns
-part of the workflow, Noxroot leaves it in charge.
 
 ## What Noxroot changes
 
@@ -41,9 +38,6 @@ When Noxroot owns the lifecycle, the workflow is:
   <img src="docs/assets/noxroot-workflow.svg" alt="When Noxroot owns the lifecycle, it reuses repository knowledge, prepares focused context, supports your coding agent, checks the change, and keeps useful project knowledge" width="900">
 </p>
 
-Noxroot prepares the task, your coding agent builds it, and Noxroot checks the result. Useful
-lessons can become project documentation. Your coding agent stays in control.
-
 ## Project memory, not chat history
 
 Project memory is the versioned repository knowledge future agents should reuse: architecture,
@@ -52,7 +46,9 @@ model memory or chat history.
 
 Noxroot starts with the repository's existing documentation and source. Its index points agents to
 relevant material instead of copying it into a parallel wiki. Validated lessons keep project
-documentation current. If no reusable lesson exists, nothing is added.
+documentation current. If no reusable lesson exists, nothing is added. Completed local run evidence
+expires after the configured retention window and is capped by count. Active and incomplete work is
+preserved.
 
 Because project knowledge is plain Markdown, you can inspect it in GitHub, your editor, or
 optionally Obsidian. Raw prompts, application sessions, credentials, and user data do not become
@@ -89,17 +85,17 @@ npx --yes noxroot@0.1.0 start "add a page where users can save favourite restaur
 npx --yes noxroot@0.1.0 finish
 ```
 
-Run `init` once per repository, not once per chat or day. It shows a read-only diagnosis, reuses
-existing documentation, and proposes a thin managed entrypoint without replacing a good `AGENTS.md`
-or copying documentation into a Noxroot-only format. The entrypoint pins the Noxroot version and
-uses `npx`, so the repository needs no global or project installation. npm retrieves the CLI through
-its normal cache when an agent invokes it.
+Run `init` once per repository. It previews a thin managed entrypoint, preserves existing
+documentation, and pins the Noxroot version. The pinned `npx` command needs no global or project
+installation.
 
-Before setup, preview labels each capability `create`, `reuse`, `conflict`, or `not-assessed`.
-Noxroot creates only a confirmed gap. Existing systems stay in place. Missing evidence means no
-change. If another tool already coordinates repository changes, Noxroot can add non-overlapping
-context and verification support while that tool keeps ownership of task lifecycle, review, and
-learning. Noxroot will not install a second lifecycle beside it.
+Before setup, preview labels each capability `create`, `reuse`, `adjacent`, `conflict`, or
+`not-assessed`. Noxroot creates only a confirmed gap. Existing systems stay in place. Missing
+evidence means no change. If another tool already coordinates repository changes, Noxroot can add
+non-overlapping context and verification support while that tool keeps ownership of task lifecycle,
+review, and learning. A coordination ledger or session journal is reported as adjacent: it may
+preserve work across sessions, but Noxroot does not import its log or treat it as a development
+coordinator.
 
 Questions, explanations, reviews, and other read-only work do not create tasks. If a new
 conversation continues the same task in the same repository, branch, and worktree, `start` reuses
@@ -119,8 +115,8 @@ Instruction discovery varies by coding tool, so the commands remain available fo
 | Learning procedure after finish   | `finish`, then `learn` through the pinned `npx` command                                                     | Propose a small knowledge update when something reusable was validated     |
 | Local task state created by start | `.git/noxroot/runs/*.json` in a standard checkout                                                           | Store baselines and results without treating them as project documentation |
 
-Only missing capabilities are proposed. A mature repository may need only a small entrypoint and
-configuration, or no setup changes at all.
+Only missing capabilities are proposed. Mature repositories may need nothing. Existing documentation
+remains discoverable without being copied.
 
 `SKILL.md` files are portable, on-demand instructions. The generated verification skill tells an
 agent how to check a change; the independent-review and optional product/UX skills describe their
@@ -146,19 +142,19 @@ Outcome
 Confidence  High
 
 Task context
-  6 files · ~3,230 tokens
+  6 files · ~3,344 tokens
   src/adapters/agents.ts
+  src/orchestration/review.ts
   .noxroot/skills/independent-review/SKILL.md
   .noxroot/knowledge/INDEX.md
   AGENTS.md
   .noxroot/config.yml
-  tests/agent-review.test.ts
 
 Likely owner
   src/adapters/agents.ts
 
 Likely tests
-  tests/agent-review.test.ts
+  tests/agent-review.test.ts (+2 related)
 
 Checks
   npm run format:check
@@ -264,8 +260,9 @@ Python, Go, Rust, and other stacks. CI covers Windows, macOS, and Linux.
 `--verbose` shows detailed human-readable evidence. `preview --diff` shows proposed writes.
 `context` explains file selection. `verify --plan` shows approved commands without running them.
 `verify --changed` runs applicable checks. `run --dry-run` shows a connected execution plan.
-`doctor` explains configuration problems. `learn --task ID` shows confirmable durable proposals.
-Data commands support `--json`, with progress and diagnostics on standard error.
+`status` shows active work and the next action. `doctor` explains configuration problems.
+`learn --task ID` shows confirmable durable proposals. Data commands support `--json`, with progress
+and diagnostics on standard error.
 
 Read the [command reference](docs/commands.md), [configuration](docs/configuration.md),
 [architecture](docs/architecture.md), [adapter protocol](docs/adapters.md), and

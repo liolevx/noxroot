@@ -14,6 +14,7 @@ const MAX_CONTENT_BYTES = 1_000_000;
 const MAX_INSPECTED_FILE_BYTES = 96_000;
 
 const ALWAYS_CONTEXT = new Set(["AGENTS.md", ".noxroot/config.yml", ".noxroot/knowledge/INDEX.md"]);
+const ROOT_INSTRUCTION = /^(?:AGENTS|CLAUDE|copilot-instructions)\.md$/i;
 const MANIFESTS = new Set(["package.json", "pyproject.toml", "Cargo.toml", "go.mod"]);
 const STOP_WORDS = new Set([
   "add",
@@ -28,6 +29,7 @@ const STOP_WORDS = new Set([
   "fix",
   "for",
   "from",
+  "has",
   "improve",
   "introduce",
   "into",
@@ -49,6 +51,7 @@ const STOP_WORDS = new Set([
   "top",
   "user",
   "users",
+  "when",
   "with",
   "without",
 ]);
@@ -68,9 +71,11 @@ const TOKEN_ALIASES: Record<string, string> = {
 };
 
 const SOURCE_EXTENSION = /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php)$/;
-const TEST_PATH = /(?:^|\/)(?:tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\./;
+const TEST_PATH =
+  /(?:^|\/)(?:__tests__|tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\.|(?:^|\/)(?:test_[^/]+|[^/]+_(?:test|spec))\.(?:go|py|rb)$/;
 const DOCUMENT_PATH = /(?:^|\/)(?:docs?|adr|adrs)(?:\/|$)|\.(?:md|mdx)$/;
-const FIXTURE_PATH = /(?:^|\/)(?:fixtures?|snapshots?|examples?|generated|vendor)(?:\/|$)/;
+const NON_AUTHORITATIVE_PATH =
+  /(?:^|\/)(?:expected|fixtures?|golden|snapshots?|examples?|generated|vendor|cassettes?|recordings?|testdata|canary|payloads?)(?:\/|$)/i;
 
 type Category = "entrypoint" | "manifest" | "source" | "test" | "document" | "other";
 
@@ -81,6 +86,11 @@ interface RankedCandidate {
   reasons: string[];
   category: Category;
   matchedTerms: Set<string>;
+  pathMatchedTerms: Set<string>;
+}
+
+function isAlwaysContext(file: string): boolean {
+  return ALWAYS_CONTEXT.has(file) || ROOT_INSTRUCTION.test(file);
 }
 
 function normalizeToken(value: string): string {
@@ -123,7 +133,7 @@ function routeMatches(pattern: string, taskTerms: string[]): boolean {
 }
 
 function category(file: string): Category {
-  if (ALWAYS_CONTEXT.has(file)) return "entrypoint";
+  if (isAlwaysContext(file)) return "entrypoint";
   if (MANIFESTS.has(path.posix.basename(file))) return "manifest";
   if (TEST_PATH.test(file)) return "test";
   if (SOURCE_EXTENSION.test(file)) return "source";
@@ -146,12 +156,13 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
   const pathTerms = tokens(file);
   const lower = file.toLowerCase();
   const matchedTerms = new Set<string>();
+  const pathMatchedTerms = new Set<string>();
   let score = 0;
 
   if (file === ".noxroot/knowledge/INDEX.md") {
     score += 92;
     reasons.push("progressive-disclosure knowledge index");
-  } else if (file === "AGENTS.md") {
+  } else if (ROOT_INSTRUCTION.test(file)) {
     score += 88;
     reasons.push("authoritative repository instructions");
   } else if (file === ".noxroot/config.yml") {
@@ -162,22 +173,26 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
     reasons.push("authoritative project manifest");
   }
 
-  for (const term of taskTerms) {
+  for (const term of isAlwaysContext(file) ? [] : taskTerms) {
     if (stemTerms.includes(term)) {
       score += 50;
       matchedTerms.add(term);
+      pathMatchedTerms.add(term);
       reasons.push(`basename matches task term “${term}”`);
     } else if (segments.includes(term)) {
       score += 38;
       matchedTerms.add(term);
+      pathMatchedTerms.add(term);
       reasons.push(`directory matches task term “${term}”`);
     } else if (pathTerms.includes(term)) {
       score += 22;
       matchedTerms.add(term);
+      pathMatchedTerms.add(term);
       reasons.push(`path token matches task term “${term}”`);
     } else if (lower.includes(term)) {
       score += 7;
       matchedTerms.add(term);
+      pathMatchedTerms.add(term);
       reasons.push(`path substring matches task term “${term}”`);
     }
   }
@@ -189,7 +204,7 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
     reasons.push("matched an active context route");
     reasons.push(`eligible through route ${activeRouteIds.join(", ")}`);
   }
-  if (FIXTURE_PATH.test(file)) {
+  if (NON_AUTHORITATIVE_PATH.test(file)) {
     score -= 45;
     reasons.push("fixture/example penalty");
   }
@@ -217,7 +232,15 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
       reasons.push("independent-review procedure matches the requested risk");
     }
   }
-  return { file, bytes: 0, score, reasons, category: fileCategory, matchedTerms };
+  return {
+    file,
+    bytes: 0,
+    score,
+    reasons,
+    category: fileCategory,
+    matchedTerms,
+    pathMatchedTerms,
+  };
 }
 
 async function addContentRelevance(
@@ -249,13 +272,24 @@ async function addContentRelevance(
         120,
         matches.reduce(
           (total, term) =>
-            total + Math.min(12, sourceTerms.filter((token) => token === term).length) * 6,
+            total + Math.min(4, sourceTerms.filter((token) => token === term).length) * 6,
           0,
         ),
       );
       for (const match of matches) item.matchedTerms.add(match);
       item.reasons.push(
         `content contains task term${matches.length === 1 ? "" : "s"} ${matches.map((term) => `“${term}”`).join(", ")}`,
+      );
+    }
+    const sourceText = ` ${sourceTerms.join(" ")} `;
+    const phraseMatches = taskTerms
+      .slice(0, -1)
+      .map((term, index) => `${term} ${taskTerms[index + 1]}`)
+      .filter((phrase) => sourceText.includes(` ${phrase} `));
+    if (phraseMatches.length > 0) {
+      item.score += Math.min(48, phraseMatches.length * 24);
+      item.reasons.push(
+        `content matches task phrase${phraseMatches.length === 1 ? "" : "s"} ${phraseMatches.map((phrase) => `“${phrase}”`).join(", ")}`,
       );
     }
   }
@@ -334,6 +368,21 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     (term) => !["check", "regression", "test", "verify"].includes(term),
   );
   const excludedPathTerms = new Set(tokens(intent.explicitExclusions.join(" ")));
+  const artifactPathsRequested = taskTerms.some((term) =>
+    [
+      "canary",
+      "cassette",
+      "example",
+      "expected",
+      "fixture",
+      "golden",
+      "payload",
+      "recording",
+      "sample",
+      "snapshot",
+      "testdata",
+    ].includes(term),
+  );
   const activeRoutes = (routes?.routes ?? []).filter((route) =>
     route.match.some((pattern) => routeMatches(pattern, taskTerms)),
   );
@@ -348,6 +397,15 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const candidates: RankedCandidate[] = [];
   for (const file of profile.files) {
     if (profile.suspectedSecrets.includes(file)) continue;
+    if (NON_AUTHORITATIVE_PATH.test(file) && !artifactPathsRequested) {
+      if (scopeExcluded.length < 10) {
+        scopeExcluded.push({
+          path: file,
+          reason: "fixture, example, or recorded artifact outside the requested task",
+        });
+      }
+      continue;
+    }
     if (routedExcludes.some((pattern) => matchesGlob(pattern, file))) continue;
     if (tokens(file).some((term) => excludedPathTerms.has(term))) {
       if (scopeExcluded.length < 10) {
@@ -356,7 +414,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       continue;
     }
     const activeRouteIds = routeIncludesFor(file);
-    const fixed = ALWAYS_CONTEXT.has(file) || MANIFESTS.has(path.posix.basename(file));
+    const fixed = isAlwaysContext(file) || MANIFESTS.has(path.posix.basename(file));
     if (activeRoutes.length > 0 && !fixed && activeRouteIds.length === 0) {
       if (outsidePool.length < 10) {
         outsidePool.push({ path: file, reason: "outside the active route candidate pool" });
@@ -381,7 +439,9 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     item.category === "source" &&
     item.reasons.some((reason) => reason.startsWith("basename matches task term"));
   const fitsSelection = (item: RankedCandidate): boolean =>
-    item.bytes <= selectionFileLimit || (item.bytes <= budget && directlyMatchedOwner(item));
+    item.category === "entrypoint"
+      ? item.bytes <= Math.min(selectionFileLimit, Math.floor(budget * 0.4))
+      : item.bytes <= selectionFileLimit || (item.bytes <= budget && directlyMatchedOwner(item));
   const topOwner = candidates.find(
     (item) =>
       item.category === "source" &&
@@ -389,6 +449,21 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       item.score >= 20 &&
       fitsSelection(item),
   );
+  const topPathOwners = rankingTerms
+    .map((term) =>
+      candidates.find(
+        (item) =>
+          item.category === "source" &&
+          item.pathMatchedTerms.has(term) &&
+          item.score >= 20 &&
+          fitsSelection(item),
+      ),
+    )
+    .filter((item): item is RankedCandidate => item !== undefined)
+    .filter(
+      (item, index, all) => all.findIndex((candidate) => candidate.file === item.file) === index,
+    )
+    .slice(0, 3);
   const topTest = candidates.find(
     (item) =>
       item.category === "test" &&
@@ -399,11 +474,21 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const topProcedure = candidates.find(
     (item) => item.file.startsWith(".noxroot/skills/") && item.score >= 20 && fitsSelection(item),
   );
+  const topDocument = candidates.find(
+    (item) =>
+      item.category === "document" &&
+      !isAlwaysContext(item.file) &&
+      item.matchedTerms.size > 0 &&
+      item.score >= 20 &&
+      fitsSelection(item),
+  );
   const priority = [
     topOwner,
+    ...topPathOwners,
     topProcedure,
-    ...candidates.filter((item) => ALWAYS_CONTEXT.has(item.file)),
+    ...candidates.filter((item) => isAlwaysContext(item.file)),
     topTest,
+    topDocument,
   ]
     .filter((item): item is RankedCandidate => item !== undefined)
     .filter(
@@ -413,6 +498,14 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     (item, index, all) => all.findIndex((candidate) => candidate.file === item.file) === index,
   );
   const priorityPaths = new Set(priority.map((item) => item.file));
+  const directPathMatch = {
+    source: candidates.some(
+      (item) => item.category === "source" && item.pathMatchedTerms.size > 0 && item.score >= 20,
+    ),
+    test: candidates.some(
+      (item) => item.category === "test" && item.pathMatchedTerms.size > 0 && item.score >= 20,
+    ),
+  };
   const curatedTargetBytes = Math.floor(budget * 0.85);
 
   const categoryCaps: Record<Category, number> = {
@@ -439,7 +532,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       const match = /^source\/test counterpart of (.+)$/.exec(reason);
       return Boolean(match?.[1] && priorityPaths.has(match[1]));
     });
-    if (!fitsSelection(item) && !ALWAYS_CONTEXT.has(item.file)) {
+    if (!fitsSelection(item)) {
       if (excluded.length < 20) excluded.push({ path: item.file, reason: "per-file context cap" });
       continue;
     }
@@ -452,7 +545,18 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
         excluded.push({ path: item.file, reason: "insufficient direct task relevance" });
       continue;
     }
-    if (item.score < 10 && !ALWAYS_CONTEXT.has(item.file)) {
+    if (
+      (item.category === "source" || item.category === "test") &&
+      directPathMatch[item.category] &&
+      item.pathMatchedTerms.size === 0 &&
+      !adjacentToPriority
+    ) {
+      if (excluded.length < 20) {
+        excluded.push({ path: item.file, reason: "weaker than a direct task-path match" });
+      }
+      continue;
+    }
+    if (item.score < 10 && !isAlwaysContext(item.file)) {
       if (excluded.length < 20)
         excluded.push({ path: item.file, reason: "insufficient task relevance" });
       continue;
@@ -490,11 +594,19 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
 
   const selectedSet = new Set(selected.map((item) => item.path));
   const likelyOwningSource = candidates
-    .filter((item) => item.category === "source" && selectedSet.has(item.file))
+    .filter(
+      (item) =>
+        item.category === "source" &&
+        (selectedSet.has(item.file) || (item.pathMatchedTerms.size > 0 && item.score >= 20)),
+    )
     .slice(0, 5)
     .map((item) => item.file);
   const likelyTests = candidates
-    .filter((item) => item.category === "test" && selectedSet.has(item.file))
+    .filter(
+      (item) =>
+        item.category === "test" &&
+        (selectedSet.has(item.file) || (item.pathMatchedTerms.size > 0 && item.score >= 20)),
+    )
     .slice(0, 5)
     .map((item) => item.file);
   const relevantPaths = [...likelyOwningSource, ...likelyTests];
@@ -509,6 +621,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     ...(likelyTests.length ? [] : ["Directly related test path"]),
     ...(requiredVerification.length ? [] : ["Applicable approved verification command"]),
   ];
+  const instructionEntrypoints = profile.files.filter((file) => ROOT_INSTRUCTION.test(file));
   const confidence: ContextPackage["confidence"] =
     likelyOwningSource.length > 0 &&
     likelyTests.length > 0 &&
@@ -539,8 +652,14 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     likelyTests,
     constraints: [
       ...intent.explicitExclusions,
+      ...instructionEntrypoints
+        .filter((file) => !selectedSet.has(file))
+        .map(
+          (file) =>
+            `Follow ${file} as the repository instruction entrypoint; load its relevant references selectively.`,
+        ),
       ...selected
-        .filter((item) => item.path.includes("knowledge/") || item.path.endsWith("AGENTS.md"))
+        .filter((item) => item.path.includes("knowledge/") || ROOT_INSTRUCTION.test(item.path))
         .map((item) => `Read ${item.path} before changing its routed surface.`),
     ],
     requiredVerification,

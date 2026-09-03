@@ -67,9 +67,21 @@ describe("read-only preview", () => {
     expect(result.capabilities.find((item) => item.id === "task-orchestration")?.decision).toBe(
       "not-assessed",
     );
+    expect(renderPreview({ ...result, profile: { ...result.profile, empty: false } })).toContain(
+      "Context only",
+    );
     expect(renderPreview(result)).toContain("Mode\n  Setup only");
     expect(result.unknowns).toContain("Product intent");
     expect(result.contextEstimate.defaultBytes).toBeGreaterThan(0);
+    expect(result.setupImpact).toEqual(
+      expect.objectContaining({
+        createdFiles: 3,
+        patchedFiles: 0,
+        referencedFiles: 0,
+      }),
+    );
+    expect(result.setupImpact.netLines).toBeGreaterThan(0);
+    expect(result.setupImpact.documentationNetLines).toBeGreaterThan(0);
   });
 
   it("detects a TypeScript project and candidates without executing them", async () => {
@@ -97,6 +109,17 @@ describe("read-only preview", () => {
       agentCallsMade: 0,
       networkRequestsMade: 0,
     });
+  });
+
+  it("applies a root test script to root-level source and test files", async () => {
+    const fixture = await fixtureCopy("javascript");
+    cleanup.push(fixture.cleanup);
+
+    const result = await previewRepository(fixture.root);
+
+    expect(result.profile.candidateCommands).toContainEqual(
+      expect.objectContaining({ id: "test", appliesTo: ["*.js", "package.json"] }),
+    );
   });
 
   it("discovers a non-mutating format check instead of a formatting writer", async () => {
@@ -258,6 +281,145 @@ describe("read-only preview", () => {
     );
   });
 
+  it("uses path-qualified command ids when nested project basenames repeat", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    for (const directory of ["basics/demo", "seo/demo"]) {
+      await mkdir(path.join(root, directory), { recursive: true });
+      await writeFile(
+        path.join(root, directory, "package.json"),
+        JSON.stringify({ name: directory, scripts: { build: "fixture build" } }),
+      );
+      await writeFile(path.join(root, directory, "package-lock.json"), "{}\n");
+    }
+
+    const result = await scanRepository(root);
+    expect(result.candidateCommands.map((command) => command.id)).toEqual([
+      "basics-demo-build",
+      "seo-demo-build",
+    ]);
+    expect(new Set(result.candidateCommands.map((command) => command.id)).size).toBe(
+      result.candidateCommands.length,
+    );
+  });
+
+  it("refuses to configure an independent example collection as one application", async () => {
+    const root = await temporaryDirectory("noxroot-example-collection-");
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await writeFile(
+      path.join(root, "README.md"),
+      "# Web course\n\nA collection of lessons and starter projects.\n",
+    );
+    for (const directory of [
+      "lessons/01-routing",
+      "lessons/02-data",
+      "examples/starter",
+      "examples/final",
+    ]) {
+      await mkdir(path.join(root, directory), { recursive: true });
+      await writeFile(
+        path.join(root, directory, "package.json"),
+        JSON.stringify({ name: directory, scripts: { build: "next build" } }),
+      );
+    }
+
+    const result = await previewRepository(root);
+
+    expect(result.profile.evidence).toContainEqual(
+      expect.objectContaining({ claim: "Independent example collection" }),
+    );
+    expect(result.initializationAllowed).toBe(false);
+    expect(result.proposedFiles).toEqual([]);
+    expect(result.capabilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "task-routes", decision: "not-assessed" }),
+        expect.objectContaining({ id: "verification-policy", decision: "not-assessed" }),
+        expect.objectContaining({ id: "task-orchestration", decision: "not-assessed" }),
+      ]),
+    );
+    expect(renderPreview(result)).toContain("Select one project with --root before initializing.");
+  });
+
+  it("recognizes a course collection even when its root has a tooling manifest", async () => {
+    const root = await temporaryDirectory("noxroot-course-collection-");
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await writeFile(
+      path.join(root, "README.md"),
+      "# Application course\n\nA collection of lessons and starter projects.\n",
+    );
+    await writeFile(path.join(root, "package.json"), '{"name":"course-tooling"}\n');
+    for (const directory of ["chapter-1/app", "chapter-2/app", "chapter-3/app", "chapter-4/app"]) {
+      await mkdir(path.join(root, directory), { recursive: true });
+      await writeFile(path.join(root, directory, "package.json"), '{"scripts":{"build":"x"}}\n');
+    }
+
+    const result = await previewRepository(root);
+
+    expect(result.initializationAllowed).toBe(false);
+    expect(result.profile.evidence).toContainEqual(
+      expect.objectContaining({ claim: "Independent example collection" }),
+    );
+  });
+
+  it("does not mistake ordinary examples and a separate tutorial for a project collection", async () => {
+    const root = await temporaryDirectory("noxroot-rust-workspace-");
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await writeFile(
+      path.join(root, "README.md"),
+      `# Search tool\n\n## Quick examples\n\nSearch recursively.\n${"details\n".repeat(80)}## Tutorial\n`,
+    );
+    await writeFile(path.join(root, "Cargo.toml"), "[workspace]\nmembers = ['crates/*']\n");
+    for (const name of ["core", "glob", "printer", "searcher"]) {
+      await mkdir(path.join(root, "crates", name), { recursive: true });
+      await writeFile(
+        path.join(root, "crates", name, "Cargo.toml"),
+        `[package]\nname = '${name}'\nversion = '0.1.0'\n`,
+      );
+    }
+
+    const result = await previewRepository(root);
+
+    expect(result.initializationAllowed).toBe(true);
+    expect(result.profile.evidence).not.toContainEqual(
+      expect.objectContaining({ claim: "Independent example collection" }),
+    );
+    expect(result.profile.candidateCommands.map((command) => command.id)).toEqual([
+      "cargo-check",
+      "cargo-test",
+    ]);
+  });
+
+  it("aggregates repeated architecture evidence across a monorepo", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    for (const directory of ["apps/admin", "apps/site", "packages/ui"]) {
+      await mkdir(path.join(root, directory, "src"), { recursive: true });
+      await writeFile(
+        path.join(root, directory, "package.json"),
+        JSON.stringify({ name: directory, dependencies: { react: "19.0.0" } }),
+      );
+      await writeFile(path.join(root, directory, "src", "App.tsx"), "export const App = 1;\n");
+    }
+
+    const result = await scanRepository(root);
+    const node = result.evidence.filter((item) => item.claim === "Node.js project");
+    const web = result.evidence.filter((item) => item.claim === "User-facing web application");
+    expect(node).toHaveLength(1);
+    expect(node[0]?.sources).toHaveLength(3);
+    expect(web).toHaveLength(1);
+    expect(web[0]?.sources).toContain("apps/site/package.json");
+  });
+
   it("discovers nested Node and Python projects with scoped checks from manifests and CI", async () => {
     const root = await temporaryDirectory();
     cleanup.push(async () =>
@@ -358,6 +520,53 @@ describe("read-only preview", () => {
     )?.content;
     expect(routes).toContain("web/**");
     expect(routes).toContain("engine/**");
+    expect(routes?.match(/- web\/\*\*/g)).toHaveLength(1);
+    expect(routes?.match(/- engine\/\*\*/g)).toHaveLength(1);
+  });
+
+  it("proposes conventional native checks only from explicit cross-stack project evidence", async () => {
+    const root = await temporaryDirectory("noxroot-native-checks-");
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await mkdir(path.join(root, "engine"), { recursive: true });
+    await mkdir(path.join(root, "core"), { recursive: true });
+    await mkdir(path.join(root, "api"), { recursive: true });
+    await writeFile(
+      path.join(root, "engine", "pyproject.toml"),
+      '[project]\nname = "engine"\n\n[tool.pytest.ini_options]\ntestpaths = ["tests"]\n\n[tool.ruff]\nline-length = 100\n',
+    );
+    await writeFile(path.join(root, "engine", "uv.lock"), "version = 1\n");
+    await writeFile(path.join(root, "core", "Cargo.toml"), '[package]\nname = "core"\n');
+    await writeFile(path.join(root, "api", "go.mod"), "module example.test/api\n");
+
+    const result = await scanRepository(root);
+
+    expect(result.candidateCommands).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "engine-pytest",
+          executable: "uv",
+          args: ["run", "pytest"],
+          cwd: "engine",
+          appliesTo: ["engine/**"],
+        }),
+        expect.objectContaining({
+          id: "engine-ruff",
+          executable: "uv",
+          args: ["run", "ruff", "check", "."],
+          cwd: "engine",
+        }),
+        expect.objectContaining({ id: "core-cargo-test", cwd: "core" }),
+        expect.objectContaining({ id: "core-cargo-check", cwd: "core" }),
+        expect.objectContaining({
+          id: "api-go-test",
+          executable: "go",
+          args: ["test", "./..."],
+          cwd: "api",
+        }),
+      ]),
+    );
   });
 
   it("does not promote embedded test fixtures into live nested projects", async () => {
@@ -451,6 +660,34 @@ describe("read-only preview", () => {
       expect.objectContaining({ claim: "User-facing web application" }),
     );
     expect(result.modules.find((item) => item.id === "product-ux")?.status).toBe("not applicable");
+  });
+
+  it("does not promote a host repository from a nested playground application", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await writeFile(path.join(root, "Cargo.toml"), "[package]\nname='host'\nversion='0.1.0'\n");
+    await mkdir(path.join(root, "src"));
+    await writeFile(path.join(root, "src", "lib.rs"), "pub fn parse() {}\n");
+    await mkdir(path.join(root, "playground", "web", "src"), { recursive: true });
+    await writeFile(
+      path.join(root, "playground", "web", "package.json"),
+      JSON.stringify({ name: "playground", dependencies: { react: "19.0.0" } }),
+    );
+    await writeFile(
+      path.join(root, "playground", "web", "src", "App.tsx"),
+      "export const App = () => <main />;\n",
+    );
+
+    const result = await previewRepository(root);
+    expect(result.profile.evidence).not.toContainEqual(
+      expect.objectContaining({ claim: "User-facing web application" }),
+    );
+    expect(result.modules.find((item) => item.id === "product-ux")?.status).toBe("not applicable");
+    expect(result.proposedFiles.map((item) => item.path)).not.toContain(
+      ".noxroot/skills/product-ux-review/SKILL.md",
+    );
   });
 
   it("never follows a symlink escape", async () => {

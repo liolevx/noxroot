@@ -4,6 +4,7 @@ import { ConfigurationError, loadConfig, loadRoutes, loadVerification } from "..
 import type { NoxrootConfig, RoutesConfig, VerificationConfig } from "../config/schema.js";
 import { inspectRepositoryAdoption } from "../detection/adoption.js";
 import { scanRepository } from "../detection/scan.js";
+import { resolvePlatformCommand } from "../adapters/process.js";
 import { cliCommand } from "../invocation.js";
 import { isWithin } from "../security/paths.js";
 import { localStateRoot } from "../state/local.js";
@@ -34,16 +35,16 @@ async function commandAvailable(root: string, executable: string): Promise<boole
   if (executable.includes("/") || executable.includes("\\")) {
     return exists(path.resolve(root, executable));
   }
-  if (process.platform === "win32" && ["npm", "npx"].includes(executable.toLowerCase())) {
-    return exists(
-      path.join(
-        path.dirname(process.execPath),
-        "node_modules",
-        "npm",
-        "bin",
-        executable.toLowerCase() === "npm" ? "npm-cli.js" : "npx-cli.js",
-      ),
-    );
+  if (
+    process.platform === "win32" &&
+    ["npm", "npx", "pnpm", "pnpx", "yarn", "yarnpkg"].includes(executable.toLowerCase())
+  ) {
+    try {
+      const resolved = resolvePlatformCommand(executable, []);
+      return resolved.executable === process.execPath && Boolean(resolved.args[0]);
+    } catch {
+      return false;
+    }
   }
   const extensions =
     process.platform === "win32" ? (process.env.PATHEXT ?? ".EXE;.CMD;.BAT;.COM").split(";") : [""];

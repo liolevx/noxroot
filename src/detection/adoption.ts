@@ -14,6 +14,9 @@ const MAX_REFERENCE_FILES = 80;
 const MAX_REFERENCE_BYTES = 512_000;
 const TEXT_REFERENCE = /\.(?:md|mdx|ya?ml)$/i;
 const INSTRUCTION_NAME = /^(?:AGENTS|CLAUDE|copilot-instructions)\.md$/i;
+const NON_PROJECT_SURFACE =
+  /(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?|playgrounds?|sandboxes?)(?:\/|$)/i;
+const EXTERNAL_DEPENDENCY_REFERENCE = /(?:^|\/)(?:node_modules|\.venv|venv|site-packages)(?:\/|$)/i;
 
 interface Reference {
   from: string;
@@ -30,6 +33,11 @@ interface Entrypoint {
 interface CoordinatorEvidence {
   name: string;
   declaredIn: string;
+  evidence: string[];
+}
+
+interface AdjacentCapabilityEvidence {
+  path: string;
   evidence: string[];
 }
 
@@ -79,7 +87,10 @@ function extractReferences(from: string, source: string): Array<Reference & { ex
     capture(match[1] ?? "", match.index ?? 0);
   }
   for (const match of source.matchAll(/`([^`\r\n]+)`/g)) {
-    capture(match[1] ?? "", match.index ?? 0);
+    const target = match[1] ?? "";
+    if (/[\\/]/.test(target) || /\.(?:md|mdx|ya?ml)$/i.test(target)) {
+      capture(target, match.index ?? 0);
+    }
   }
   for (const match of source.matchAll(/(?:^|\s)@([A-Za-z0-9._/-]+\.(?:md|mdx))/gim)) {
     capture(match[1] ?? "", match.index ?? 0);
@@ -276,6 +287,30 @@ function implementationCoordinatorBehaviors(source: string): string[] {
     .map((marker) => marker.label);
 }
 
+const ADJACENT_LEDGER_BEHAVIORS = [
+  {
+    label: "durable work state",
+    match:
+      /\b(?:coordination ledger|session journal|issue tracker|work log|append-only (?:event )?log)\b.{0,180}\b(?:records?|stores?|preserves?|tracks?|holds?|captures?)\b.{0,180}\b(?:state of the work|decisions?|open items?|unresolved items?|handoffs?|session notes?)\b|\brecords?\b.{0,120}\b(?:state of the work|decisions?|open items?|unresolved items?|handoffs?|session notes?)\b.{0,120}\b(?:local |shared |append-only (?:event )?)?log\b/i,
+  },
+  {
+    label: "cross-session continuity",
+    match: /\b(?:cross-session|across sessions?|new session|resume|resuming|handoff)\b/i,
+  },
+  {
+    label: "coding-work coordination",
+    match:
+      /\bcoding\b.{0,24}\bagents?\b|\b(?:agent|session)\s+records?\s+(?:the\s+)?state of the work\b|\b(?:repository(?:-development)? (?:work|workflow)|development workflow|implementation work)\b/i,
+  },
+] as const;
+
+function adjacentLedgerBehaviors(source: string): string[] {
+  const normalized = source.replace(/\s+/g, " ");
+  return ADJACENT_LEDGER_BEHAVIORS.filter((behavior) => behavior.match.test(normalized)).map(
+    (behavior) => behavior.label,
+  );
+}
+
 function assessment(
   id: CapabilityAssessment["id"],
   label: string,
@@ -289,14 +324,15 @@ function assessment(
 export async function inspectRepositoryAdoption(
   profile: RepositoryProfile,
 ): Promise<AdoptionInspection> {
-  const instructionFiles = profile.files.filter((file) =>
-    INSTRUCTION_NAME.test(path.posix.basename(file)),
+  const instructionFiles = profile.files.filter(
+    (file) => INSTRUCTION_NAME.test(path.posix.basename(file)) && !NON_PROJECT_SURFACE.test(file),
   );
   const fileSet = new Set(profile.files);
   const sources = new Map<string, string>();
   const references: Reference[] = [];
   const missing: Reference[] = [];
-  const queue = instructionFiles.map((file) => ({ file, depth: 0 }));
+  const narrativeRoots = [...instructionFiles, ...(fileSet.has("README.md") ? ["README.md"] : [])];
+  const queue = narrativeRoots.map((file) => ({ file, depth: 0 }));
   const visited = new Set<string>();
   let bytes = 0;
   while (queue.length > 0 && visited.size < MAX_REFERENCE_FILES && bytes < MAX_REFERENCE_BYTES) {
@@ -317,7 +353,7 @@ export async function inspectRepositoryAdoption(
         ) {
           queue.push({ file: reference.path, depth: next.depth + 1 });
         }
-      } else {
+      } else if (!EXTERNAL_DEPENDENCY_REFERENCE.test(reference.path)) {
         missing.push(reference);
       }
     }
@@ -383,7 +419,9 @@ export async function inspectRepositoryAdoption(
     ),
   );
 
-  const skillFiles = profile.files.filter((file) => path.posix.basename(file) === "SKILL.md");
+  const skillFiles = profile.files.filter(
+    (file) => path.posix.basename(file) === "SKILL.md" && !NON_PROJECT_SURFACE.test(file),
+  );
   const verificationSkillPaths: string[] = [];
   const reviewSkillPaths: string[] = [];
   const productUxSkillPaths: string[] = [];
@@ -417,6 +455,19 @@ export async function inspectRepositoryAdoption(
 
   const declaredEntrypoints = await entrypoints(profile);
   const verificationWrappers = documentedWrappers(sources, declaredEntrypoints);
+  const noxrootConfigSource = fileSet.has(".noxroot/config.yml")
+    ? await readableText(profile, ".noxroot/config.yml")
+    : undefined;
+  let noxrootOwnsOrchestration = false;
+  if (noxrootConfigSource) {
+    try {
+      const parsed = parseYaml(noxrootConfigSource) as { modules?: unknown };
+      noxrootOwnsOrchestration =
+        Array.isArray(parsed.modules) && parsed.modules.includes("orchestration");
+    } catch {
+      // Malformed Noxroot configuration is reported by preview and doctor.
+    }
+  }
   const coordinators: CoordinatorEvidence[] = [];
   for (const entrypoint of declaredEntrypoints) {
     if (!entrypoint.source || !fileSet.has(entrypoint.source)) continue;
@@ -443,8 +494,21 @@ export async function inspectRepositoryAdoption(
     if (coordinators.some((item) => `${item.name}\0${item.declaredIn}` === key)) continue;
     coordinators.push({ name: surface.path, declaredIn: surface.from, evidence });
   }
+  const adjacentCapabilities: AdjacentCapabilityEvidence[] = [];
+  for (const [sourcePath, source] of sources) {
+    if (NON_PROJECT_SURFACE.test(sourcePath)) continue;
+    const evidence = adjacentLedgerBehaviors(source);
+    if (evidence.length !== ADJACENT_LEDGER_BEHAVIORS.length) continue;
+    adjacentCapabilities.push({ path: sourcePath, evidence });
+  }
 
   const incomplete = profile.stats.incompleteReasons.length > 0;
+  const projectCollection = profile.evidence.some(
+    (item) => item.status === "confirmed" && item.claim === "Independent example collection",
+  );
+  const collectionGap = [
+    "This repository contains independent examples. Select one project with --root before initializing.",
+  ];
   const authoritativeKnowledge = profile.documents.filter(
     (item) => item.authoritative && item.kind !== "instructions",
   );
@@ -477,50 +541,54 @@ export async function inspectRepositoryAdoption(
         : assessment("project-knowledge", "Project knowledge", "create"),
   );
   capabilities.push(
-    routeReferences.length > 0 || fileSet.has(".noxroot/routes.yml")
-      ? assessment(
-          "task-routes",
-          "Task routes",
-          "reuse",
-          [...new Set(routeReferences.map((item) => item.path))].sort(),
-        )
-      : profile.empty || missingRouteReferences.length > 0 || incomplete
+    projectCollection
+      ? assessment("task-routes", "Task routes", "not-assessed", [], collectionGap)
+      : routeReferences.length > 0 || fileSet.has(".noxroot/routes.yml")
         ? assessment(
             "task-routes",
             "Task routes",
-            "not-assessed",
-            [],
-            profile.empty
-              ? ["No repository source exists yet, so task routes cannot be assessed."]
-              : missingRouteReferences.length
-                ? missingRouteReferences.map(
-                    (item) => `Referenced path was not available: ${item.path}`,
-                  )
-                : profile.stats.incompleteReasons,
+            "reuse",
+            [...new Set(routeReferences.map((item) => item.path))].sort(),
           )
-        : assessment("task-routes", "Task routes", "create"),
+        : profile.empty || missingRouteReferences.length > 0 || incomplete
+          ? assessment(
+              "task-routes",
+              "Task routes",
+              "not-assessed",
+              [],
+              profile.empty
+                ? ["No repository source exists yet, so task routes cannot be assessed."]
+                : missingRouteReferences.length
+                  ? missingRouteReferences.map(
+                      (item) => `Referenced path was not available: ${item.path}`,
+                    )
+                  : profile.stats.incompleteReasons,
+            )
+          : assessment("task-routes", "Task routes", "create"),
   );
   capabilities.push(
-    verificationWrappers.length > 0 || fileSet.has(".noxroot/verification.yml")
-      ? assessment(
-          "verification-policy",
-          "Verification",
-          "reuse",
-          verificationWrappers.length
-            ? verificationWrappers.map((item) =>
-                `${item.executable} ${item.args.join(" ")} (${item.source})`.trim(),
-              )
-            : [".noxroot/verification.yml"],
-        )
-      : profile.candidateCommands.length > 0
-        ? assessment("verification-policy", "Verification", "create")
-        : assessment(
+    projectCollection
+      ? assessment("verification-policy", "Verification", "not-assessed", [], collectionGap)
+      : verificationWrappers.length > 0 || fileSet.has(".noxroot/verification.yml")
+        ? assessment(
             "verification-policy",
             "Verification",
-            "not-assessed",
-            [],
-            ["No authoritative verification wrapper or candidate checks were found."],
-          ),
+            "reuse",
+            verificationWrappers.length
+              ? verificationWrappers.map((item) =>
+                  `${item.executable} ${item.args.join(" ")} (${item.source})`.trim(),
+                )
+              : [".noxroot/verification.yml"],
+          )
+        : profile.candidateCommands.length > 0
+          ? assessment("verification-policy", "Verification", "create")
+          : assessment(
+              "verification-policy",
+              "Verification",
+              "not-assessed",
+              [],
+              ["No authoritative verification wrapper or candidate checks were found."],
+            ),
   );
   const verificationDecision = capabilities.at(-1)!.decision;
   capabilities.push(
@@ -542,27 +610,43 @@ export async function inspectRepositoryAdoption(
         : assessment("verification-skill", "Verification skill", "create"),
   );
   capabilities.push(
-    coordinators.length > 0
-      ? assessment(
-          "task-orchestration",
-          "Task orchestration",
-          "conflict",
-          coordinators.map(
-            ({ name, declaredIn, evidence }) => `${name} (${declaredIn}; ${evidence.join(", ")})`,
-          ),
-        )
-      : profile.empty || incomplete
+    projectCollection
+      ? assessment("task-orchestration", "Task orchestration", "not-assessed", [], collectionGap)
+      : coordinators.length > 0
         ? assessment(
             "task-orchestration",
             "Task orchestration",
-            "not-assessed",
-            [],
-            profile.empty
-              ? ["No repository source exists yet, so task orchestration cannot be assessed."]
-              : profile.stats.incompleteReasons,
+            "conflict",
+            coordinators.map(
+              ({ name, declaredIn, evidence }) => `${name} (${declaredIn}; ${evidence.join(", ")})`,
+            ),
           )
-        : assessment("task-orchestration", "Task orchestration", "create"),
+        : noxrootOwnsOrchestration
+          ? assessment("task-orchestration", "Task orchestration", "reuse", [".noxroot/config.yml"])
+          : profile.empty || incomplete
+            ? assessment(
+                "task-orchestration",
+                "Task orchestration",
+                "not-assessed",
+                [],
+                profile.empty
+                  ? ["No repository source exists yet, so task orchestration cannot be assessed."]
+                  : profile.stats.incompleteReasons,
+              )
+            : assessment("task-orchestration", "Task orchestration", "create"),
   );
+  if (adjacentCapabilities.length > 0) {
+    capabilities.push(
+      assessment(
+        "coordination-ledger",
+        "External work ledger",
+        "adjacent",
+        adjacentCapabilities.map(
+          ({ path: sourcePath, evidence }) => `${sourcePath} (${evidence.join(", ")})`,
+        ),
+      ),
+    );
+  }
   const productDocuments = [
     ...references
       .filter(
@@ -597,6 +681,7 @@ export async function inspectRepositoryAdoption(
   );
 
   const conflicts = [
+    ...(projectCollection ? collectionGap : []),
     ...(genuineInstructionConflict
       ? [
           `Multiple root agent instruction sources require reconciliation: ${rootInstructions.join(", ")}`,
@@ -609,7 +694,7 @@ export async function inspectRepositoryAdoption(
   ];
   // A conflict blocks only the overlapping capability. Initialization remains safe when
   // Noxroot can install non-overlapping companion capabilities without changing authority.
-  const initializationAllowed = !genuineInstructionConflict;
+  const initializationAllowed = !genuineInstructionConflict && !projectCollection;
   return {
     capabilities,
     initializationAllowed,

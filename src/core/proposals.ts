@@ -18,7 +18,7 @@ const MANAGED_START = "<!-- noxroot:start -->";
 const MANAGED_END = "<!-- noxroot:end -->";
 type WorkflowMode = "full" | "companion" | "context-only";
 
-function managedBlock(mode: WorkflowMode): string {
+function managedBlock(mode: WorkflowMode, hasKnowledgeIndex = true): string {
   const workflow =
     mode === "full"
       ? `For a code-changing task, run \`${cliCommand('start "<task>"')}\` before editing and \`${cliCommand("finish")}\` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.
@@ -31,10 +31,13 @@ Use \`${cliCommand('context "<task>"')}\` when focused repository context would 
         : `Noxroot's task lifecycle is not enabled for this repository because the available project evidence is incomplete.
 
 Use \`${cliCommand('context "<task>"')}\` when focused repository context would help and \`${cliCommand("verify --plan")}\` to inspect applicable approved checks. Do not claim verification until the repository provides an approved check.`;
+  const knowledge = hasKnowledgeIndex
+    ? "Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant routes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge."
+    : "Load only relevant repository source, tests, and existing instructions; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge.";
   return `${MANAGED_START}
 ## Noxroot workflow
 
-Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant routes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge.
+${knowledge}
 
 ${workflow}
 ${MANAGED_END}`;
@@ -181,7 +184,25 @@ function verificationContent(commands: CandidateCommand[]): string {
   });
 }
 
-function usefulDocuments(
+const MAX_INDEX_DOCUMENTS = 12;
+
+function documentFamily(pathname: string): { key: string; preference: number } {
+  const segments = pathname.split("/");
+  const docsIndex = segments.findIndex((segment) => segment.toLowerCase() === "docs");
+  const locale = docsIndex >= 0 ? segments[docsIndex + 1] : undefined;
+  if (!locale || !/^[a-z]{2}(?:-[a-z]{2,4})?$/i.test(locale)) {
+    return { key: pathname.toLowerCase(), preference: 0 };
+  }
+  const family = [...segments];
+  family.splice(docsIndex + 1, 1);
+  const normalizedLocale = locale.toLowerCase();
+  return {
+    key: family.join("/").toLowerCase(),
+    preference: normalizedLocale === "en" || normalizedLocale.startsWith("en-") ? 1 : 2,
+  };
+}
+
+function allUsefulDocuments(
   profile: RepositoryProfile,
   adoption?: AdoptionInspection,
 ): RepositoryDocument[] {
@@ -191,10 +212,49 @@ function usefulDocuments(
     ),
     ...(adoption?.referencedDocuments ?? []),
   ];
-  return documents.filter(
-    (document, index, all) =>
-      all.findIndex((candidate) => candidate.path === document.path) === index,
-  );
+  const priority: Record<RepositoryDocument["kind"], number> = {
+    architecture: 0,
+    product: 1,
+    ux: 2,
+    testing: 3,
+    security: 4,
+    contribution: 5,
+    ordinary: 6,
+    instructions: 7,
+  };
+  const uniquePaths = documents
+    .filter(
+      (document, index, all) =>
+        all.findIndex((candidate) => candidate.path === document.path) === index,
+    )
+    .sort(
+      (left, right) =>
+        priority[left.kind] - priority[right.kind] || left.path.localeCompare(right.path),
+    );
+  const families = new Map<string, RepositoryDocument>();
+  for (const document of uniquePaths) {
+    const candidate = documentFamily(document.path);
+    const current = families.get(candidate.key);
+    if (!current) {
+      families.set(candidate.key, document);
+      continue;
+    }
+    const currentPreference = documentFamily(current.path).preference;
+    if (
+      candidate.preference < currentPreference ||
+      (candidate.preference === currentPreference && document.path.localeCompare(current.path) < 0)
+    ) {
+      families.set(candidate.key, document);
+    }
+  }
+  return [...families.values()];
+}
+
+function usefulDocuments(
+  profile: RepositoryProfile,
+  adoption?: AdoptionInspection,
+): RepositoryDocument[] {
+  return allUsefulDocuments(profile, adoption).slice(0, MAX_INDEX_DOCUMENTS);
 }
 
 function routesContent(
@@ -263,14 +323,16 @@ function routesContent(
         id: "default",
         match: ["**/*"],
         include: [
-          "AGENTS.md",
-          ".noxroot/knowledge/INDEX.md",
-          ...usefulDocuments(profile, adoption).map((document) => document.path),
-          ...skillPaths,
-          ...projectRoots,
-          ...sourceRoots,
-          ...discoveredSourceRoots,
-          ...testRoots,
+          ...new Set([
+            "AGENTS.md",
+            ".noxroot/knowledge/INDEX.md",
+            ...usefulDocuments(profile, adoption).map((document) => document.path),
+            ...skillPaths,
+            ...projectRoots,
+            ...sourceRoots,
+            ...discoveredSourceRoots,
+            ...testRoots,
+          ]),
         ],
         exclude: ["dist/**", "coverage/**", "node_modules/**"],
       },
@@ -306,12 +368,21 @@ function indexContent(
   adoption?: AdoptionInspection,
 ): string {
   const documents = usefulDocuments(profile, adoption);
+  const omittedDocuments = Math.max(
+    0,
+    allUsefulDocuments(profile, adoption).length - documents.length,
+  );
   const entries = profile.empty
     ? [
         "- Product intent and architecture are currently unknown. Add evidence before expanding this index.",
       ]
     : [
         ...documents.map(indexLink),
+        ...(omittedDocuments > 0
+          ? [
+              `- Additional repository documentation remains in place (${omittedDocuments} files); discover it through repository instructions or task context when relevant.`,
+            ]
+          : []),
         "- Verification policy is stored in `../verification.yml` when confirmed.",
         ...(skillPaths.length
           ? [
@@ -334,7 +405,14 @@ Active run state, application runtime sessions, application memory, user data, a
 function integrateAgents(source: string, block: string): ProposedFile {
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
   const managedBlock = block.replaceAll("\n", newline);
-  if (source.includes(".noxroot/knowledge/INDEX.md") && !source.includes(MANAGED_START)) {
+  const equivalentLifecycle = ["start", "finish"].every((command) =>
+    new RegExp(`\\bnoxroot(?:@[^\\s\`]+)?\\s+${command}\\b`, "i").test(source),
+  );
+  if (
+    source.includes(".noxroot/knowledge/INDEX.md") &&
+    equivalentLifecycle &&
+    !source.includes(MANAGED_START)
+  ) {
     return reference("AGENTS.md", "Reuse the existing equivalent Noxroot knowledge entrypoint.");
   }
   const start = source.indexOf(MANAGED_START);
@@ -348,7 +426,10 @@ function integrateAgents(source: string, block: string): ProposedFile {
   if (start !== -1 && end !== -1) {
     const afterEnd = end + MANAGED_END.length;
     const existingBlock = source.slice(start, afterEnd);
-    if (existingBlock === managedBlock) {
+    const sameManagedContent =
+      existingBlock === managedBlock ||
+      existingBlock.replace(/\s+/g, " ").trim() === managedBlock.replace(/\s+/g, " ").trim();
+    if (sameManagedContent) {
       return reference("AGENTS.md", "Reuse the existing idempotent Noxroot managed block.");
     }
     const updated = `${source.slice(0, start)}${managedBlock}${source.slice(afterEnd)}`;
@@ -393,6 +474,12 @@ export function assessModules(
   const orchestrationConflict = adoption?.capabilities.some(
     (item) => item.id === "task-orchestration" && item.decision === "conflict",
   );
+  const orchestrationNotAssessed = adoption?.capabilities.some(
+    (item) => item.id === "task-orchestration" && item.decision === "not-assessed",
+  );
+  const projectKnowledgeNotAssessed = adoption?.capabilities.some(
+    (item) => item.id === "project-knowledge" && item.decision === "not-assessed",
+  );
   return [
     {
       id: "repository-profile",
@@ -403,16 +490,22 @@ export function assessModules(
     {
       id: "agent-routing",
       label: "Agent routing",
-      status: status("agent-routing", "recommended"),
-      reason: "Provides a small vendor-neutral entrypoint and bounded context routes.",
+      status: projectKnowledgeNotAssessed ? "blocked" : status("agent-routing", "recommended"),
+      reason: projectKnowledgeNotAssessed
+        ? "Repository knowledge could not be assessed, so no new routing entrypoint is proposed."
+        : "Provides a small vendor-neutral entrypoint and bounded context routes.",
     },
     {
       id: "project-knowledge",
       label: "Project knowledge",
-      status: status("project-knowledge", profile.empty ? "optional" : "recommended"),
-      reason: profile.empty
-        ? "No implementation evidence exists; only an index is justified."
-        : "Existing authoritative docs are referenced instead of duplicated.",
+      status: projectKnowledgeNotAssessed
+        ? "blocked"
+        : status("project-knowledge", profile.empty ? "optional" : "recommended"),
+      reason: projectKnowledgeNotAssessed
+        ? "Project knowledge remains unchanged until the missing repository evidence is available."
+        : profile.empty
+          ? "No implementation evidence exists; only an index is justified."
+          : "Existing authoritative docs are referenced instead of duplicated.",
     },
     {
       id: "verification",
@@ -435,22 +528,28 @@ export function assessModules(
     {
       id: "orchestration",
       label: "Orchestration",
-      status: orchestrationConflict
-        ? "blocked"
-        : status("orchestration", profile.empty ? "optional" : "recommended"),
+      status:
+        orchestrationConflict || orchestrationNotAssessed
+          ? "blocked"
+          : status("orchestration", profile.empty ? "optional" : "recommended"),
       reason: orchestrationConflict
         ? "An existing repository-development coordinator owns overlapping lifecycle behavior."
-        : "Manual mode is available; command execution requires an explicitly configured adapter.",
+        : orchestrationNotAssessed
+          ? "Repository-development orchestration could not be assessed, so Noxroot leaves lifecycle behavior unchanged."
+          : "Manual mode is available; command execution requires an explicitly configured adapter.",
     },
     {
       id: "learning",
       label: "Learning",
-      status: orchestrationConflict
-        ? "blocked"
-        : status("learning", profile.empty ? "optional" : "recommended"),
+      status:
+        orchestrationConflict || orchestrationNotAssessed
+          ? "blocked"
+          : status("learning", profile.empty ? "optional" : "recommended"),
       reason: orchestrationConflict
         ? "Learning tied to Noxroot completion is disabled while the existing coordinator owns the lifecycle."
-        : "Only completed, evidenced runs may propose durable consolidation.",
+        : orchestrationNotAssessed
+          ? "Learning tied to Noxroot completion remains disabled until lifecycle ownership can be assessed."
+          : "Only completed, evidenced runs may propose durable consolidation.",
     },
     {
       id: "browser-qa",
@@ -473,12 +572,17 @@ export async function buildProposals(
   const decision = (id: CapabilityAssessment["id"]): CapabilityDecision | undefined =>
     adoption?.capabilities.find((item) => item.id === id)?.decision;
   const orchestrationConflict = decision("task-orchestration") === "conflict";
+  const orchestrationUnavailable = ["conflict", "not-assessed"].includes(
+    decision("task-orchestration") ?? "",
+  );
   const effectiveModules = modules.map((module) =>
-    orchestrationConflict && (module.id === "orchestration" || module.id === "learning")
+    orchestrationUnavailable && (module.id === "orchestration" || module.id === "learning")
       ? {
           ...module,
           status: "blocked" as const,
-          reason: "The existing repository coordinator owns this lifecycle capability.",
+          reason: orchestrationConflict
+            ? "The existing repository coordinator owns this lifecycle capability."
+            : "Lifecycle ownership was not assessed, so the repository remains unchanged for this capability.",
         }
       : module,
   );
@@ -515,13 +619,15 @@ export async function buildProposals(
       ...(adoption?.productUxSkillPaths ?? []),
     ]),
   ];
-  const instructions = managedBlock(
-    orchestrationConflict ? "companion" : active("orchestration") ? "full" : "context-only",
-  );
   const needsIndex =
     (active("agent-routing") || active("project-knowledge")) &&
     decision("project-knowledge") !== "not-assessed" &&
     !present.has(".noxroot/knowledge/INDEX.md");
+  const hasKnowledgeIndex = present.has(".noxroot/knowledge/INDEX.md") || needsIndex;
+  const instructions = managedBlock(
+    orchestrationConflict ? "companion" : active("orchestration") ? "full" : "context-only",
+    hasKnowledgeIndex,
+  );
 
   if (active("agent-routing")) {
     if (!present.has("AGENTS.md")) {

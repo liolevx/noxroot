@@ -164,12 +164,40 @@ commands:
       "--root",
       root,
     ]);
-    expect((JSON.parse(approved.stdout) as { record: { status: string } }).record.status).toBe(
-      "approved",
-    );
+    const approvedRecord = (
+      JSON.parse(approved.stdout) as {
+        record: { status: string; handoff: string };
+      }
+    ).record;
+    expect(approvedRecord.status).toBe("approved");
+    expect(approvedRecord.handoff).toContain("1 documentation candidate identified by review");
+    expect(approvedRecord.handoff).not.toContain("candidate(s) proposed");
     const learned = await cli(["learn", "--task", startValue.record.id, "--json", "--root", root]);
     const learning = JSON.parse(learned.stdout) as { proposals: Array<{ kind: string }> };
     expect(learning.proposals).toEqual([expect.objectContaining({ kind: "procedure" })]);
+
+    const applied = await cli([
+      "learn",
+      "--task",
+      startValue.record.id,
+      "--apply",
+      "--yes",
+      "--json",
+      "--root",
+      root,
+    ]);
+    expect((JSON.parse(applied.stdout) as { applied: string[] }).applied).toEqual([
+      ".noxroot/knowledge/learnings.md",
+      ".noxroot/knowledge/INDEX.md",
+    ]);
+    await git(root, ["add", ".noxroot/knowledge"]);
+    await git(root, ["commit", "-m", "document validated source check"]);
+
+    const later = JSON.parse(
+      (await cli(["context", "change another value under src", "--json", "--root", root])).stdout,
+    ) as { selected: Array<{ path: string }> };
+    expect(later.selected.map((item) => item.path)).toContain(".noxroot/knowledge/learnings.md");
+    expect(later.selected.some((item) => item.path.includes(".git/noxroot/runs"))).toBe(false);
   });
 
   it("requires an explicit id when multiple guided tasks are active", async () => {
@@ -244,6 +272,44 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(records.filter((name) => name.endsWith(".json"))).toHaveLength(1);
   });
 
+  it("reports current task state without changing or invoking anything", async () => {
+    const root = await repository();
+    const empty = await cli(["status", "--root", root]);
+    expect(empty.stdout).toContain("Active tasks  none");
+    expect(empty.stdout).toContain("Keep working normally with your coding agent.");
+
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      `version: 1
+modules: [repository-profile, agent-routing, orchestration]
+autonomy: {default: 0, implementation: 1, review: 0, merge: 0, delivery: 0}
+agents: {default: manual, adapters: {manual: {type: manual}}}
+`,
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "noxroot fixture"]);
+    const started = JSON.parse(
+      (await cli(["start", "change the value", "--json", "--root", root])).stdout,
+    ) as { record: { id: string } };
+    await writeFile(path.join(root, "src", "value.ts"), "export const value = 2;\n");
+
+    const value = JSON.parse((await cli(["status", "--json", "--root", root])).stdout) as {
+      active: Array<{
+        record: { id: string };
+        continuation: { changedPaths: string[]; verification: { status: string } };
+      }>;
+    };
+    expect(value.active).toHaveLength(1);
+    expect(value.active[0]?.record.id).toBe(started.record.id);
+    expect(value.active[0]?.continuation.changedPaths).toEqual(["src/value.ts"]);
+    expect(value.active[0]?.continuation.verification.status).toBe("not-run");
+
+    const human = await cli(["status", "--root", root]);
+    expect(human.stdout).toContain("Changed  src/value.ts");
+    expect(human.stdout).toContain("Verification  Not run for the current diff.");
+  });
+
   it("reports current and stale verification deterministically when continuing", async () => {
     const root = await repository();
     await mkdir(path.join(root, "web", "components"), { recursive: true });
@@ -272,7 +338,7 @@ commands:
     await git(root, ["add", "."]);
     await git(root, ["commit", "-m", "noxroot fixture"]);
 
-    await cli(["start", "improve the panel", "--json", "--root", root]);
+    await cli(["start", "review the panel accessibility", "--json", "--root", root]);
     await writeFile(path.join(root, "web", "components", "panel.tsx"), "export const Panel = 2;\n");
     const finished = JSON.parse((await cli(["finish", "--json", "--root", root])).stdout) as {
       record: { status: string };
@@ -280,7 +346,7 @@ commands:
     expect(finished.record.status).toBe("review-pending");
 
     const current = JSON.parse(
-      (await cli(["start", "improve the panel", "--json", "--root", root])).stdout,
+      (await cli(["start", "review the panel accessibility", "--json", "--root", root])).stdout,
     ) as {
       continuation: {
         changedPaths: string[];
@@ -297,7 +363,7 @@ commands:
 
     await writeFile(path.join(root, "web", "components", "panel.tsx"), "export const Panel = 3;\n");
     const stale = JSON.parse(
-      (await cli(["start", "improve the panel", "--json", "--root", root])).stdout,
+      (await cli(["start", "review the panel accessibility", "--json", "--root", root])).stdout,
     ) as {
       continuation: {
         verification: { status: string; current: boolean };
@@ -427,7 +493,7 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(await readFile(path.join(root, reviewPath), "utf8")).toContain('"approved"');
   });
 
-  it("requests UX review from the actual UI diff even without Playwright", async () => {
+  it("requests UX review for an actual interaction change even without Playwright", async () => {
     const root = await repository();
     await writeFile(path.join(root, "src", "App.tsx"), "export const App = () => <main />;\n");
     await git(root, ["add", "."]);
@@ -450,7 +516,7 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     });
     await writeFile(
       path.join(root, "src", "App.tsx"),
-      "export const App = () => <main>Ready</main>;\n",
+      "export const App = () => <button onClick={() => undefined}>Ready</button>;\n",
     );
     const finished = await finishGuidedRun({
       root,
@@ -460,7 +526,47 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     });
     expect(finished.status).toBe("review-pending");
     expect(finished.reviewAssessment).toMatchObject({ required: true, kinds: ["ux"] });
-    expect(JSON.stringify(finished.reviewerPackage)).toContain("<main>Ready</main>");
+    expect(JSON.stringify(finished.reviewerPackage)).toContain("<button onClick");
+  });
+
+  it("does not require review for a bounded UI copy change", async () => {
+    const root = await repository();
+    await writeFile(
+      path.join(root, "src", "App.tsx"),
+      "export const App = () => <main>Old</main>;\n",
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "frontend fixture"]);
+    const command = {
+      id: "node-check",
+      executable: process.execPath,
+      args: ["-e", "process.exit(0)"],
+      cwd: ".",
+      timeoutMs: 10_000,
+      appliesTo: ["src/**"],
+    };
+    const record = await startGuidedRun({
+      id: "guided-ui-copy",
+      task: "update the page label",
+      root,
+      context,
+      effectiveAutonomy: effectiveAutonomy(undefined),
+      trustedVerificationPolicy: [command],
+    });
+    await writeFile(
+      path.join(root, "src", "App.tsx"),
+      "export const App = () => <main>Ready</main>;\n",
+    );
+
+    const finished = await finishGuidedRun({
+      root,
+      record,
+      adapter: new ManualAgentAdapter(),
+      reviewAuthorized: false,
+    });
+
+    expect(finished.status).toBe("completed");
+    expect(finished.reviewAssessment).toEqual({ required: false, kinds: [], reasons: [] });
   });
 
   it("permits an incomplete handoff without approving when no check matches", async () => {
@@ -485,6 +591,39 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(finished.verificationGaps).toContain(
       "No approved deterministic checks matched the actual change.",
     );
+  });
+
+  it("keeps passing-check output out of the concise handoff", async () => {
+    const root = await repository();
+    const record = await startGuidedRun({
+      id: "guided-clean-output",
+      task: "change value",
+      root,
+      context,
+      effectiveAutonomy: effectiveAutonomy(undefined),
+      trustedVerificationPolicy: [
+        {
+          id: "node-check",
+          executable: process.execPath,
+          args: ["-e", "process.stderr.write('harmless warning')"],
+          cwd: ".",
+          timeoutMs: 10_000,
+          appliesTo: ["src/**"],
+        },
+      ],
+    });
+    await writeFile(path.join(root, "src", "value.ts"), "export const value = 3;\n");
+
+    const finished = await finishGuidedRun({
+      root,
+      record,
+      adapter: new ManualAgentAdapter(),
+      reviewAuthorized: false,
+    });
+
+    expect(finished.handoff).toContain("node-check: passed");
+    expect(finished.handoff).not.toContain("exit 0 | harmless warning");
+    expect(finished.verification[0]?.[0]?.evidence.stderr).toContain("harmless warning");
   });
 
   it("shows an unavailable command, cwd, failure, and retry in the human handoff", async () => {

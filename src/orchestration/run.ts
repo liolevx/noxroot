@@ -224,7 +224,7 @@ export async function orchestrateRun(
   }
 
   const reviewDiff = await dependencies.diff();
-  const reviewAssessment = assessReviewNeed([], reviewDiff);
+  const reviewAssessment = assessReviewNeed([], reviewDiff, request.task);
   if (!reviewAssessment.required) {
     const partial: Omit<RunRecord, "handoff"> = {
       id: request.id,

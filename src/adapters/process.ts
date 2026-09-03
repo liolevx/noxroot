@@ -45,12 +45,15 @@ function safeEnvironment(extra: Record<string, string> = {}): NodeJS.ProcessEnv 
   return environment;
 }
 
-function platformCommand(
+const COREPACK_COMMANDS = new Set(["pnpm", "pnpx", "yarn", "yarnpkg"]);
+
+export function resolvePlatformCommand(
   executable: string,
   args: string[],
 ): { executable: string; args: string[] } {
-  if (process.platform === "win32" && ["npm", "npx"].includes(executable.toLowerCase())) {
-    const cliName = executable.toLowerCase() === "npm" ? "npm-cli.js" : "npx-cli.js";
+  const normalized = executable.toLowerCase();
+  if (process.platform === "win32" && ["npm", "npx"].includes(normalized)) {
+    const cliName = normalized === "npm" ? "npm-cli.js" : "npx-cli.js";
     const configured = process.env.npm_execpath;
     const installed = path.join(
       path.dirname(process.execPath),
@@ -63,6 +66,21 @@ function platformCommand(
     if (!existsSync(cli)) {
       throw new Error(
         `Cannot resolve the Windows ${executable} JavaScript CLI without a shell; configure Node plus an explicit CLI path.`,
+      );
+    }
+    return { executable: process.execPath, args: [cli, ...args] };
+  }
+  if (process.platform === "win32" && COREPACK_COMMANDS.has(normalized)) {
+    const cli = path.join(
+      path.dirname(process.execPath),
+      "node_modules",
+      "corepack",
+      "dist",
+      `${normalized}.js`,
+    );
+    if (!existsSync(cli)) {
+      throw new Error(
+        `Cannot resolve the Windows ${executable} JavaScript CLI without a shell; install or enable Corepack for this Node.js runtime.`,
       );
     }
     return { executable: process.execPath, args: [cli, ...args] };
@@ -111,7 +129,7 @@ export async function runProcess(request: ProcessRequest): Promise<ProcessEviden
   const stderrState = { bytes: 0, truncated: false };
   const startedAt = new Date();
   const started = performance.now();
-  const command = platformCommand(request.executable, request.args);
+  const command = resolvePlatformCommand(request.executable, request.args);
 
   return new Promise<ProcessEvidence>((resolve, reject) => {
     const child = spawn(command.executable, command.args, {

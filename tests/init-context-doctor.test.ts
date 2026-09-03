@@ -57,7 +57,79 @@ describe("initialization, sync safety, context, and doctor", () => {
     expect(await readFile(path.join(fixture.root, "README.md"), "utf8")).toContain(
       "must be preserved",
     );
-    expect((await previewRepository(fixture.root)).proposedFiles).toEqual([]);
+    const after = await previewRepository(fixture.root);
+    expect(after.proposedFiles).toEqual([]);
+    expect(after.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
+      decision: "reuse",
+    });
+  });
+
+  it("keeps a generated knowledge index bounded when a repository has many referenced documents", async () => {
+    const root = await temporaryDirectory("noxroot-index-bounds-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, "docs"));
+    const references: string[] = [];
+    for (let index = 0; index < 24; index += 1) {
+      const file = `docs/decision-${index}.md`;
+      references.push(`[Decision ${index}](${file})`);
+      await writeFile(path.join(root, file), `# Decision ${index}\n`);
+    }
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      `# Instructions\n\nProject knowledge: ${references.join(", ")}\n`,
+    );
+    await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
+
+    const preview = await previewRepository(root);
+    const index = preview.proposedFiles.find(
+      (item) => item.path === ".noxroot/knowledge/INDEX.md",
+    )?.content;
+    const documentReferences = preview.proposedFiles.filter((item) => item.action === "reference");
+    expect((index?.match(/existing repository documentation/g) ?? []).length).toBeLessThanOrEqual(
+      12,
+    );
+    expect(documentReferences.length).toBeLessThanOrEqual(12);
+    expect(index).toContain("Additional repository documentation remains in place");
+  });
+
+  it("indexes one canonical document from a translated documentation family", async () => {
+    const root = await temporaryDirectory("noxroot-translated-docs-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    for (const locale of ["en", "fr", "de"]) {
+      await mkdir(path.join(root, "docs", locale, "docs", "tutorial"), { recursive: true });
+      await writeFile(
+        path.join(root, "docs", locale, "docs", "tutorial", "testing.md"),
+        `# Testing (${locale})\n`,
+      );
+    }
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      [
+        "# Instructions",
+        "",
+        "Testing documentation:",
+        "- [English](docs/en/docs/tutorial/testing.md)",
+        "- [French](docs/fr/docs/tutorial/testing.md)",
+        "- [German](docs/de/docs/tutorial/testing.md)",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(path.join(root, "pyproject.toml"), '[project]\nname = "sample"\n');
+
+    const preview = await previewRepository(root);
+    const index = preview.proposedFiles.find(
+      (item) => item.path === ".noxroot/knowledge/INDEX.md",
+    )?.content;
+    const references = preview.proposedFiles
+      .filter((item) => item.action === "reference")
+      .map((item) => item.path);
+
+    expect(index).toContain("../../docs/en/docs/tutorial/testing.md");
+    expect(index).not.toContain("../../docs/fr/docs/tutorial/testing.md");
+    expect(index).not.toContain("../../docs/de/docs/tutorial/testing.md");
+    expect(references).toContain("docs/en/docs/tutorial/testing.md");
+    expect(references).not.toContain("docs/fr/docs/tutorial/testing.md");
+    expect(references).not.toContain("docs/de/docs/tutorial/testing.md");
   });
 
   it("updates only an existing managed block and preserves content before and after it", async () => {
@@ -76,6 +148,26 @@ describe("initialization, sync safety, context, and doctor", () => {
     expect(after).not.toContain("Old Noxroot guidance");
     expect(after).toContain("the Noxroot knowledge index");
     expect((await previewRepository(fixture.root)).proposedFiles).toEqual([]);
+  });
+
+  it("does not rewrite a managed block after a formatter wraps its prose", async () => {
+    const fixture = await fixtureCopy("typescript");
+    cleanup.push(fixture.cleanup);
+    const initial = await previewRepository(fixture.root);
+    await applyProposals(initial);
+    const agentsPath = path.join(fixture.root, "AGENTS.md");
+    const formatted = (await readFile(agentsPath, "utf8"))
+      .replace("<!-- noxroot:start -->\n##", "<!-- noxroot:start -->\n\n##")
+      .replace(
+        "Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant routes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge.",
+        "Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant\nroutes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw\ntranscripts out of project knowledge.",
+      );
+    await writeFile(agentsPath, formatted);
+
+    const preview = await previewRepository(fixture.root);
+
+    expect(preview.proposedFiles.find((item) => item.path === "AGENTS.md")).toBeUndefined();
+    expect(await readFile(agentsPath, "utf8")).toBe(formatted);
   });
 
   it("preserves CRLF bytes outside and inside the appended managed block", async () => {
@@ -103,6 +195,54 @@ describe("initialization, sync safety, context, and doctor", () => {
     });
     await applyProposals(preview);
     expect(await readFile(path.join(fixture.root, "AGENTS.md"), "utf8")).toBe(before);
+  });
+
+  it("upgrades an older knowledge-only entrypoint with the managed lifecycle block", async () => {
+    const root = await temporaryDirectory("noxroot-legacy-entrypoint-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
+    await mkdir(path.join(root, "src"));
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      "Start with [.noxroot/knowledge/INDEX.md](.noxroot/knowledge/INDEX.md).\n",
+    );
+    await writeFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "# Knowledge\n");
+    await writeFile(path.join(root, "src", "index.ts"), "export {};\n");
+    await writeFile(
+      path.join(root, "package.json"),
+      JSON.stringify({ scripts: { test: "node --test" } }),
+    );
+
+    const preview = await previewRepository(root);
+    const agents = preview.proposedFiles.find((item) => item.path === "AGENTS.md");
+
+    expect(agents).toMatchObject({ action: "patch" });
+    expect(agents?.content).toContain("<!-- noxroot:start -->");
+    expect(agents?.content).toContain('noxroot@0.1.0 start "<task>"');
+    expect(agents?.content).toContain("noxroot@0.1.0 finish");
+  });
+
+  it("preserves custom instructions that already provide an equivalent lifecycle", async () => {
+    const root = await temporaryDirectory("noxroot-equivalent-lifecycle-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
+    await mkdir(path.join(root, "src"));
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      [
+        "Read [.noxroot/knowledge/INDEX.md](.noxroot/knowledge/INDEX.md).",
+        'Before edits run `npx --yes noxroot@0.1.0 start "<task>"`.',
+        "Afterward run `npx --yes noxroot@0.1.0 finish`.",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "# Knowledge\n");
+    await writeFile(path.join(root, "src", "index.ts"), "export {};\n");
+    await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
+
+    const preview = await previewRepository(root);
+
+    expect(preview.proposedFiles.find((item) => item.path === "AGENTS.md")).toBeUndefined();
   });
 
   it("reports conflicting architecture documents instead of choosing one silently", async () => {

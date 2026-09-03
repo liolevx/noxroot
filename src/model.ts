@@ -94,7 +94,7 @@ export interface ProposedFile {
   expectedHash?: string;
 }
 
-export type CapabilityDecision = "create" | "reuse" | "conflict" | "not-assessed";
+export type CapabilityDecision = "create" | "reuse" | "adjacent" | "conflict" | "not-assessed";
 
 export interface CapabilityAssessment {
   id:
@@ -103,6 +103,7 @@ export interface CapabilityAssessment {
     | "verification-policy"
     | "verification-skill"
     | "task-orchestration"
+    | "coordination-ledger"
     | "product-ux-guidance";
   label: string;
   decision: CapabilityDecision;
@@ -124,6 +125,13 @@ export interface PreviewResult {
   contextEstimate: {
     defaultBytes: number;
     estimatedTokens: number;
+  };
+  setupImpact: {
+    createdFiles: number;
+    patchedFiles: number;
+    referencedFiles: number;
+    netLines: number;
+    documentationNetLines: number;
   };
   trust: {
     repositoryFilesChanged: 0;

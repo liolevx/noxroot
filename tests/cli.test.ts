@@ -3,6 +3,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CommanderError } from "commander";
 import { createProgram } from "../src/cli.js";
+import { writeRunRecord } from "../src/state/local.js";
 import { fixtureCopy, hashTree, temporaryDirectory } from "./helpers.js";
 
 const cleanup: Array<() => Promise<void>> = [];
@@ -33,9 +34,11 @@ async function run(args: string[], options: { isTTY?: boolean; columns?: number 
 }
 
 describe("CLI contracts", () => {
-  it("shows the compact Noxroot welcome only at the interactive entry point", async () => {
+  it("shows the compact Noxroot wordmark only at the interactive entry point", async () => {
     const interactive = await run(["--no-color"], { isTTY: true });
-    expect(interactive.stdout).toContain("╭─ NOXROOT ◆ 0.1.0");
+    expect(interactive.stdout).toContain("█▄ █  █▀█  ▀▄▀  █▀█  █▀█  █▀█  ▀█▀");
+    expect(interactive.stdout).toContain("█ ▀█  █▄█  █ █  █▀▄  █▄█  █▄█   █");
+    expect(interactive.stdout).toContain("◆ 0.1.0");
     expect(interactive.stdout).toContain("Project memory and verification for coding agents.");
     expect(interactive.stdout).toContain(
       "A CLI for task context, project checks, and reusable documentation.",
@@ -45,6 +48,10 @@ describe("CLI contracts", () => {
     const piped = await run([]);
     expect(piped.stdout).toContain("Usage: noxroot [options] [command]");
     expect(piped.stdout).not.toContain("◆");
+
+    const narrow = await run(["--no-color"], { isTTY: true, columns: 44 });
+    expect(narrow.stdout).toContain("NOXROOT ◆ 0.1.0");
+    expect(narrow.stdout).not.toContain("█▄ █");
   });
 
   it("shows the small mark for interactive setup but not routine commands", async () => {
@@ -137,6 +144,9 @@ describe("CLI contracts", () => {
     expect(concise.stdout).toContain("Detected\n  Node.js · TypeScript · npm");
     expect(concise.stdout).toContain("Add\n  Project knowledge");
     expect(concise.stdout).toContain("Not assessed\n  Product and UX guidance");
+    expect(concise.stdout).toMatch(
+      /Setup impact\n {2}\d+ create · \d+ managed patch · \d+ existing reference\n {2}\+\d+ net lines · \+\d+ documentation lines/,
+    );
     expect(concise.stdout).toContain(
       "No files changed. No project commands or agents ran. No network requests were made.",
     );
@@ -154,6 +164,33 @@ describe("CLI contracts", () => {
     expect(exact.stdout).toContain("Exact proposed changes");
     expect(exact.stdout).toContain("--- /dev/null");
     expect(exact.stdout).toContain("Next\n  npx --yes noxroot@0.1.0 init");
+  });
+
+  it("shows the repository pin and running CLI before a read-only sync proposal", async () => {
+    const fixture = await fixtureCopy("managed-agents");
+    cleanup.push(fixture.cleanup);
+    const instructions = await readFile(path.join(fixture.root, "AGENTS.md"), "utf8");
+    await writeFile(
+      path.join(fixture.root, "AGENTS.md"),
+      instructions.replace(
+        "Old Noxroot guidance that should be replaced.",
+        'Use `npx --yes noxroot@0.0.9 context "<task>"`.',
+      ),
+    );
+
+    const result = await run(["sync", "--dry-run", "--diff", "--root", fixture.root]);
+
+    expect(result.stdout).toContain("NOXROOT  sync");
+    expect(result.stdout).toContain("Repository pin  0.0.9");
+    expect(result.stdout).toContain("Running CLI     0.1.0");
+    expect(result.stdout).toMatch(/Managed changes [1-9]/);
+    expect(result.stdout).toContain("Exact proposed changes");
+
+    const applied = await run(["sync", "--yes", "--root", fixture.root]);
+    expect(applied.stdout).toContain("Updated setup");
+    expect(applied.stdout).toContain("  Patched AGENTS.md");
+    expect(applied.stdout).toContain("Next\n  Keep working normally with your coding agent.");
+    expect(applied.stdout).not.toContain("Created:");
   });
 
   it("keeps context compact unless verbose evidence is requested", async () => {
@@ -260,5 +297,35 @@ describe("CLI contracts", () => {
     expect(stdout).toContain("NOXROOT RUN PLAN");
     expect(stdout).toContain('"executes": false');
     expect(await hashTree(fixture.root)).toBe(before);
+  });
+
+  it("keeps an empty learning result quiet while preserving JSON detail", async () => {
+    const root = await temporaryDirectory("noxroot-empty-learning-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, ".git"), { recursive: true });
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(path.join(root, ".noxroot", "config.yml"), "version: 1\nmodules: [learning]\n");
+    await writeRunRecord(root, "completed-task", {
+      id: "completed-task",
+      task: "routine implementation",
+      status: "approved",
+      calls: [],
+      verification: [],
+      verificationGaps: [],
+      handoff: "",
+    });
+
+    const human = await run(["learn", "--task", "completed-task", "--root", root]);
+    expect(human.stdout).toContain("NOXROOT  learning");
+    expect(human.stdout).toContain("No reusable project knowledge was identified.");
+    expect(human.stdout).toContain("Project memory was not changed.");
+    expect(human.stdout.trimStart()).not.toMatch(/^\{/);
+
+    const machine = await run(["learn", "--task", "completed-task", "--json", "--root", root]);
+    expect(JSON.parse(machine.stdout)).toMatchObject({
+      taskId: "completed-task",
+      proposals: [],
+      message: "No durable learning identified",
+    });
   });
 });

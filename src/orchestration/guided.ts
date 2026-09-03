@@ -129,10 +129,13 @@ function guidedHandoff(
 ): string {
   const checked = checks.map((result) => {
     const invocation = [result.command.executable, ...result.command.args].join(" ");
-    const detail = (result.evidence.stderr || result.evidence.stdout)
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 300);
+    const detail =
+      result.status === "passed"
+        ? ""
+        : (result.evidence.stderr || result.evidence.stdout)
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 300);
     return `${result.command.id}: ${result.status} | ${invocation} | cwd ${result.command.cwd} | exit ${result.evidence.exitCode ?? "not started"}${detail ? ` | ${detail}` : ""}`;
   });
   const unavailable = checks.find((result) => result.status === "unavailable");
@@ -158,7 +161,7 @@ function guidedHandoff(
     "",
     "LEARNING",
     record.learningCandidates?.length
-      ? `${record.learningCandidates.length} reusable project-knowledge candidate(s) proposed.`
+      ? `${record.learningCandidates.length} documentation candidate${record.learningCandidates.length === 1 ? "" : "s"} identified by review; duplication and ownership still need checking.`
       : "No reusable project-knowledge candidate identified.",
     "",
     "NEXT",
@@ -232,7 +235,7 @@ export async function finishGuidedRun(input: {
     input.sensitivePaths ?? [],
   );
   const diffHash = createHash("sha256").update(diff).digest("hex");
-  const reviewAssessment = assessReviewNeed(changedPaths, diff);
+  const reviewAssessment = assessReviewNeed(changedPaths, diff, record.task);
   const commands = selectVerification(record.trustedVerificationPolicy, changedPaths);
   const checks = await executeVerification(input.root, commands, {
     ...(input.signal === undefined ? {} : { signal: input.signal }),

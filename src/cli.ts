@@ -2,6 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 import { realpathSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { stdin as defaultStdin, stdout as defaultStdout } from "node:process";
 import path from "node:path";
@@ -37,6 +38,7 @@ import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import {
   renderContext,
   renderInitMark,
+  renderLearning,
   renderPreview,
   renderVerification,
   renderVerificationPlan,
@@ -44,6 +46,7 @@ import {
   type RenderOptions,
 } from "./output.js";
 import {
+  enforceRunRetention,
   listRunRecords,
   localStateRoot,
   readRunRecord,
@@ -348,6 +351,107 @@ function renderStart(
   ].join("\n")}\n`;
 }
 
+async function repositoryTaskStatus(
+  root: string,
+  sensitivePaths: string[] = [],
+): Promise<{
+  repository: { root: string; branch?: string; dirty: boolean };
+  active: Array<{ record: GuidedRunRecord; continuation: GuidedContinuationState }>;
+  incompatible: string[];
+}> {
+  const repository = await captureRepositoryBaseline(root);
+  const active = await activeGuidedRecords(root);
+  const compatible: Array<{ record: GuidedRunRecord; continuation: GuidedContinuationState }> = [];
+  const incompatible: string[] = [];
+  for (const record of active) {
+    if (!(await revisionInCurrentHistory(root, record.baseline.revision))) {
+      incompatible.push(record.id);
+      continue;
+    }
+    compatible.push({
+      record,
+      continuation: await inspectGuidedContinuation(root, record, sensitivePaths),
+    });
+  }
+  return {
+    repository: {
+      root: repository.root,
+      ...(repository.branch === undefined ? {} : { branch: repository.branch }),
+      dirty: Boolean(repository.status.trim()),
+    },
+    active: compatible,
+    incompatible,
+  };
+}
+
+function renderTaskStatus(result: Awaited<ReturnType<typeof repositoryTaskStatus>>): string {
+  const lines = [
+    "NOXROOT  status",
+    "",
+    `Repository  ${path.basename(result.repository.root)} · ${result.repository.branch ?? "detached"}`,
+    `Working tree  ${result.repository.dirty ? "changed" : "clean"}`,
+    "",
+  ];
+  if (result.active.length === 0) {
+    lines.push("Active tasks  none", "", "Next  Keep working normally with your coding agent.");
+  } else {
+    lines.push(`Active tasks  ${result.active.length}`);
+    for (const { record, continuation } of result.active) {
+      lines.push(
+        "",
+        `${record.id}  ${record.context.intent.requiredOutcomes[0] ?? record.task}`,
+        `  Changed  ${continuation.changedPaths.length ? continuation.changedPaths.join(", ") : "none"}`,
+        `  Verification  ${continuation.verification.summary}`,
+        `  Next  ${continuation.nextAction}`,
+      );
+    }
+  }
+  if (result.incompatible.length > 0) {
+    lines.push(
+      "",
+      `Needs recovery  ${result.incompatible.join(", ")}`,
+      "  Return to the recorded branch before continuing these tasks.",
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+async function syncSummary(
+  root: string,
+  preview: PreviewResult,
+): Promise<{
+  repositoryVersion: string | null;
+  runningVersion: string;
+  managedChanges: number;
+}> {
+  let repositoryVersion: string | null = null;
+  try {
+    const instructions = await readFile(path.join(root, "AGENTS.md"), "utf8");
+    const managed = /<!-- noxroot:start -->([\s\S]*?)<!-- noxroot:end -->/.exec(instructions)?.[1];
+    repositoryVersion = managed
+      ? (/\bnoxroot@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/.exec(managed)?.[1] ?? null)
+      : null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  return {
+    repositoryVersion,
+    runningVersion: VERSION,
+    managedChanges: preview.proposedFiles.filter((file) => file.action !== "reference").length,
+  };
+}
+
+function renderSyncSummary(summary: Awaited<ReturnType<typeof syncSummary>>): string {
+  return `${[
+    "NOXROOT  sync",
+    "",
+    `Repository pin  ${summary.repositoryVersion ?? "not installed or not pinned"}`,
+    `Running CLI     ${summary.runningVersion}`,
+    `Managed changes ${summary.managedChanges}`,
+    "",
+  ].join("\n")}\n`;
+}
+
 export function createProgram(customIo?: Partial<Io>): Command {
   const io: Io = {
     stdout: customIo?.stdout ?? ((value) => process.stdout.write(value)),
@@ -481,6 +585,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
       async (options: { dryRun?: boolean; diff?: boolean; yes?: boolean }, command: Command) => {
         const common = globals(command);
         const preview = await previewRepository(common.root);
+        const summary = await syncSummary(path.resolve(common.root), preview);
         if (common.json && !options.dryRun && !options.yes) {
           throw new Error(
             "Mutating sync with --json requires --yes after a separate reviewed preview.",
@@ -488,18 +593,24 @@ export function createProgram(customIo?: Partial<Io>): Command {
         }
         if (!common.json)
           io.stdout(
-            renderPreview(preview, {
+            `${renderSyncSummary(summary)}${renderPreview(preview, {
               ...renderOptions(io, common),
               diff: options.diff || !options.dryRun,
               verbose: common.verbose || options.diff || !options.dryRun,
-            }),
+              next: options.dryRun
+                ? options.diff
+                  ? cliCommand("sync --yes")
+                  : cliCommand("sync --dry-run --diff")
+                : "Applying the displayed managed changes.",
+            })}`,
           );
         if (options.dryRun) {
-          if (common.json) writeJson(io, { preview, applied: { created: [] } });
+          if (common.json) writeJson(io, { summary, preview, applied: { created: [] } });
           return;
         }
         if (!preview.initializationAllowed) {
-          if (common.json) writeJson(io, { preview, applied: { created: [] }, refused: true });
+          if (common.json)
+            writeJson(io, { summary, preview, applied: { created: [] }, refused: true });
           process.exitCode = EXIT.refused;
           io.stderr(
             "Synchronization refused; resolve the reported instruction conflict. No files were changed.\n",
@@ -507,13 +618,13 @@ export function createProgram(customIo?: Partial<Io>): Command {
           return;
         }
         if (preview.proposedFiles.length === 0) {
-          if (common.json) writeJson(io, { preview, applied: { created: [] } });
+          if (common.json) writeJson(io, { summary, preview, applied: { created: [] } });
           return;
         }
         if (
           !(await confirm(
             io,
-            `Create ${preview.proposedFiles.length} missing file(s)?`,
+            `Apply ${preview.proposedFiles.length} displayed setup change(s)?`,
             options.yes,
           ))
         ) {
@@ -522,8 +633,16 @@ export function createProgram(customIo?: Partial<Io>): Command {
           return;
         }
         const result = await applyProposals(preview);
-        if (common.json) writeJson(io, { preview, applied: result });
-        else io.stdout(`Created: ${result.created.join(", ")}\n`);
+        if (common.json) writeJson(io, { summary, preview, applied: result });
+        else {
+          const changed = [
+            ...result.created.map((file) => `  Created ${file}`),
+            ...result.patched.map((file) => `  Patched ${file}`),
+          ];
+          io.stdout(
+            `${["Updated setup", ...changed, "", "Next", "  Keep working normally with your coding agent."].join("\n")}\n`,
+          );
+        }
       },
     );
 
@@ -535,6 +654,19 @@ export function createProgram(customIo?: Partial<Io>): Command {
       const result = await doctorRepository(common.root);
       emit(io, common.json, result, renderDoctor(result));
       if (!result.healthy) process.exitCode = EXIT.usage;
+    });
+
+  program
+    .command("status")
+    .description("show active task state and the next applicable action")
+    .action(async (_options: unknown, command: Command) => {
+      const common = globals(command);
+      const config = await loadConfig(common.root);
+      const result = await repositoryTaskStatus(
+        path.resolve(common.root),
+        config?.sensitivePaths ?? [],
+      );
+      emit(io, common.json, result, renderTaskStatus(result));
     });
 
   program
@@ -846,11 +978,17 @@ export function createProgram(customIo?: Partial<Io>): Command {
             },
           );
           const recordPath = await writeRunRecord(root, id, record);
+          const retention = await enforceRunRetention(
+            root,
+            config?.retention ?? { evidenceDays: 30, maximumRuns: 100 },
+            Date.now(),
+            [id],
+          );
           progress(io, "Preparing handoff");
           emit(
             io,
             common.json,
-            { plan, context, record, recordPath },
+            { plan, context, record, recordPath, retention },
             `${record.handoff}\n\nEvidence: ${recordPath}\n`,
           );
           if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
@@ -898,6 +1036,12 @@ export function createProgram(customIo?: Partial<Io>): Command {
         const recordPath = await replaceRunRecord(root, taskId, finished);
         progress(io, "Assessing reusable learning");
         const learning = await proposeLearnings(root, finished);
+        const retention = await enforceRunRetention(
+          root,
+          config?.retention ?? { evidenceDays: 30, maximumRuns: 100 },
+          Date.now(),
+          [taskId],
+        );
         const completion = {
           documentation: {
             status: "not-assessed" as const,
@@ -913,7 +1057,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         emit(
           io,
           common.json,
-          { record: finished, recordPath, completion, learning },
+          { record: finished, recordPath, completion, learning, retention },
           `${finished.handoff}\n\nDocumentation\n  Not assessed automatically; no deterministic documentation signal was produced.\n\nLearning\n  ${learning.proposals.length ? `${learning.proposals.length} reusable proposal(s) available; inspect with ${cliCommand(`learn --task ${taskId}`)}.` : "No reusable project-knowledge candidate identified."}\n\nLocal record: ${recordPath}\n`,
         );
         if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
@@ -946,7 +1090,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           "Learning application with --json requires --yes after a separate reviewed proposal.",
         );
       }
-      if (!common.json) io.stdout(`${JSON.stringify(result, null, 2)}\n`);
+      if (!common.json) io.stdout(renderLearning(result, renderOptions(io, common)));
       if (!options.apply || applicable.length === 0) {
         if (common.json) writeJson(io, result);
         return;

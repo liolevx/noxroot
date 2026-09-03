@@ -170,17 +170,39 @@ function commandFromScript(
   scriptName = id,
   cwd = ".",
   manifestPath = "package.json",
+  files: string[] = [],
 ): CandidateCommand {
   const args = manager === "yarn" ? [scriptName] : ["run", scriptName];
-  const scope = cwd === "." ? "" : `${path.posix.basename(cwd)}-`;
+  const scope = cwd === "." ? "" : `${slug(cwd)}-`;
   return {
     id: `${scope}${id}`,
     executable: manager,
     args,
     cwd,
     source: `${manifestPath} scripts.${scriptName}`,
-    appliesTo: cwd === "." ? (id === "test" ? ["src/**", "tests/**"] : ["**/*"]) : [`${cwd}/**`],
+    appliesTo: cwd === "." ? (id === "test" ? rootTestScope(files) : ["**/*"]) : [`${cwd}/**`],
   };
+}
+
+function rootTestScope(files: string[]): string[] {
+  const sourceDirectories = new Set<string>();
+  const rootExtensions = new Set<string>();
+  for (const file of files) {
+    const extension = /\.([cm]?[jt]sx?|vue|svelte|py|go|rs)$/i.exec(file)?.[1]?.toLowerCase();
+    if (!extension) continue;
+    const separator = file.indexOf("/");
+    if (separator === -1) rootExtensions.add(`*.${extension}`);
+    else sourceDirectories.add(`${file.slice(0, separator)}/**`);
+  }
+  const inferred = [...sourceDirectories].sort().concat([...rootExtensions].sort());
+  return inferred.length > 0 ? [...inferred, "package.json"] : ["**/*"];
+}
+
+function slug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function packageManagerEvidence(
@@ -350,7 +372,7 @@ function ciVerificationCommands(contents: ContentMap): CandidateCommand[] {
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-|-$/g, "") || commandName;
-        const scope = stepCwd === "." ? "" : `${path.posix.basename(stepCwd)}-`;
+        const scope = stepCwd === "." ? "" : `${slug(stepCwd)}-`;
         commands.push({
           id: `${scope}${name}`,
           executable,
@@ -363,6 +385,123 @@ function ciVerificationCommands(contents: ContentMap): CandidateCommand[] {
     }
   }
   return commands;
+}
+
+function uniqueCommandIds(commands: CandidateCommand[]): CandidateCommand[] {
+  const ordered = [...commands].sort(
+    (left, right) =>
+      left.id.localeCompare(right.id) ||
+      left.cwd.localeCompare(right.cwd) ||
+      left.source.localeCompare(right.source),
+  );
+  const counts = new Map<string, number>();
+  for (const command of ordered) counts.set(command.id, (counts.get(command.id) ?? 0) + 1);
+  const used = new Set<string>();
+  return ordered.map((command) => {
+    let id = command.id;
+    if ((counts.get(id) ?? 0) > 1) {
+      const sourceScope = slug(command.source.split(/\s+(?:jobs|scripts)\./, 1)[0] ?? "check");
+      const cwdScope = command.cwd === "." ? sourceScope : slug(command.cwd);
+      if (cwdScope && !id.startsWith(`${cwdScope}-`)) id = `${cwdScope}-${id}`;
+    }
+    const base = id;
+    let suffix = 2;
+    while (used.has(id)) {
+      id = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    used.add(id);
+    return id === command.id ? command : { ...command, id };
+  });
+}
+
+function scopedCommand(
+  id: string,
+  executable: string,
+  args: string[],
+  cwd: string,
+  source: string,
+): CandidateCommand {
+  return {
+    id: cwd === "." ? id : `${slug(cwd)}-${id}`,
+    executable,
+    args,
+    cwd,
+    source,
+    appliesTo: cwd === "." ? ["**/*"] : [`${cwd}/**`],
+  };
+}
+
+function nativeVerificationCommands(
+  files: string[],
+  contents: ContentMap,
+  projectManifest: (file: string) => boolean,
+): CandidateCommand[] {
+  const commands: CandidateCommand[] = [];
+  const fileSet = new Set(files);
+  for (const manifest of files.filter(
+    (file) => projectManifest(file) && path.posix.basename(file) === "pyproject.toml",
+  )) {
+    const source = contents[manifest];
+    if (!source) continue;
+    const cwd = path.posix.dirname(manifest);
+    const located = (file: string): string => (cwd === "." ? file : `${cwd}/${file}`);
+    const runner = fileSet.has(located("uv.lock")) ? ["uv", "run"] : ["python", "-m"];
+    for (const tool of ["pytest", "ruff", "mypy"] as const) {
+      if (!new RegExp(`^\\s*\\[tool\\.${tool}(?:\\.|])`, "m").test(source)) continue;
+      const args =
+        tool === "pytest"
+          ? [...runner.slice(1), "pytest"]
+          : tool === "ruff"
+            ? [...runner.slice(1), "ruff", "check", "."]
+            : [...runner.slice(1), "mypy", "."];
+      commands.push(scopedCommand(tool, runner[0]!, args, cwd, `${manifest} [tool.${tool}]`));
+    }
+  }
+  const cargoManifests = files.filter(
+    (file) => projectManifest(file) && path.posix.basename(file) === "Cargo.toml",
+  );
+  const rootCargoWorkspace = /^\s*\[workspace(?:\.|])/m.test(contents["Cargo.toml"] ?? "");
+  for (const manifest of rootCargoWorkspace
+    ? cargoManifests.filter((file) => file === "Cargo.toml")
+    : cargoManifests) {
+    const cwd = path.posix.dirname(manifest);
+    commands.push(scopedCommand("cargo-test", "cargo", ["test"], cwd, manifest));
+    commands.push(scopedCommand("cargo-check", "cargo", ["check"], cwd, manifest));
+  }
+  for (const manifest of files.filter(
+    (file) => projectManifest(file) && path.posix.basename(file) === "go.mod",
+  )) {
+    const cwd = path.posix.dirname(manifest);
+    commands.push(scopedCommand("go-test", "go", ["test", "./..."], cwd, manifest));
+  }
+  return commands;
+}
+
+function aggregateEvidence(evidence: Evidence[]): Evidence[] {
+  const grouped = new Map<string, Evidence[]>();
+  for (const item of evidence) {
+    const key = `${item.status}\0${item.claim}`;
+    grouped.set(key, [...(grouped.get(key) ?? []), item]);
+  }
+  return [...grouped.values()].map((items) => {
+    const first = items[0]!;
+    const allSources = [...new Set(items.flatMap((item) => item.sources))].sort();
+    const sources = allSources.slice(0, 12);
+    const details = [...new Set(items.map((item) => item.detail).filter(Boolean))] as string[];
+    const omittedSources = allSources.length - sources.length;
+    const detailParts = [
+      ...details.slice(0, 3),
+      ...(details.length > 3 ? [`${details.length - 3} additional detail(s) omitted.`] : []),
+      ...(omittedSources > 0 ? [`${omittedSources} additional source(s) omitted.`] : []),
+    ];
+    return {
+      status: first.status,
+      claim: first.claim,
+      sources,
+      ...(detailParts.length ? { detail: detailParts.join(" ") } : {}),
+    };
+  });
 }
 
 function detectEvidence(
@@ -378,10 +517,49 @@ function detectEvidence(
   const fileSet = new Set(files);
   const packageManagers: Array<{ path: string; evidence: PackageManagerEvidence }> = [];
   const projectManifest = (file: string): boolean =>
-    !/(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?)(?:\/|$)/.test(file);
+    !/(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?|playgrounds?|sandboxes?|benchmarks?|canary)(?:\/|$)/.test(
+      file,
+    );
   const packagePaths = files
     .filter((file) => path.posix.basename(file) === "package.json" && projectManifest(file))
     .sort();
+  const collectionManifest = (file: string): boolean =>
+    !/(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:playgrounds?|sandboxes?|benchmarks?|canary)(?:\/|$)/.test(
+      file,
+    );
+  const projectManifests = files.filter(
+    (file) =>
+      ["package.json", "pyproject.toml", "Cargo.toml", "go.mod"].includes(
+        path.posix.basename(file),
+      ) && collectionManifest(file),
+  );
+  const nestedManifests = projectManifests.filter((file) => file.includes("/"));
+  const hasRootManifest = projectManifests.some((file) => !file.includes("/"));
+  const exampleLikeManifests = nestedManifests.filter((file) =>
+    /(?:^|\/)(?:examples?|demos?|starters?|templates?|tutorials?|lessons?|chapters?|chapter[-_]?\d+)(?:\/|$)/i.test(
+      file,
+    ),
+  );
+  const readme = (contents["README.md"] ?? "").replace(/\s+/g, " ");
+  const collectionKind = String.raw`(?:course|workshop|tutorial (?:repository|series)|collection)`;
+  const collectionUnits = String.raw`(?:examples?|lessons?|chapters?|starter (?:projects?|templates?)|sample projects?|final code)`;
+  const readmeDescribesCollection =
+    new RegExp(`\\b${collectionKind}\\b.{0,180}\\b${collectionUnits}\\b`, "i").test(readme) ||
+    new RegExp(`\\b${collectionUnits}\\b.{0,180}\\b${collectionKind}\\b`, "i").test(readme);
+  if (
+    (!hasRootManifest || readmeDescribesCollection) &&
+    nestedManifests.length >= 4 &&
+    (exampleLikeManifests.length >= Math.ceil(nestedManifests.length / 2) ||
+      readmeDescribesCollection)
+  ) {
+    evidence.push({
+      status: "confirmed",
+      claim: "Independent example collection",
+      sources: nestedManifests.slice(0, 12),
+      detail:
+        "Choose one contained project as the Noxroot root; do not configure the collection as one application.",
+    });
+  }
 
   for (const packagePath of packagePaths) {
     const packageText = contents[packagePath];
@@ -465,7 +643,7 @@ function detectEvidence(
         for (const id of ["lint", "typecheck", "test", "build"]) {
           if (id === "build" && testCoversBuild) continue;
           if (packageManifest.scripts[id])
-            commands.push(commandFromScript(manager.name, id, id, directory, packagePath));
+            commands.push(commandFromScript(manager.name, id, id, directory, packagePath, files));
         }
       }
     } catch {
@@ -494,6 +672,18 @@ function detectEvidence(
       : packageManagerEvidence(files, contents, undefined));
 
   for (const command of ciVerificationCommands(contents)) {
+    if (
+      !commands.some(
+        (candidate) =>
+          candidate.executable === command.executable &&
+          candidate.cwd === command.cwd &&
+          JSON.stringify(candidate.args) === JSON.stringify(command.args),
+      )
+    ) {
+      commands.push(command);
+    }
+  }
+  for (const command of nativeVerificationCommands(files, contents, projectManifest)) {
     if (
       !commands.some(
         (candidate) =>
@@ -564,7 +754,11 @@ function detectEvidence(
       sources: ci.slice(0, 5),
     });
   }
-  return { evidence, commands, packageManager };
+  return {
+    evidence: aggregateEvidence(evidence),
+    commands: uniqueCommandIds(commands),
+    packageManager,
+  };
 }
 
 export async function scanRepository(

@@ -27,12 +27,14 @@ contains the complete repository profile, limits, module reasons, proposal conte
 discovered-but-unrun commands, proposed context estimate, and zero-side-effect counters.
 `noxroot init --dry-run` is the concise aliasing experience.
 
-Preview classifies relevant setup capabilities as `create`, `reuse`, `conflict`, or `not-assessed`.
-`create` requires evidence that the capability is absent. `reuse` names the existing repository
-source. A repository-development orchestration conflict disables Noxroot's lifecycle and learning
-capabilities while permitting non-overlapping context and verification setup. When evidence is
-incomplete, `not-assessed` preserves that capability unchanged and explains what could not be
-established.
+Preview classifies relevant setup capabilities as `create`, `reuse`, `adjacent`, `conflict`, or
+`not-assessed`. `create` requires evidence that the capability is absent. `reuse` names the existing
+repository source. `adjacent` identifies a compatible capability with a separate responsibility,
+such as a cross-session work ledger. A repository-development orchestration conflict disables
+Noxroot's lifecycle and learning capabilities while permitting non-overlapping context and
+verification setup. When evidence is incomplete, `not-assessed` preserves that capability unchanged
+and explains what could not be established. A repository made of independent examples must be scoped
+to one contained project with `--root` before initialization.
 
 ## `init` and `sync`
 
@@ -50,9 +52,15 @@ global or project installation; npm retrieves the package through its normal cac
 with a newer Noxroot release is the explicit upgrade path for the managed instruction block.
 
 `init --select` interactively accepts explicit module ids. `sync --dry-run` re-diagnoses an
-initialized repository; add `--diff` for patches. Mutating init and sync always show exact patches
-before confirmation. Sync creates or patches only hash-guarded Noxroot-owned surfaces and never
-rewrites user-authored external knowledge. `--yes` is for automation that already reviewed them.
+initialized repository; add `--diff` for patches. Sync reports the repository pin, running CLI
+version, and managed change count before the proposal. Mutating init and sync always show exact
+patches before confirmation. Sync creates or patches only hash-guarded Noxroot-owned surfaces and
+never rewrites user-authored external knowledge. `--yes` is for automation that already reviewed
+them.
+
+Use `npx noxroot@latest sync --dry-run --diff` to inspect a newer release, then
+`npx noxroot@latest sync` to apply only the reviewed managed changes. There is no separate upgrade
+state or background update.
 
 ## `doctor`
 
@@ -66,6 +74,13 @@ does not broadly rewrite the repository.
 exclusion count, and estimated tokens. `--verbose` adds selection reasons, individual exclusions,
 constraints, conflicts, unknowns, and byte counts. It stores paths and evidence, not copied source
 files.
+
+## `status`
+
+`status` is a read-only answer to "where is this repository task?" It reports the current branch,
+working-tree state, active Noxroot tasks, changed paths since each baseline, whether verification
+matches the current diff, and the next applicable action. It does not invoke an agent or restore a
+chat session.
 
 ## `verify`
 
@@ -114,4 +129,6 @@ become project knowledge merely because it occurred once. Proposals show evidenc
 duplication/conflict results, content, and whether an executable guardrail is better. `--apply`
 requires confirmation; the first learnings file and index link are written in the same operation.
 Raw prose, task text, sessions, user data, secrets, and external human docs are not converted into
-knowledge.
+knowledge. New entries carry a confirmation date and source task id. Noxroot refuses another entry
+when the destination would exceed `context.documentWarningBytes`; existing knowledge must then be
+consolidated or superseded deliberately.

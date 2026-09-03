@@ -75,6 +75,11 @@ Routes live in `.noxroot/routes.yml`. Each route has an id, match patterns, incl
 explicit exclusions. Current routing combines those durable entrypoints with deterministic task/path
 evidence and enforces the configured byte budget.
 
+`retention.evidenceDays` expires completed or approved local run evidence by age.
+`retention.maximumRuns` caps the retained record count. Active and recoverable states are protected
+even when they exceed the cap. `context.documentWarningBytes` is also the hard ceiling for appending
+new Noxroot-owned learning; reaching it requires deliberate consolidation.
+
 `entrypoints` selects thin vendor-facing instruction files without duplicating canonical knowledge.
 `browser` is optional and must reference an already confirmed verification command; preview never
 installs browser tooling or starts an application.
@@ -88,3 +93,8 @@ For JavaScript repositories, candidate commands use an authoritative `packageMan
 then an unambiguous lockfile, then consistent CI evidence. npm, pnpm, Yarn, and Bun are supported.
 Missing or conflicting evidence produces no guessed command and preview never installs a manager or
 runs Corepack.
+
+For Python, explicit `pytest`, Ruff, or mypy tool configuration can produce a scoped candidate using
+the repository's `uv.lock` when present. Cargo and Go manifests produce their conventional native
+test/check candidates. These remain proposals until accepted into verification policy; discovery
+never executes or installs them.

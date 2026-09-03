@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AgentAdapter, AgentRequest, AgentResult } from "../src/adapters/agents.js";
 import { boundedDiff, prepareIsolatedWorktree } from "../src/adapters/vcs.js";
-import { proposeLearnings } from "../src/knowledge/learn.js";
+import { applyLearning, proposeLearnings } from "../src/knowledge/learn.js";
 import type { ContextPackage, VerificationResult } from "../src/model.js";
 import { orchestrateRun, type RunRecord } from "../src/orchestration/run.js";
 import { temporaryDirectory } from "./helpers.js";
@@ -363,11 +363,85 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
       duplication: "not-found",
     });
     expect(result.proposals[0]?.content).not.toContain(run.task);
+    expect(result.proposals[0]?.content).toContain("Last confirmed:");
+    expect(result.proposals[0]?.content).toContain("Source task: task-structured");
     expect(result.rejected).toEqual([
       {
         destination: "docs/architecture.md",
         reason: "Learning may update only a Noxroot-owned Markdown file under .noxroot/knowledge/.",
       },
     ]);
+  });
+
+  it("stops learning growth when the destination needs consolidation", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      "version: 1\nmodules: [learning]\ncontext:\n  budgetBytes: 16000\n  documentWarningBytes: 500\n",
+    );
+    await writeFile(
+      path.join(root, ".noxroot", "knowledge", "learnings.md"),
+      `# Validated learnings\n\n${"Existing durable knowledge. ".repeat(14)}\n`,
+    );
+    const run: RunRecord & { finishedAt: string; learningCandidates: unknown[] } = {
+      id: "task-cap",
+      task: "do not persist this prompt",
+      status: "approved",
+      finishedAt: "2026-09-03T12:00:00.000Z",
+      calls: [],
+      verification: [],
+      verificationGaps: [],
+      handoff: "",
+      learningCandidates: [
+        {
+          kind: "knowledge",
+          destination: ".noxroot/knowledge/learnings.md",
+          evidence: ["tests/retention.test.ts validates the bound"],
+          expectedValue: "Keeps future context small.",
+          content: "Retain only durable and currently validated project knowledge.",
+          whyNotExecutable: "This records the repository rationale for the executable bound.",
+        },
+      ],
+    };
+
+    const result = await proposeLearnings(root, run);
+
+    expect(result.proposals).toEqual([]);
+    expect(result.rejected).toEqual([
+      {
+        destination: ".noxroot/knowledge/learnings.md",
+        reason:
+          "The destination would exceed 500 bytes. Consolidate or supersede existing knowledge before adding another entry.",
+      },
+    ]);
+  });
+
+  it("rechecks the document bound before applying an approved proposal", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, ".noxroot", "knowledge"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      "version: 1\nmodules: [learning]\ncontext:\n  budgetBytes: 16000\n  documentWarningBytes: 300\n",
+    );
+    const proposal = {
+      id: "knowledge-test",
+      signature: "1234567890abcdef1234",
+      destination: ".noxroot/knowledge/learnings.md",
+      kind: "knowledge" as const,
+      evidence: ["test evidence"],
+      expectedFutureValue: "future value",
+      duplication: "not-found" as const,
+      conflict: "none" as const,
+      content: "x".repeat(400),
+      executableDestination: "test",
+    };
+
+    await expect(applyLearning(root, proposal)).rejects.toThrow("would exceed 300 bytes");
+    await expect(
+      readFile(path.join(root, ".noxroot", "knowledge", "learnings.md")),
+    ).rejects.toThrow();
   });
 });

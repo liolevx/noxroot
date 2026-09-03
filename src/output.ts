@@ -4,6 +4,7 @@ import type {
   PreviewResult,
   VerificationResult,
 } from "./model.js";
+import type { LearnResult } from "./knowledge/learn.js";
 import { cliCommand, VERSION } from "./invocation.js";
 
 export interface RenderOptions {
@@ -80,21 +81,18 @@ export function renderWelcome(options: RenderOptions = {}): string {
     "Project memory and verification for coding agents.",
     "A CLI for task context, project checks, and reusable documentation.",
   ];
-  const bannerWidth = Math.max(...promise.map((line) => line.length));
-  const bannerTitle = `NOXROOT ◆ ${VERSION}`;
-  const compact = (options.width ?? 80) < bannerWidth + 4;
+  const wordmark = ["█▄ █  █▀█  ▀▄▀  █▀█  █▀█  █▀█  ▀█▀", "█ ▀█  █▄█  █ █  █▀▄  █▄█  █▄█   █"];
+  const compact = (options.width ?? 80) < 52;
   const mark = compact
     ? [
         `${style("NOXROOT", ANSI.violet, options)} ${style("◆", ANSI.blue, options)} ${style(VERSION, ANSI.dim, options)}`,
         ...promise.map((line) => style(line, ANSI.bold, options)),
       ]
     : [
-        `${style("╭─ ", ANSI.dim, options)}${style("NOXROOT", ANSI.violet, options)} ${style("◆", ANSI.blue, options)} ${style(VERSION, ANSI.dim, options)} ${style("─".repeat(bannerWidth - bannerTitle.length - 1), ANSI.dim, options)}${style("╮", ANSI.dim, options)}`,
-        ...promise.map(
-          (line) =>
-            `${style("│", ANSI.dim, options)} ${style(line.padEnd(bannerWidth), ANSI.bold, options)} ${style("│", ANSI.dim, options)}`,
-        ),
-        style(`╰${"─".repeat(bannerWidth + 2)}╯`, ANSI.dim, options),
+        ...wordmark.map((line) => style(line, ANSI.violet, options)),
+        `${style("◆", ANSI.blue, options)} ${style(VERSION, ANSI.dim, options)}`,
+        "",
+        ...promise.map((line) => style(line, ANSI.bold, options)),
       ];
   return `${[
     ...mark,
@@ -109,7 +107,7 @@ export function renderInitMark(options: RenderOptions = {}): string {
 
 export function renderPreview(
   result: PreviewResult,
-  options: RenderOptions & { diff?: boolean } = {},
+  options: RenderOptions & { diff?: boolean; next?: string } = {},
 ): string {
   const manager =
     result.profile.packageManager.status === "confirmed"
@@ -142,6 +140,9 @@ export function renderPreview(
   const companionMode = result.capabilities.some(
     (item) => item.id === "task-orchestration" && item.decision === "conflict",
   );
+  const contextOnlyMode = result.capabilities.some(
+    (item) => item.id === "task-orchestration" && item.decision === "not-assessed",
+  );
   const setupOnly = result.profile.empty;
   const conflictDetails = [
     ...result.conflicts,
@@ -160,12 +161,30 @@ export function renderPreview(
         : ["No application architecture detected"],
       options,
     ),
-    ...section("Mode", [companionMode ? "Companion" : setupOnly ? "Setup only" : "Full"], options),
+    ...section(
+      "Mode",
+      [
+        companionMode
+          ? "Companion"
+          : setupOnly
+            ? "Setup only"
+            : contextOnlyMode
+              ? "Context only"
+              : "Full",
+      ],
+      options,
+    ),
     ...section(
       "Reuse",
       capabilityLines(result.capabilities, "reuse", options),
       options,
       ANSI.green,
+    ),
+    ...section(
+      "Works alongside",
+      capabilityLines(result.capabilities, "adjacent", options),
+      options,
+      ANSI.blue,
     ),
     ...section(
       "Add",
@@ -185,6 +204,16 @@ export function renderPreview(
       options,
       ANSI.dim,
     ),
+    ...(result.proposedFiles.length
+      ? section(
+          "Setup impact",
+          [
+            `${result.setupImpact.createdFiles} create · ${result.setupImpact.patchedFiles} managed patch · ${result.setupImpact.referencedFiles} existing reference`,
+            `${result.setupImpact.netLines >= 0 ? "+" : ""}${result.setupImpact.netLines} net lines · ${result.setupImpact.documentationNetLines >= 0 ? "+" : ""}${result.setupImpact.documentationNetLines} documentation lines`,
+          ],
+          options,
+        )
+      : []),
   ];
 
   if (options.verbose) {
@@ -229,13 +258,14 @@ export function renderPreview(
     ...section(
       "Next",
       [
-        !result.initializationAllowed
-          ? "Resolve the reported instruction conflict."
-          : result.proposedFiles.length === 0
-            ? cliCommand('context "<task>"')
-            : options.diff
-              ? cliCommand("init")
-              : cliCommand("preview --diff"),
+        options.next ??
+          (!result.initializationAllowed
+            ? (result.conflicts[0] ?? "Resolve the reported repository conflict.")
+            : result.proposedFiles.length === 0
+              ? cliCommand('context "<task>"')
+              : options.diff
+                ? cliCommand("init")
+                : cliCommand("preview --diff")),
       ],
       options,
       ANSI.blue,
@@ -245,6 +275,9 @@ export function renderPreview(
 }
 
 export function renderContext(context: ContextPackage, options: RenderOptions = {}): string {
+  const selectedPaths = new Set(context.selected.map((item) => item.path));
+  const candidatePath = (pathname: string): string =>
+    selectedPaths.has(pathname) ? pathname : `${pathname} (path match; inspect selectively)`;
   const selectedSummary = options.verbose
     ? `${context.selected.length} of ${context.repositoryFileCount} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`
     : `${context.selected.length} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`;
@@ -272,12 +305,14 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
     ),
     ...section(
       "Likely owner",
-      context.likelyOwningSource.length ? context.likelyOwningSource : ["Not established"],
+      context.likelyOwningSource.length
+        ? context.likelyOwningSource.map(candidatePath)
+        : ["Not established"],
       options,
     ),
     ...section(
       "Likely tests",
-      context.likelyTests.length ? context.likelyTests : ["Not established"],
+      context.likelyTests.length ? context.likelyTests.map(candidatePath) : ["Not established"],
       options,
     ),
     ...section(
@@ -415,6 +450,56 @@ export function renderVerification(
           ? "Continue with review or handoff."
           : "Resolve the failed or unavailable checks, then run verification again.",
       ],
+      options,
+      ANSI.blue,
+    ),
+  );
+  return `${lines.join("\n").trimEnd()}\n`;
+}
+
+export function renderLearning(result: LearnResult, options: RenderOptions = {}): string {
+  const lines = [title("learning", options), ""];
+  if (result.proposals.length === 0) {
+    lines.push(
+      ...section(
+        "No update",
+        [
+          result.rejected.length
+            ? "No learning candidate was safe to propose."
+            : "No reusable project knowledge was identified.",
+        ],
+        options,
+        ANSI.green,
+      ),
+    );
+  } else {
+    lines.push(
+      ...section(
+        "Proposed",
+        result.proposals.map((proposal) => `${proposal.kind} · ${proposal.destination}`),
+        options,
+        ANSI.violet,
+      ),
+    );
+  }
+  if (result.rejected.length) {
+    lines.push(
+      ...section(
+        "Not proposed",
+        options.verbose
+          ? result.rejected.map((item) => `${item.destination}: ${item.reason}`)
+          : [`${result.rejected.length} unsafe or conflicting candidate(s)`],
+        options,
+        ANSI.yellow,
+      ),
+    );
+  }
+  lines.push(
+    ...section(
+      "Next",
+      result.proposals.length
+        ? [cliCommand(`learn --task ${result.taskId} --apply`)]
+        : ["Project memory was not changed."],
       options,
       ANSI.blue,
     ),
