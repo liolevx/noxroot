@@ -2,6 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 import { realpathSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { stdin as defaultStdin, stdout as defaultStdout } from "node:process";
 import path from "node:path";
@@ -411,6 +412,39 @@ function renderTaskStatus(result: Awaited<ReturnType<typeof repositoryTaskStatus
   return `${lines.join("\n")}\n`;
 }
 
+async function syncSummary(root: string, preview: PreviewResult): Promise<{
+  repositoryVersion: string | null;
+  runningVersion: string;
+  managedChanges: number;
+}> {
+  let repositoryVersion: string | null = null;
+  try {
+    const instructions = await readFile(path.join(root, "AGENTS.md"), "utf8");
+    const managed = /<!-- noxroot:start -->([\s\S]*?)<!-- noxroot:end -->/.exec(instructions)?.[1];
+    repositoryVersion = managed
+      ? /\bnoxroot@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/.exec(managed)?.[1] ?? null
+      : null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  return {
+    repositoryVersion,
+    runningVersion: VERSION,
+    managedChanges: preview.proposedFiles.filter((file) => file.action !== "reference").length,
+  };
+}
+
+function renderSyncSummary(summary: Awaited<ReturnType<typeof syncSummary>>): string {
+  return `${[
+    "NOXROOT  sync",
+    "",
+    `Repository pin  ${summary.repositoryVersion ?? "not installed or not pinned"}`,
+    `Running CLI     ${summary.runningVersion}`,
+    `Managed changes ${summary.managedChanges}`,
+    "",
+  ].join("\n")}\n`;
+}
+
 export function createProgram(customIo?: Partial<Io>): Command {
   const io: Io = {
     stdout: customIo?.stdout ?? ((value) => process.stdout.write(value)),
@@ -544,6 +578,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
       async (options: { dryRun?: boolean; diff?: boolean; yes?: boolean }, command: Command) => {
         const common = globals(command);
         const preview = await previewRepository(common.root);
+        const summary = await syncSummary(path.resolve(common.root), preview);
         if (common.json && !options.dryRun && !options.yes) {
           throw new Error(
             "Mutating sync with --json requires --yes after a separate reviewed preview.",
@@ -551,18 +586,19 @@ export function createProgram(customIo?: Partial<Io>): Command {
         }
         if (!common.json)
           io.stdout(
-            renderPreview(preview, {
+            `${renderSyncSummary(summary)}${renderPreview(preview, {
               ...renderOptions(io, common),
               diff: options.diff || !options.dryRun,
               verbose: common.verbose || options.diff || !options.dryRun,
-            }),
+            })}`,
           );
         if (options.dryRun) {
-          if (common.json) writeJson(io, { preview, applied: { created: [] } });
+          if (common.json) writeJson(io, { summary, preview, applied: { created: [] } });
           return;
         }
         if (!preview.initializationAllowed) {
-          if (common.json) writeJson(io, { preview, applied: { created: [] }, refused: true });
+          if (common.json)
+            writeJson(io, { summary, preview, applied: { created: [] }, refused: true });
           process.exitCode = EXIT.refused;
           io.stderr(
             "Synchronization refused; resolve the reported instruction conflict. No files were changed.\n",
@@ -570,7 +606,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           return;
         }
         if (preview.proposedFiles.length === 0) {
-          if (common.json) writeJson(io, { preview, applied: { created: [] } });
+          if (common.json) writeJson(io, { summary, preview, applied: { created: [] } });
           return;
         }
         if (
@@ -585,7 +621,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           return;
         }
         const result = await applyProposals(preview);
-        if (common.json) writeJson(io, { preview, applied: result });
+        if (common.json) writeJson(io, { summary, preview, applied: result });
         else io.stdout(`Created: ${result.created.join(", ")}\n`);
       },
     );

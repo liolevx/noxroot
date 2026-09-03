@@ -165,6 +165,27 @@ describe("CLI contracts", () => {
     expect(exact.stdout).toContain("Next\n  npx --yes noxroot@0.1.0 init");
   });
 
+  it("shows the repository pin and running CLI before a read-only sync proposal", async () => {
+    const fixture = await fixtureCopy("managed-agents");
+    cleanup.push(fixture.cleanup);
+    const instructions = await readFile(path.join(fixture.root, "AGENTS.md"), "utf8");
+    await writeFile(
+      path.join(fixture.root, "AGENTS.md"),
+      instructions.replace(
+        "Old Noxroot guidance that should be replaced.",
+        'Use `npx --yes noxroot@0.0.9 context "<task>"`.',
+      ),
+    );
+
+    const result = await run(["sync", "--dry-run", "--diff", "--root", fixture.root]);
+
+    expect(result.stdout).toContain("NOXROOT  sync");
+    expect(result.stdout).toContain("Repository pin  0.0.9");
+    expect(result.stdout).toContain("Running CLI     0.1.0");
+    expect(result.stdout).toMatch(/Managed changes [1-9]/);
+    expect(result.stdout).toContain("Exact proposed changes");
+  });
+
   it("keeps context compact unless verbose evidence is requested", async () => {
     const fixture = await fixtureCopy("typescript");
     cleanup.push(fixture.cleanup);
