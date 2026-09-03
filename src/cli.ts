@@ -349,6 +349,68 @@ function renderStart(
   ].join("\n")}\n`;
 }
 
+async function repositoryTaskStatus(root: string, sensitivePaths: string[] = []): Promise<{
+  repository: { root: string; branch?: string; dirty: boolean };
+  active: Array<{ record: GuidedRunRecord; continuation: GuidedContinuationState }>;
+  incompatible: string[];
+}> {
+  const repository = await captureRepositoryBaseline(root);
+  const active = await activeGuidedRecords(root);
+  const compatible: Array<{ record: GuidedRunRecord; continuation: GuidedContinuationState }> = [];
+  const incompatible: string[] = [];
+  for (const record of active) {
+    if (!(await revisionInCurrentHistory(root, record.baseline.revision))) {
+      incompatible.push(record.id);
+      continue;
+    }
+    compatible.push({
+      record,
+      continuation: await inspectGuidedContinuation(root, record, sensitivePaths),
+    });
+  }
+  return {
+    repository: {
+      root: repository.root,
+      ...(repository.branch === undefined ? {} : { branch: repository.branch }),
+      dirty: Boolean(repository.status.trim()),
+    },
+    active: compatible,
+    incompatible,
+  };
+}
+
+function renderTaskStatus(result: Awaited<ReturnType<typeof repositoryTaskStatus>>): string {
+  const lines = [
+    "NOXROOT  status",
+    "",
+    `Repository  ${path.basename(result.repository.root)} · ${result.repository.branch ?? "detached"}`,
+    `Working tree  ${result.repository.dirty ? "changed" : "clean"}`,
+    "",
+  ];
+  if (result.active.length === 0) {
+    lines.push("Active tasks  none", "", "Next  Keep working normally with your coding agent.");
+  } else {
+    lines.push(`Active tasks  ${result.active.length}`);
+    for (const { record, continuation } of result.active) {
+      lines.push(
+        "",
+        `${record.id}  ${record.context.intent.requiredOutcomes[0] ?? record.task}`,
+        `  Changed  ${continuation.changedPaths.length ? continuation.changedPaths.join(", ") : "none"}`,
+        `  Verification  ${continuation.verification.summary}`,
+        `  Next  ${continuation.nextAction}`,
+      );
+    }
+  }
+  if (result.incompatible.length > 0) {
+    lines.push(
+      "",
+      `Needs recovery  ${result.incompatible.join(", ")}`,
+      "  Return to the recorded branch before continuing these tasks.",
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}
+
 export function createProgram(customIo?: Partial<Io>): Command {
   const io: Io = {
     stdout: customIo?.stdout ?? ((value) => process.stdout.write(value)),
@@ -536,6 +598,19 @@ export function createProgram(customIo?: Partial<Io>): Command {
       const result = await doctorRepository(common.root);
       emit(io, common.json, result, renderDoctor(result));
       if (!result.healthy) process.exitCode = EXIT.usage;
+    });
+
+  program
+    .command("status")
+    .description("show active task state and the next applicable action")
+    .action(async (_options: unknown, command: Command) => {
+      const common = globals(command);
+      const config = await loadConfig(common.root);
+      const result = await repositoryTaskStatus(
+        path.resolve(common.root),
+        config?.sensitivePaths ?? [],
+      );
+      emit(io, common.json, result, renderTaskStatus(result));
     });
 
   program

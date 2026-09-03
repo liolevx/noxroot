@@ -267,6 +267,44 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(records.filter((name) => name.endsWith(".json"))).toHaveLength(1);
   });
 
+  it("reports current task state without changing or invoking anything", async () => {
+    const root = await repository();
+    const empty = await cli(["status", "--root", root]);
+    expect(empty.stdout).toContain("Active tasks  none");
+    expect(empty.stdout).toContain("Keep working normally with your coding agent.");
+
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(
+      path.join(root, ".noxroot", "config.yml"),
+      `version: 1
+modules: [repository-profile, agent-routing, orchestration]
+autonomy: {default: 0, implementation: 1, review: 0, merge: 0, delivery: 0}
+agents: {default: manual, adapters: {manual: {type: manual}}}
+`,
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "noxroot fixture"]);
+    const started = JSON.parse(
+      (await cli(["start", "change the value", "--json", "--root", root])).stdout,
+    ) as { record: { id: string } };
+    await writeFile(path.join(root, "src", "value.ts"), "export const value = 2;\n");
+
+    const value = JSON.parse((await cli(["status", "--json", "--root", root])).stdout) as {
+      active: Array<{
+        record: { id: string };
+        continuation: { changedPaths: string[]; verification: { status: string } };
+      }>;
+    };
+    expect(value.active).toHaveLength(1);
+    expect(value.active[0]?.record.id).toBe(started.record.id);
+    expect(value.active[0]?.continuation.changedPaths).toEqual(["src/value.ts"]);
+    expect(value.active[0]?.continuation.verification.status).toBe("not-run");
+
+    const human = await cli(["status", "--root", root]);
+    expect(human.stdout).toContain("Changed  src/value.ts");
+    expect(human.stdout).toContain("Verification  Not run for the current diff.");
+  });
+
   it("reports current and stale verification deterministically when continuing", async () => {
     const root = await repository();
     await mkdir(path.join(root, "web", "components"), { recursive: true });
