@@ -72,9 +72,8 @@ const TOKEN_ALIASES: Record<string, string> = {
 const SOURCE_EXTENSION = /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php)$/;
 const TEST_PATH = /(?:^|\/)(?:tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\./;
 const DOCUMENT_PATH = /(?:^|\/)(?:docs?|adr|adrs)(?:\/|$)|\.(?:md|mdx)$/;
-const FIXTURE_PATH = /(?:^|\/)(?:fixtures?|snapshots?|examples?|generated|vendor)(?:\/|$)/;
-const NON_SOURCE_ARTIFACT_PATH =
-  /(?:^|\/)(?:cassettes?|recordings?|snapshots?|testdata|canary|payloads?)(?:\/|$).+\.(?:json|ya?ml|txt|log|http|xml)$/i;
+const NON_AUTHORITATIVE_PATH =
+  /(?:^|\/)(?:fixtures?|snapshots?|examples?|generated|vendor|cassettes?|recordings?|testdata|canary|payloads?)(?:\/|$)/i;
 
 type Category = "entrypoint" | "manifest" | "source" | "test" | "document" | "other";
 
@@ -199,7 +198,7 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
     reasons.push("matched an active context route");
     reasons.push(`eligible through route ${activeRouteIds.join(", ")}`);
   }
-  if (FIXTURE_PATH.test(file)) {
+  if (NON_AUTHORITATIVE_PATH.test(file)) {
     score -= 45;
     reasons.push("fixture/example penalty");
   }
@@ -363,8 +362,18 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     (term) => !["check", "regression", "test", "verify"].includes(term),
   );
   const excludedPathTerms = new Set(tokens(intent.explicitExclusions.join(" ")));
-  const fixturePathsRequested = taskTerms.some((term) =>
-    ["example", "fixture", "sample", "snapshot"].includes(term),
+  const artifactPathsRequested = taskTerms.some((term) =>
+    [
+      "canary",
+      "cassette",
+      "example",
+      "fixture",
+      "payload",
+      "recording",
+      "sample",
+      "snapshot",
+      "testdata",
+    ].includes(term),
   );
   const activeRoutes = (routes?.routes ?? []).filter((route) =>
     route.match.some((pattern) => routeMatches(pattern, taskTerms)),
@@ -380,15 +389,12 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const candidates: RankedCandidate[] = [];
   for (const file of profile.files) {
     if (profile.suspectedSecrets.includes(file)) continue;
-    if (FIXTURE_PATH.test(file) && !fixturePathsRequested) {
+    if (NON_AUTHORITATIVE_PATH.test(file) && !artifactPathsRequested) {
       if (scopeExcluded.length < 10) {
-        scopeExcluded.push({ path: file, reason: "fixture or example outside the requested task" });
-      }
-      continue;
-    }
-    if (NON_SOURCE_ARTIFACT_PATH.test(file)) {
-      if (scopeExcluded.length < 10) {
-        scopeExcluded.push({ path: file, reason: "generated or recorded test artifact" });
+        scopeExcluded.push({
+          path: file,
+          reason: "fixture, example, or recorded artifact outside the requested task",
+        });
       }
       continue;
     }

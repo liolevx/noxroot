@@ -147,6 +147,10 @@ describe("bounded relevance routing", () => {
         path.join(root, "tests", "canary", "payloads", "retry.json"),
         '{"retry":"sample"}\n',
       );
+      await writeFile(
+        path.join(root, "tests", "canary", "retry-findings.md"),
+        "# Retry canary findings\n\nRetry behavior notes.\n",
+      );
 
       const context = await buildContext("improve retry behavior", root);
       const selected = context.selected.map((item) => item.path);
@@ -154,6 +158,12 @@ describe("bounded relevance routing", () => {
       expect(context.likelyTests).toContain("tests/retry.test.ts");
       expect(selected).not.toContain("tests/cassettes/retry.yaml");
       expect(selected).not.toContain("tests/canary/payloads/retry.json");
+      expect(selected).not.toContain("tests/canary/retry-findings.md");
+
+      const explicit = await buildContext("update the retry canary findings", root);
+      expect(explicit.selected.map((item) => item.path)).toContain(
+        "tests/canary/retry-findings.md",
+      );
     } finally {
       await rm(root, { recursive: true, force: true });
     }
