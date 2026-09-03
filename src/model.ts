@@ -126,6 +126,13 @@ export interface PreviewResult {
     defaultBytes: number;
     estimatedTokens: number;
   };
+  setupImpact: {
+    createdFiles: number;
+    patchedFiles: number;
+    referencedFiles: number;
+    netLines: number;
+    documentationNetLines: number;
+  };
   trust: {
     repositoryFilesChanged: 0;
     repositoryCommandsExecuted: 0;

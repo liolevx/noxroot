@@ -143,6 +143,9 @@ describe("CLI contracts", () => {
     expect(concise.stdout).toContain("Detected\n  Node.js · TypeScript · npm");
     expect(concise.stdout).toContain("Add\n  Project knowledge");
     expect(concise.stdout).toContain("Not assessed\n  Product and UX guidance");
+    expect(concise.stdout).toMatch(
+      /Setup impact\n {2}\d+ create · \d+ managed patch · \d+ existing reference\n {2}\+\d+ net lines · \+\d+ documentation lines/,
+    );
     expect(concise.stdout).toContain(
       "No files changed. No project commands or agents ran. No network requests were made.",
     );

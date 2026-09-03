@@ -73,6 +73,15 @@ describe("read-only preview", () => {
     expect(renderPreview(result)).toContain("Mode\n  Setup only");
     expect(result.unknowns).toContain("Product intent");
     expect(result.contextEstimate.defaultBytes).toBeGreaterThan(0);
+    expect(result.setupImpact).toEqual(
+      expect.objectContaining({
+        createdFiles: 3,
+        patchedFiles: 0,
+        referencedFiles: 0,
+      }),
+    );
+    expect(result.setupImpact.netLines).toBeGreaterThan(0);
+    expect(result.setupImpact.documentationNetLines).toBeGreaterThan(0);
   });
 
   it("detects a TypeScript project and candidates without executing them", async () => {

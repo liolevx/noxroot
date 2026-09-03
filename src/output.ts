@@ -203,6 +203,16 @@ export function renderPreview(
       options,
       ANSI.dim,
     ),
+    ...(result.proposedFiles.length
+      ? section(
+          "Setup impact",
+          [
+            `${result.setupImpact.createdFiles} create · ${result.setupImpact.patchedFiles} managed patch · ${result.setupImpact.referencedFiles} existing reference`,
+            `${result.setupImpact.netLines >= 0 ? "+" : ""}${result.setupImpact.netLines} net lines · ${result.setupImpact.documentationNetLines >= 0 ? "+" : ""}${result.setupImpact.documentationNetLines} documentation lines`,
+          ],
+          options,
+        )
+      : []),
   ];
 
   if (options.verbose) {
