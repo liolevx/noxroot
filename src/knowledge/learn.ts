@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ReviewerResponse } from "../adapters/agents.js";
+import { loadConfig } from "../config/load.js";
 import type { RunRecord } from "../orchestration/run.js";
 import { resolveWithin } from "../security/paths.js";
 
@@ -37,6 +38,8 @@ interface Candidate {
 }
 
 const KNOWLEDGE_ROOT = ".noxroot/knowledge/";
+const DEFAULT_DOCUMENT_LIMIT = 24_000;
+const MAX_CORPUS_BYTES = 1_000_000;
 
 function boundedLine(value: string): string {
   return value.replace(/\s+/g, " ").trim().slice(0, 500);
@@ -71,18 +74,20 @@ function ownedDestination(destination: string): string | undefined {
   return normalized;
 }
 
-async function knowledgeCorpus(root: string): Promise<string> {
+async function knowledgeCorpus(root: string, documentLimit: number): Promise<string> {
   const directory = path.join(root, ".noxroot", "knowledge");
   try {
     const files = (await readdir(directory)).filter((file) => file.endsWith(".md")).sort();
-    return (
-      await Promise.all(
-        files.map(
-          async (file) =>
-            `\n<!-- ${file} -->\n${await readFile(path.join(directory, file), "utf8")}`,
-        ),
-      )
-    ).join("");
+    const sections: string[] = [];
+    let bytes = 0;
+    for (const file of files) {
+      const absolute = path.join(directory, file);
+      const size = (await stat(absolute)).size;
+      if (size > documentLimit || bytes + size > MAX_CORPUS_BYTES) continue;
+      sections.push(`\n<!-- ${file} -->\n${await readFile(absolute, "utf8")}`);
+      bytes += size;
+    }
+    return sections.join("");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return "";
     throw error;
@@ -115,7 +120,12 @@ function fromReviewer(
   };
 }
 
-function proposalContent(candidate: Candidate, digest: string): string {
+function proposalContent(
+  candidate: Candidate,
+  digest: string,
+  taskId: string,
+  confirmedOn: string,
+): string {
   const heading =
     candidate.kind === "verification"
       ? "Verification candidate"
@@ -123,6 +133,8 @@ function proposalContent(candidate: Candidate, digest: string): string {
   return `<!-- noxroot-learning:${digest} -->
 ## ${heading}
 
+Last confirmed: ${confirmedOn}
+Source task: ${taskId}
 - Evidence: ${candidate.evidence.join("; ")}
 - Expected future value: ${candidate.expectedFutureValue}
 - Executable destination: ${candidate.executableDestination}
@@ -135,7 +147,14 @@ export async function proposeLearnings(root: string, run: RunRecord): Promise<Le
   const candidates = structuredCandidates(run)
     .map(fromReviewer)
     .filter((candidate): candidate is Candidate => candidate !== undefined);
-  const corpus = await knowledgeCorpus(root);
+  const config = await loadConfig(root);
+  const documentLimit = config?.context.documentWarningBytes ?? DEFAULT_DOCUMENT_LIMIT;
+  const corpus = await knowledgeCorpus(root, documentLimit);
+  const confirmedAt = (run as RunRecord & { finishedAt?: unknown }).finishedAt;
+  const confirmedOn =
+    typeof confirmedAt === "string" && /^\d{4}-\d{2}-\d{2}/.test(confirmedAt)
+      ? confirmedAt.slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
   const proposals: LearningProposal[] = [];
   const rejected: LearnResult["rejected"] = [];
   const seen = new Set<string>();
@@ -160,6 +179,17 @@ export async function proposeLearnings(root: string, run: RunRecord): Promise<Le
     if (corpus.includes(marker)) continue;
     const evidenceLine = candidate.evidence.join("; ");
     const conflictingMarker = corpus.includes(`- Evidence: ${evidenceLine}`);
+    const content = proposalContent(normalized, digest, run.id, confirmedOn);
+    const target = resolveWithin(root, destination);
+    const existing = await existingOr(target, "# Validated learnings\n\n");
+    const projected = `${existing.trimEnd()}\n\n${content.trim()}\n`;
+    if (Buffer.byteLength(projected) > documentLimit) {
+      rejected.push({
+        destination,
+        reason: `The destination would exceed ${documentLimit} bytes. Consolidate or supersede existing knowledge before adding another entry.`,
+      });
+      continue;
+    }
     proposals.push({
       id: `${candidate.kind}-${digest}`,
       signature: digest,
@@ -169,7 +199,7 @@ export async function proposeLearnings(root: string, run: RunRecord): Promise<Le
       expectedFutureValue: candidate.expectedFutureValue,
       duplication: "not-found",
       conflict: conflictingMarker ? "existing-signature-conflict" : "none",
-      content: proposalContent(normalized, digest),
+      content,
       executableDestination: candidate.executableDestination,
     });
   }
@@ -208,6 +238,13 @@ export async function applyLearning(root: string, proposal: LearningProposal): P
     ? index
     : `${index.trimEnd()}\n\n- [Validated learnings](${basename}) — confirmed, deduplicated durable lessons.\n`;
   const targetNext = `${existing.trimEnd()}\n\n${proposal.content.trim()}\n`;
+  const config = await loadConfig(root);
+  const documentLimit = config?.context.documentWarningBytes ?? DEFAULT_DOCUMENT_LIMIT;
+  if (Buffer.byteLength(targetNext) > documentLimit) {
+    throw new Error(
+      `Learning destination ${proposal.destination} would exceed ${documentLimit} bytes; consolidate it before applying another entry.`,
+    );
+  }
   const targetTemp = `${target}.tmp-${process.pid}`;
   const indexTemp = `${indexPath}.tmp-${process.pid}`;
   await writeFile(targetTemp, targetNext, { encoding: "utf8", flag: "wx", mode: 0o600 });
