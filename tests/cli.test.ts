@@ -3,6 +3,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CommanderError } from "commander";
 import { createProgram } from "../src/cli.js";
+import { writeRunRecord } from "../src/state/local.js";
 import { fixtureCopy, hashTree, temporaryDirectory } from "./helpers.js";
 
 const cleanup: Array<() => Promise<void>> = [];
@@ -290,5 +291,35 @@ describe("CLI contracts", () => {
     expect(stdout).toContain("NOXROOT RUN PLAN");
     expect(stdout).toContain('"executes": false');
     expect(await hashTree(fixture.root)).toBe(before);
+  });
+
+  it("keeps an empty learning result quiet while preserving JSON detail", async () => {
+    const root = await temporaryDirectory("noxroot-empty-learning-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, ".git"), { recursive: true });
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(path.join(root, ".noxroot", "config.yml"), "version: 1\nmodules: [learning]\n");
+    await writeRunRecord(root, "completed-task", {
+      id: "completed-task",
+      task: "routine implementation",
+      status: "approved",
+      calls: [],
+      verification: [],
+      verificationGaps: [],
+      handoff: "",
+    });
+
+    const human = await run(["learn", "--task", "completed-task", "--root", root]);
+    expect(human.stdout).toContain("NOXROOT  learning");
+    expect(human.stdout).toContain("No reusable project knowledge was identified.");
+    expect(human.stdout).toContain("Project memory was not changed.");
+    expect(human.stdout.trimStart()).not.toMatch(/^\{/);
+
+    const machine = await run(["learn", "--task", "completed-task", "--json", "--root", root]);
+    expect(JSON.parse(machine.stdout)).toMatchObject({
+      taskId: "completed-task",
+      proposals: [],
+      message: "No durable learning identified",
+    });
   });
 });

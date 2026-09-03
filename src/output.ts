@@ -4,6 +4,7 @@ import type {
   PreviewResult,
   VerificationResult,
 } from "./model.js";
+import type { LearnResult } from "./knowledge/learn.js";
 import { cliCommand, VERSION } from "./invocation.js";
 
 export interface RenderOptions {
@@ -448,6 +449,56 @@ export function renderVerification(
           ? "Continue with review or handoff."
           : "Resolve the failed or unavailable checks, then run verification again.",
       ],
+      options,
+      ANSI.blue,
+    ),
+  );
+  return `${lines.join("\n").trimEnd()}\n`;
+}
+
+export function renderLearning(result: LearnResult, options: RenderOptions = {}): string {
+  const lines = [title("learning", options), ""];
+  if (result.proposals.length === 0) {
+    lines.push(
+      ...section(
+        "No update",
+        [
+          result.rejected.length
+            ? "No learning candidate was safe to propose."
+            : "No reusable project knowledge was identified.",
+        ],
+        options,
+        ANSI.green,
+      ),
+    );
+  } else {
+    lines.push(
+      ...section(
+        "Proposed",
+        result.proposals.map((proposal) => `${proposal.kind} · ${proposal.destination}`),
+        options,
+        ANSI.violet,
+      ),
+    );
+  }
+  if (result.rejected.length) {
+    lines.push(
+      ...section(
+        "Not proposed",
+        options.verbose
+          ? result.rejected.map((item) => `${item.destination}: ${item.reason}`)
+          : [`${result.rejected.length} unsafe or conflicting candidate(s)`],
+        options,
+        ANSI.yellow,
+      ),
+    );
+  }
+  lines.push(
+    ...section(
+      "Next",
+      result.proposals.length
+        ? [cliCommand(`learn --task ${result.taskId} --apply`)]
+        : ["Project memory was not changed."],
       options,
       ANSI.blue,
     ),

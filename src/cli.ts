@@ -38,6 +38,7 @@ import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import {
   renderContext,
   renderInitMark,
+  renderLearning,
   renderPreview,
   renderVerification,
   renderVerificationPlan,
@@ -1076,7 +1077,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           "Learning application with --json requires --yes after a separate reviewed proposal.",
         );
       }
-      if (!common.json) io.stdout(`${JSON.stringify(result, null, 2)}\n`);
+      if (!common.json) io.stdout(renderLearning(result, renderOptions(io, common)));
       if (!options.apply || applicable.length === 0) {
         if (common.json) writeJson(io, result);
         return;
