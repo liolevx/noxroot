@@ -170,6 +170,29 @@ commands:
     const learned = await cli(["learn", "--task", startValue.record.id, "--json", "--root", root]);
     const learning = JSON.parse(learned.stdout) as { proposals: Array<{ kind: string }> };
     expect(learning.proposals).toEqual([expect.objectContaining({ kind: "procedure" })]);
+
+    const applied = await cli([
+      "learn",
+      "--task",
+      startValue.record.id,
+      "--apply",
+      "--yes",
+      "--json",
+      "--root",
+      root,
+    ]);
+    expect((JSON.parse(applied.stdout) as { applied: string[] }).applied).toEqual([
+      ".noxroot/knowledge/learnings.md",
+      ".noxroot/knowledge/INDEX.md",
+    ]);
+    await git(root, ["add", ".noxroot/knowledge"]);
+    await git(root, ["commit", "-m", "document validated source check"]);
+
+    const later = JSON.parse(
+      (await cli(["context", "change another value under src", "--json", "--root", root])).stdout,
+    ) as { selected: Array<{ path: string }> };
+    expect(later.selected.map((item) => item.path)).toContain(".noxroot/knowledge/learnings.md");
+    expect(later.selected.some((item) => item.path.includes(".git/noxroot/runs"))).toBe(false);
   });
 
   it("requires an explicit id when multiple guided tasks are active", async () => {

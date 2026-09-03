@@ -30,6 +30,26 @@ describe("bounded relevance routing", () => {
     expect(unrelated).toEqual([]);
   });
 
+  it("excludes fixture trees unless the task explicitly targets a fixture", async () => {
+    const repository = await temporaryDirectory("noxroot-context-fixture-boundary-");
+    try {
+      await mkdir(path.join(repository, "src"));
+      await mkdir(path.join(repository, "tests", "fixtures", "sample"), { recursive: true });
+      await writeFile(path.join(repository, "src", "ranking.ts"), "export const ranking = true;\n");
+      await writeFile(
+        path.join(repository, "tests", "fixtures", "sample", "ranking.test.ts"),
+        "// ranking fixture\n",
+      );
+
+      const ordinary = await buildContext("improve context ranking", repository);
+      expect(ordinary.selected.some((item) => item.path.includes("tests/fixtures"))).toBe(false);
+      const explicit = await buildContext("update the ranking fixture", repository);
+      expect(explicit.selected.some((item) => item.path.includes("tests/fixtures"))).toBe(true);
+    } finally {
+      await rm(repository, { recursive: true, force: true });
+    }
+  });
+
   it("preserves negative constraints without activating them as relevance or authority", async () => {
     const context = await buildContext(
       "Improve reviewer output. Do not deploy or change authentication.",
@@ -67,6 +87,25 @@ describe("bounded relevance routing", () => {
     }
   });
 
+  it("names an oversized direct owner without exceeding the selected context budget", async () => {
+    const root = await temporaryDirectory("noxroot-context-oversized-owner-");
+    try {
+      await mkdir(path.join(root, "src"));
+      await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
+      await writeFile(
+        path.join(root, "src", "context-ranking.ts"),
+        `export const contextRanking = true;\n${"// context ranking behavior\n".repeat(900)}`,
+      );
+
+      const context = await buildContext("improve context ranking", root);
+      expect(context.likelyOwningSource[0]).toBe("src/context-ranking.ts");
+      expect(context.selected.map((item) => item.path)).not.toContain("src/context-ranking.ts");
+      expect(context.budget.selectedBytes).toBeLessThanOrEqual(context.budget.maximumBytes);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("builds a bounded task brief for a conventional Next.js feature", async () => {
     const fixture = await fixtureCopy("nextjs");
     try {
@@ -91,6 +130,32 @@ describe("bounded relevance routing", () => {
       expect(context.budget.selectedBytes).toBeLessThan(context.budget.maximumBytes);
     } finally {
       await fixture.cleanup();
+    }
+  });
+
+  it("keeps generated recordings and payload artifacts out of focused context", async () => {
+    const root = await temporaryDirectory("noxroot-context-artifacts-");
+    try {
+      await mkdir(path.join(root, "src"), { recursive: true });
+      await mkdir(path.join(root, "tests", "cassettes"), { recursive: true });
+      await mkdir(path.join(root, "tests", "canary", "payloads"), { recursive: true });
+      await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
+      await writeFile(path.join(root, "src", "retry.ts"), "export function retry() {}\n");
+      await writeFile(path.join(root, "tests", "retry.test.ts"), "// retry behavior\n");
+      await writeFile(path.join(root, "tests", "cassettes", "retry.yaml"), "retry: recorded\n");
+      await writeFile(
+        path.join(root, "tests", "canary", "payloads", "retry.json"),
+        '{"retry":"sample"}\n',
+      );
+
+      const context = await buildContext("improve retry behavior", root);
+      const selected = context.selected.map((item) => item.path);
+      expect(context.likelyOwningSource).toContain("src/retry.ts");
+      expect(context.likelyTests).toContain("tests/retry.test.ts");
+      expect(selected).not.toContain("tests/cassettes/retry.yaml");
+      expect(selected).not.toContain("tests/canary/payloads/retry.json");
+    } finally {
+      await rm(root, { recursive: true, force: true });
     }
   });
 });

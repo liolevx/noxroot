@@ -28,6 +28,7 @@ const STOP_WORDS = new Set([
   "fix",
   "for",
   "from",
+  "has",
   "improve",
   "introduce",
   "into",
@@ -49,6 +50,7 @@ const STOP_WORDS = new Set([
   "top",
   "user",
   "users",
+  "when",
   "with",
   "without",
 ]);
@@ -71,6 +73,8 @@ const SOURCE_EXTENSION = /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|r
 const TEST_PATH = /(?:^|\/)(?:tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\./;
 const DOCUMENT_PATH = /(?:^|\/)(?:docs?|adr|adrs)(?:\/|$)|\.(?:md|mdx)$/;
 const FIXTURE_PATH = /(?:^|\/)(?:fixtures?|snapshots?|examples?|generated|vendor)(?:\/|$)/;
+const NON_SOURCE_ARTIFACT_PATH =
+  /(?:^|\/)(?:cassettes?|recordings?|snapshots?|testdata|canary|payloads?)(?:\/|$).+\.(?:json|ya?ml|txt|log|http|xml)$/i;
 
 type Category = "entrypoint" | "manifest" | "source" | "test" | "document" | "other";
 
@@ -81,6 +85,7 @@ interface RankedCandidate {
   reasons: string[];
   category: Category;
   matchedTerms: Set<string>;
+  pathMatchedTerms: Set<string>;
 }
 
 function normalizeToken(value: string): string {
@@ -146,6 +151,7 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
   const pathTerms = tokens(file);
   const lower = file.toLowerCase();
   const matchedTerms = new Set<string>();
+  const pathMatchedTerms = new Set<string>();
   let score = 0;
 
   if (file === ".noxroot/knowledge/INDEX.md") {
@@ -166,18 +172,22 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
     if (stemTerms.includes(term)) {
       score += 50;
       matchedTerms.add(term);
+      pathMatchedTerms.add(term);
       reasons.push(`basename matches task term “${term}”`);
     } else if (segments.includes(term)) {
       score += 38;
       matchedTerms.add(term);
+      pathMatchedTerms.add(term);
       reasons.push(`directory matches task term “${term}”`);
     } else if (pathTerms.includes(term)) {
       score += 22;
       matchedTerms.add(term);
+      pathMatchedTerms.add(term);
       reasons.push(`path token matches task term “${term}”`);
     } else if (lower.includes(term)) {
       score += 7;
       matchedTerms.add(term);
+      pathMatchedTerms.add(term);
       reasons.push(`path substring matches task term “${term}”`);
     }
   }
@@ -217,7 +227,15 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
       reasons.push("independent-review procedure matches the requested risk");
     }
   }
-  return { file, bytes: 0, score, reasons, category: fileCategory, matchedTerms };
+  return {
+    file,
+    bytes: 0,
+    score,
+    reasons,
+    category: fileCategory,
+    matchedTerms,
+    pathMatchedTerms,
+  };
 }
 
 async function addContentRelevance(
@@ -249,13 +267,24 @@ async function addContentRelevance(
         120,
         matches.reduce(
           (total, term) =>
-            total + Math.min(12, sourceTerms.filter((token) => token === term).length) * 6,
+            total + Math.min(4, sourceTerms.filter((token) => token === term).length) * 6,
           0,
         ),
       );
       for (const match of matches) item.matchedTerms.add(match);
       item.reasons.push(
         `content contains task term${matches.length === 1 ? "" : "s"} ${matches.map((term) => `“${term}”`).join(", ")}`,
+      );
+    }
+    const sourceText = ` ${sourceTerms.join(" ")} `;
+    const phraseMatches = taskTerms
+      .slice(0, -1)
+      .map((term, index) => `${term} ${taskTerms[index + 1]}`)
+      .filter((phrase) => sourceText.includes(` ${phrase} `));
+    if (phraseMatches.length > 0) {
+      item.score += Math.min(48, phraseMatches.length * 24);
+      item.reasons.push(
+        `content matches task phrase${phraseMatches.length === 1 ? "" : "s"} ${phraseMatches.map((phrase) => `“${phrase}”`).join(", ")}`,
       );
     }
   }
@@ -334,6 +363,9 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     (term) => !["check", "regression", "test", "verify"].includes(term),
   );
   const excludedPathTerms = new Set(tokens(intent.explicitExclusions.join(" ")));
+  const fixturePathsRequested = taskTerms.some((term) =>
+    ["example", "fixture", "sample", "snapshot"].includes(term),
+  );
   const activeRoutes = (routes?.routes ?? []).filter((route) =>
     route.match.some((pattern) => routeMatches(pattern, taskTerms)),
   );
@@ -348,6 +380,18 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const candidates: RankedCandidate[] = [];
   for (const file of profile.files) {
     if (profile.suspectedSecrets.includes(file)) continue;
+    if (FIXTURE_PATH.test(file) && !fixturePathsRequested) {
+      if (scopeExcluded.length < 10) {
+        scopeExcluded.push({ path: file, reason: "fixture or example outside the requested task" });
+      }
+      continue;
+    }
+    if (NON_SOURCE_ARTIFACT_PATH.test(file)) {
+      if (scopeExcluded.length < 10) {
+        scopeExcluded.push({ path: file, reason: "generated or recorded test artifact" });
+      }
+      continue;
+    }
     if (routedExcludes.some((pattern) => matchesGlob(pattern, file))) continue;
     if (tokens(file).some((term) => excludedPathTerms.has(term))) {
       if (scopeExcluded.length < 10) {
@@ -399,11 +443,20 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const topProcedure = candidates.find(
     (item) => item.file.startsWith(".noxroot/skills/") && item.score >= 20 && fitsSelection(item),
   );
+  const topDocument = candidates.find(
+    (item) =>
+      item.category === "document" &&
+      !ALWAYS_CONTEXT.has(item.file) &&
+      item.matchedTerms.size > 0 &&
+      item.score >= 20 &&
+      fitsSelection(item),
+  );
   const priority = [
     topOwner,
     topProcedure,
     ...candidates.filter((item) => ALWAYS_CONTEXT.has(item.file)),
     topTest,
+    topDocument,
   ]
     .filter((item): item is RankedCandidate => item !== undefined)
     .filter(
@@ -413,6 +466,14 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     (item, index, all) => all.findIndex((candidate) => candidate.file === item.file) === index,
   );
   const priorityPaths = new Set(priority.map((item) => item.file));
+  const directPathMatch = {
+    source: candidates.some(
+      (item) => item.category === "source" && item.pathMatchedTerms.size > 0 && item.score >= 20,
+    ),
+    test: candidates.some(
+      (item) => item.category === "test" && item.pathMatchedTerms.size > 0 && item.score >= 20,
+    ),
+  };
   const curatedTargetBytes = Math.floor(budget * 0.85);
 
   const categoryCaps: Record<Category, number> = {
@@ -450,6 +511,17 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     ) {
       if (excluded.length < 20)
         excluded.push({ path: item.file, reason: "insufficient direct task relevance" });
+      continue;
+    }
+    if (
+      (item.category === "source" || item.category === "test") &&
+      directPathMatch[item.category] &&
+      item.pathMatchedTerms.size === 0 &&
+      !adjacentToPriority
+    ) {
+      if (excluded.length < 20) {
+        excluded.push({ path: item.file, reason: "weaker than a direct task-path match" });
+      }
       continue;
     }
     if (item.score < 10 && !ALWAYS_CONTEXT.has(item.file)) {
@@ -490,11 +562,19 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
 
   const selectedSet = new Set(selected.map((item) => item.path));
   const likelyOwningSource = candidates
-    .filter((item) => item.category === "source" && selectedSet.has(item.file))
+    .filter(
+      (item) =>
+        item.category === "source" &&
+        (selectedSet.has(item.file) || (item.pathMatchedTerms.size > 0 && item.score >= 20)),
+    )
     .slice(0, 5)
     .map((item) => item.file);
   const likelyTests = candidates
-    .filter((item) => item.category === "test" && selectedSet.has(item.file))
+    .filter(
+      (item) =>
+        item.category === "test" &&
+        (selectedSet.has(item.file) || (item.pathMatchedTerms.size > 0 && item.score >= 20)),
+    )
     .slice(0, 5)
     .map((item) => item.file);
   const relevantPaths = [...likelyOwningSource, ...likelyTests];
