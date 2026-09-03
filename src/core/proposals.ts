@@ -426,7 +426,10 @@ function integrateAgents(source: string, block: string): ProposedFile {
   if (start !== -1 && end !== -1) {
     const afterEnd = end + MANAGED_END.length;
     const existingBlock = source.slice(start, afterEnd);
-    if (existingBlock === managedBlock) {
+    const sameManagedContent =
+      existingBlock === managedBlock ||
+      existingBlock.replace(/\s+/g, " ").trim() === managedBlock.replace(/\s+/g, " ").trim();
+    if (sameManagedContent) {
       return reference("AGENTS.md", "Reuse the existing idempotent Noxroot managed block.");
     }
     const updated = `${source.slice(0, start)}${managedBlock}${source.slice(afterEnd)}`;

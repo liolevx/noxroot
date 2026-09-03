@@ -150,6 +150,26 @@ describe("initialization, sync safety, context, and doctor", () => {
     expect((await previewRepository(fixture.root)).proposedFiles).toEqual([]);
   });
 
+  it("does not rewrite a managed block after a formatter wraps its prose", async () => {
+    const fixture = await fixtureCopy("typescript");
+    cleanup.push(fixture.cleanup);
+    const initial = await previewRepository(fixture.root);
+    await applyProposals(initial);
+    const agentsPath = path.join(fixture.root, "AGENTS.md");
+    const formatted = (await readFile(agentsPath, "utf8"))
+      .replace("<!-- noxroot:start -->\n##", "<!-- noxroot:start -->\n\n##")
+      .replace(
+        "Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant routes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge.",
+        "Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant\nroutes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw\ntranscripts out of project knowledge.",
+      );
+    await writeFile(agentsPath, formatted);
+
+    const preview = await previewRepository(fixture.root);
+
+    expect(preview.proposedFiles.find((item) => item.path === "AGENTS.md")).toBeUndefined();
+    expect(await readFile(agentsPath, "utf8")).toBe(formatted);
+  });
+
   it("preserves CRLF bytes outside and inside the appended managed block", async () => {
     const root = await temporaryDirectory("noxroot-crlf-");
     cleanup.push(() => rm(root, { recursive: true, force: true }));
