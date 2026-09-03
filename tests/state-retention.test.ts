@@ -81,4 +81,29 @@ describe("local run retention", () => {
     );
     expect(await readFile(path.join(runs, "malformed.json"), "utf8")).toBe("not json\n");
   });
+
+  it("preserves the result currently being handed off when unfinished work fills the limit", async () => {
+    const root = await repository();
+    const now = Date.parse("2026-09-03T12:00:00.000Z");
+    await writeRunRecord(root, "active", {
+      id: "active",
+      status: "running",
+      startedAt: new Date(now - 1_000).toISOString(),
+    });
+    await writeRunRecord(root, "just-finished", {
+      id: "just-finished",
+      status: "completed",
+      startedAt: new Date(now - 500).toISOString(),
+      finishedAt: new Date(now).toISOString(),
+    });
+
+    const result = await enforceRunRetention(root, { evidenceDays: 30, maximumRuns: 1 }, now, [
+      "just-finished",
+    ]);
+
+    expect(result).toEqual({ removed: [], retained: 2, protected: 2 });
+    expect(
+      await readFile(path.join(await localStateRoot(root), "runs", "just-finished.json"), "utf8"),
+    ).toContain('"completed"');
+  });
 });

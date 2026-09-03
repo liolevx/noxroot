@@ -122,6 +122,7 @@ export async function enforceRunRetention(
   root: string,
   policy: { evidenceDays: number; maximumRuns: number },
   now = Date.now(),
+  preserveIds: readonly string[] = [],
 ): Promise<RunRetentionResult> {
   const directory = path.join(await localStateRoot(root), "runs");
   let names: string[];
@@ -135,13 +136,16 @@ export async function enforceRunRetention(
   }
 
   const removable: Array<{ name: string; timestamp: number }> = [];
+  const preservedNames = new Set(preserveIds.map((id) => `${id}.json`));
   let protectedCount = 0;
   for (const name of names) {
     try {
       const record = JSON.parse(
         await readFile(path.join(directory, name), "utf8"),
       ) as RetentionRecord;
-      if (typeof record.status === "string" && TERMINAL_RUN_STATUSES.has(record.status)) {
+      if (preservedNames.has(name)) {
+        protectedCount += 1;
+      } else if (typeof record.status === "string" && TERMINAL_RUN_STATUSES.has(record.status)) {
         removable.push({ name, timestamp: recordTime(record) });
       } else {
         protectedCount += 1;

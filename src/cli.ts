@@ -967,6 +967,8 @@ export function createProgram(customIo?: Partial<Io>): Command {
           const retention = await enforceRunRetention(
             root,
             config?.retention ?? { evidenceDays: 30, maximumRuns: 100 },
+            Date.now(),
+            [id],
           );
           progress(io, "Preparing handoff");
           emit(
@@ -1023,6 +1025,8 @@ export function createProgram(customIo?: Partial<Io>): Command {
         const retention = await enforceRunRetention(
           root,
           config?.retention ?? { evidenceDays: 30, maximumRuns: 100 },
+          Date.now(),
+          [taskId],
         );
         const completion = {
           documentation: {
