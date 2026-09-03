@@ -6,6 +6,9 @@ uses bounded filesystem APIs, groups repeated monorepo evidence, and never runs 
 LLM. Proposal generation produces complete file contents and unified creation patches.
 Initialization is the only component that applies those proposals.
 
+Root `AGENTS.md` and `CLAUDE.md` remain instruction evidence when Git ignores them. Explicit
+sensitive-path exclusions and symlink protections still apply. Ordinary ignored files stay excluded.
+
 Mature-repository adoption follows explicit repository-relative references from agent instructions.
 It recognizes thin forwarding files, existing Agent Skills, documented verification wrappers, and
 clear repository-development coordinator overlap. Behavioral ownership determines the boundary: a

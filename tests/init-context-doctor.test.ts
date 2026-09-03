@@ -7,12 +7,40 @@ import { doctorRepository } from "../src/core/doctor.js";
 import { applyProposals } from "../src/core/init.js";
 import { previewRepository } from "../src/core/preview.js";
 import { buildProposals } from "../src/core/proposals.js";
+import { scanRepository } from "../src/detection/scan.js";
 import { fixtureCopy, temporaryDirectory } from "./helpers.js";
 
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => Promise.all(cleanup.splice(0).map((operation) => operation())));
 
 describe("initialization, sync safety, context, and doctor", () => {
+  it("reuses local agent instructions even when Git ignores them", async () => {
+    const fixture = await fixtureCopy("typescript");
+    cleanup.push(fixture.cleanup);
+    await writeFile(
+      path.join(fixture.root, ".gitignore"),
+      "AGENTS.md\nCLAUDE.md\nprivate-notes.md\n",
+    );
+    await writeFile(
+      path.join(fixture.root, "CLAUDE.md"),
+      "Read AGENTS.md for repository guidance.\n",
+    );
+    await writeFile(path.join(fixture.root, "private-notes.md"), "Excluded ordinary content.\n");
+    await applyProposals(await previewRepository(fixture.root));
+
+    const after = await previewRepository(fixture.root);
+    expect(after.profile.files).toContain("AGENTS.md");
+    expect(after.profile.files).toContain("CLAUDE.md");
+    expect(after.profile.files).not.toContain("private-notes.md");
+    expect(after.proposedFiles).toEqual([]);
+    await expect(applyProposals(after)).resolves.toMatchObject({ created: [], patched: [] });
+    const privateProfile = await scanRepository(fixture.root, {
+      sensitivePaths: ["AGENTS.md", "CLAUDE.md"],
+    });
+    expect(privateProfile.files).not.toContain("AGENTS.md");
+    expect(privateProfile.files).not.toContain("CLAUDE.md");
+  });
+
   it("creates only the minimal empty-repository setup", async () => {
     const root = await temporaryDirectory();
     cleanup.push(() => rm(root, { recursive: true, force: true }));
