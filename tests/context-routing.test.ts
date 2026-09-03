@@ -160,6 +160,26 @@ describe("bounded relevance routing", () => {
     }
   });
 
+  it("keeps a standalone Claude instruction entrypoint in the portable task brief", async () => {
+    const root = await temporaryDirectory("noxroot-context-claude-");
+    try {
+      await mkdir(path.join(root, "src"), { recursive: true });
+      await writeFile(
+        path.join(root, "CLAUDE.md"),
+        "# Claude instructions\n\nKeep public error messages stable.\n",
+      );
+      await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
+      await writeFile(path.join(root, "src", "errors.ts"), "export const message = 'stable';\n");
+
+      const context = await buildContext("improve public error messages", root);
+
+      expect(context.selected.map((item) => item.path)).toContain("CLAUDE.md");
+      expect(context.constraints).toContain("Read CLAUDE.md before changing its routed surface.");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("keeps a direct path match when broader files could consume the context budget", async () => {
     const root = await temporaryDirectory("noxroot-context-term-coverage-");
     try {

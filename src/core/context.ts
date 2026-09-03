@@ -14,6 +14,7 @@ const MAX_CONTENT_BYTES = 1_000_000;
 const MAX_INSPECTED_FILE_BYTES = 96_000;
 
 const ALWAYS_CONTEXT = new Set(["AGENTS.md", ".noxroot/config.yml", ".noxroot/knowledge/INDEX.md"]);
+const ROOT_INSTRUCTION = /^(?:AGENTS|CLAUDE|copilot-instructions)\.md$/i;
 const MANIFESTS = new Set(["package.json", "pyproject.toml", "Cargo.toml", "go.mod"]);
 const STOP_WORDS = new Set([
   "add",
@@ -88,6 +89,10 @@ interface RankedCandidate {
   pathMatchedTerms: Set<string>;
 }
 
+function isAlwaysContext(file: string): boolean {
+  return ALWAYS_CONTEXT.has(file) || ROOT_INSTRUCTION.test(file);
+}
+
 function normalizeToken(value: string): string {
   let token = value.toLowerCase();
   const directAlias = TOKEN_ALIASES[token];
@@ -128,7 +133,7 @@ function routeMatches(pattern: string, taskTerms: string[]): boolean {
 }
 
 function category(file: string): Category {
-  if (ALWAYS_CONTEXT.has(file)) return "entrypoint";
+  if (isAlwaysContext(file)) return "entrypoint";
   if (MANIFESTS.has(path.posix.basename(file))) return "manifest";
   if (TEST_PATH.test(file)) return "test";
   if (SOURCE_EXTENSION.test(file)) return "source";
@@ -157,7 +162,7 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
   if (file === ".noxroot/knowledge/INDEX.md") {
     score += 92;
     reasons.push("progressive-disclosure knowledge index");
-  } else if (file === "AGENTS.md") {
+  } else if (ROOT_INSTRUCTION.test(file)) {
     score += 88;
     reasons.push("authoritative repository instructions");
   } else if (file === ".noxroot/config.yml") {
@@ -168,7 +173,7 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
     reasons.push("authoritative project manifest");
   }
 
-  for (const term of ALWAYS_CONTEXT.has(file) ? [] : taskTerms) {
+  for (const term of isAlwaysContext(file) ? [] : taskTerms) {
     if (stemTerms.includes(term)) {
       score += 50;
       matchedTerms.add(term);
@@ -409,7 +414,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       continue;
     }
     const activeRouteIds = routeIncludesFor(file);
-    const fixed = ALWAYS_CONTEXT.has(file) || MANIFESTS.has(path.posix.basename(file));
+    const fixed = isAlwaysContext(file) || MANIFESTS.has(path.posix.basename(file));
     if (activeRoutes.length > 0 && !fixed && activeRouteIds.length === 0) {
       if (outsidePool.length < 10) {
         outsidePool.push({ path: file, reason: "outside the active route candidate pool" });
@@ -472,7 +477,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const topDocument = candidates.find(
     (item) =>
       item.category === "document" &&
-      !ALWAYS_CONTEXT.has(item.file) &&
+      !isAlwaysContext(item.file) &&
       item.matchedTerms.size > 0 &&
       item.score >= 20 &&
       fitsSelection(item),
@@ -481,7 +486,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     topOwner,
     ...topPathOwners,
     topProcedure,
-    ...candidates.filter((item) => ALWAYS_CONTEXT.has(item.file)),
+    ...candidates.filter((item) => isAlwaysContext(item.file)),
     topTest,
     topDocument,
   ]
@@ -551,7 +556,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       }
       continue;
     }
-    if (item.score < 10 && !ALWAYS_CONTEXT.has(item.file)) {
+    if (item.score < 10 && !isAlwaysContext(item.file)) {
       if (excluded.length < 20)
         excluded.push({ path: item.file, reason: "insufficient task relevance" });
       continue;
@@ -616,6 +621,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     ...(likelyTests.length ? [] : ["Directly related test path"]),
     ...(requiredVerification.length ? [] : ["Applicable approved verification command"]),
   ];
+  const instructionEntrypoints = profile.files.filter((file) => ROOT_INSTRUCTION.test(file));
   const confidence: ContextPackage["confidence"] =
     likelyOwningSource.length > 0 &&
     likelyTests.length > 0 &&
@@ -646,13 +652,14 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     likelyTests,
     constraints: [
       ...intent.explicitExclusions,
-      ...(profile.files.includes("AGENTS.md") && !selectedSet.has("AGENTS.md")
-        ? [
-            "Follow AGENTS.md as the repository instruction entrypoint; load its relevant references selectively.",
-          ]
-        : []),
+      ...instructionEntrypoints
+        .filter((file) => !selectedSet.has(file))
+        .map(
+          (file) =>
+            `Follow ${file} as the repository instruction entrypoint; load its relevant references selectively.`,
+        ),
       ...selected
-        .filter((item) => item.path.includes("knowledge/") || item.path.endsWith("AGENTS.md"))
+        .filter((item) => item.path.includes("knowledge/") || ROOT_INSTRUCTION.test(item.path))
         .map((item) => `Read ${item.path} before changing its routed surface.`),
     ],
     requiredVerification,
