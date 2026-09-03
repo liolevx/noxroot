@@ -42,6 +42,8 @@ export interface AdoptionInspection {
   forwarding: Array<{ from: string; to: string }>;
   verificationWrappers: CandidateCommand[];
   verificationSkillPaths: string[];
+  reviewSkillPaths: string[];
+  productUxSkillPaths: string[];
 }
 
 function relativeTarget(from: string, raw: string): string | undefined {
@@ -383,16 +385,32 @@ export async function inspectRepositoryAdoption(
 
   const skillFiles = profile.files.filter((file) => path.posix.basename(file) === "SKILL.md");
   const verificationSkillPaths: string[] = [];
+  const reviewSkillPaths: string[] = [];
+  const productUxSkillPaths: string[] = [];
   for (const skillPath of skillFiles) {
     const source = sources.get(skillPath) ?? (await readableText(profile, skillPath));
     if (!source) continue;
     const metadata = skillMetadata(source);
+    const declaredPurpose = `${metadata.name ?? ""} ${metadata.description ?? ""}`;
+    if (/(?:check|verify|verification|test)/i.test(declaredPurpose)) {
+      verificationSkillPaths.push(skillPath);
+      sources.set(skillPath, source);
+    }
     if (
-      /(?:check|verify|verification|test)/i.test(
-        `${metadata.name ?? ""} ${metadata.description ?? ""}`,
+      /\b(?:review|reviewer)\b/i.test(declaredPurpose) &&
+      /\b(?:repository|diff|change|code)\b/i.test(declaredPurpose) &&
+      /\b(?:independent|independently|fresh-context|correctness|regression|security)\b/i.test(
+        declaredPurpose,
       )
     ) {
-      verificationSkillPaths.push(skillPath);
+      reviewSkillPaths.push(skillPath);
+      sources.set(skillPath, source);
+    }
+    if (
+      /\b(?:product|ux|usability|user-facing|interface)\b/i.test(declaredPurpose) &&
+      /\b(?:review|check|quality)\b/i.test(declaredPurpose)
+    ) {
+      productUxSkillPaths.push(skillPath);
       sources.set(skillPath, source);
     }
   }
@@ -556,12 +574,12 @@ export async function inspectRepositoryAdoption(
   ];
   const userFacing = profile.evidence.some((item) => item.claim === "User-facing web application");
   capabilities.push(
-    productDocuments.length > 0
+    productDocuments.length > 0 || productUxSkillPaths.length > 0
       ? assessment(
           "product-ux-guidance",
           "Product and UX guidance",
           "reuse",
-          [...new Set(productDocuments)].sort(),
+          [...new Set([...productDocuments, ...productUxSkillPaths])].sort(),
         )
       : userFacing
         ? assessment("product-ux-guidance", "Product and UX guidance", "create")
@@ -585,8 +603,9 @@ export async function inspectRepositoryAdoption(
         `Existing repository-development coordinator overlaps Noxroot orchestration: ${name} (${evidence.join(", ")})`,
     ),
   ];
-  const initializationAllowed =
-    !capabilities.some((item) => item.decision === "conflict") && !genuineInstructionConflict;
+  // A conflict blocks only the overlapping capability. Initialization remains safe when
+  // Noxroot can install non-overlapping companion capabilities without changing authority.
+  const initializationAllowed = !genuineInstructionConflict;
   return {
     capabilities,
     initializationAllowed,
@@ -596,5 +615,7 @@ export async function inspectRepositoryAdoption(
     forwarding,
     verificationWrappers,
     verificationSkillPaths,
+    reviewSkillPaths,
+    productUxSkillPaths,
   };
 }

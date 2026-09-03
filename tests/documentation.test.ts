@@ -13,18 +13,19 @@ describe("documentation examples", () => {
       true,
     );
     expect(readme).toContain(
-      "Focused repository context, verification, and durable project memory for the coding agent you",
+      "Portable repository context, verification, and project memory for coding agents.",
     );
     const output = renderPreview(await previewRepository(path.join(fixtures, "typescript")));
     for (const line of [
       "NOXROOT PREVIEW",
       "Detected: Node.js project, TypeScript (npm)",
       "Approved check candidates found: lint, typecheck, test, build",
+      "Mode: full",
       "Proposed (7): create 7",
       "Unknown: Continuous integration",
       "Trust: files changed 0; repository commands 0; agent calls 0; network requests 0.",
       "No repository files changed. No project command, agent, or network request ran.",
-      "Next: noxroot preview --diff",
+      "Next: npx --yes noxroot@0.1.0 preview --diff",
     ]) {
       expect(output).toContain(line);
       expect(readme).toContain(line);

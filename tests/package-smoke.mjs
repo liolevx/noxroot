@@ -97,6 +97,20 @@ try {
   if (preview.kind !== "preview" || preview.trust?.repositoryFilesChanged !== 0) {
     throw new Error("Installed CLI preview did not return the expected read-only JSON contract.");
   }
+  const initializedRoot = path.join(temporaryRoot, "initialized-repository");
+  await mkdir(initializedRoot);
+  await writeFile(
+    path.join(initializedRoot, "package.json"),
+    `${JSON.stringify({ name: "package-smoke-repository", scripts: { test: "node --test" } })}\n`,
+  );
+  invokeBinary(binary, ["init", "--yes", "--root", initializedRoot], installRoot);
+  const generatedInstructions = await readFile(path.join(initializedRoot, "AGENTS.md"), "utf8");
+  if (!generatedInstructions.includes('npx --yes noxroot@0.1.0 start "<task>"')) {
+    throw new Error("Packed CLI initialization did not pin its executable lifecycle command.");
+  }
+  if (!generatedInstructions.includes("npx --yes noxroot@0.1.0 finish")) {
+    throw new Error("Packed CLI initialization did not pin its finish command.");
+  }
   process.stdout.write(
     `Packed CLI smoke passed on ${process.platform} with a real tarball install.\n`,
   );

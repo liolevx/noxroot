@@ -44,8 +44,8 @@ describe("initialization, sync safety, context, and doctor", () => {
     const agents = await readFile(path.join(fixture.root, "AGENTS.md"), "utf8");
     expect(agents.startsWith(original)).toBe(true);
     expect(agents).toContain("<!-- noxroot:start -->");
-    expect(agents).toContain('run `noxroot start "<task>"` before editing');
-    expect(agents).toContain("`noxroot finish` when the change is ready to check");
+    expect(agents).toContain('run `npx --yes noxroot@0.1.0 start "<task>"` before editing');
+    expect(agents).toContain("`npx --yes noxroot@0.1.0 finish` when the change is ready to check");
     expect(agents).toContain("Do not start a task for questions, explanations, reviews");
     expect(agents).toContain(".noxroot/knowledge/INDEX.md");
     expect(

@@ -1,5 +1,7 @@
 import path from "node:path";
-import { loadVerification } from "../config/load.js";
+import { loadConfig, loadVerification } from "../config/load.js";
+import { inspectRepositoryAdoption } from "../detection/adoption.js";
+import { scanRepository } from "../detection/scan.js";
 import type { VerificationCommand, VerificationResult } from "../model.js";
 import { runProcess, type ProcessRequest } from "../adapters/process.js";
 
@@ -34,8 +36,23 @@ export async function planVerification(
   changedPaths: string[] = [],
 ): Promise<VerificationCommand[]> {
   const policy = await loadVerification(root);
-  if (!policy) return [];
-  const commands = policy.commands.map((command) => ({ ...command }));
+  let commands: VerificationCommand[];
+  if (policy) {
+    commands = policy.commands.map((command) => ({ ...command }));
+  } else {
+    const config = await loadConfig(root);
+    if (!config?.modules.includes("verification")) return [];
+    const profile = await scanRepository(root, { sensitivePaths: config.sensitivePaths });
+    const adoption = await inspectRepositoryAdoption(profile);
+    commands = adoption.verificationWrappers.map((command) => ({
+      id: command.id,
+      executable: command.executable,
+      args: command.args,
+      cwd: command.cwd,
+      timeoutMs: 120_000,
+      appliesTo: command.appliesTo,
+    }));
+  }
   return changedPaths.length === 0 ? commands : selectVerification(commands, changedPaths);
 }
 

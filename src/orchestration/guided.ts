@@ -5,6 +5,7 @@ import type { AgentAdapter, AgentResult, ReviewerResponse } from "../adapters/ag
 import { parseReviewerResponse } from "../adapters/agents.js";
 import { captureRepositoryBaseline, diffFromRevision } from "../adapters/vcs.js";
 import type { ContextPackage, VerificationCommand, VerificationResult } from "../model.js";
+import { cliCommand } from "../invocation.js";
 import { resolveWithin } from "../security/paths.js";
 import { changedFiles, executeVerification, selectVerification } from "../verification/index.js";
 import type { EffectiveAutonomy } from "./autonomy.js";
@@ -57,27 +58,27 @@ function continuationNextAction(
   verification: ContinuationVerificationStatus,
 ): string {
   if (changedPaths.length === 0) {
-    return "Make the requested change, then run noxroot finish.";
+    return `Make the requested change, then run ${cliCommand("finish")}.`;
   }
   if (verification === "not-run" || verification === "stale") {
-    return "Run noxroot finish when the change is ready to check.";
+    return `Run ${cliCommand("finish")} when the change is ready to check.`;
   }
   if (verification === "current-failed") {
-    return "Repair the failing check, then run noxroot finish again.";
+    return `Repair the failing check, then run ${cliCommand("finish")} again.`;
   }
   if (verification === "current-incomplete") {
-    return "Resolve the verification gap, then run noxroot finish again.";
+    return `Resolve the verification gap, then run ${cliCommand("finish")} again.`;
   }
   if (record.status === "review-pending") {
-    return "Obtain the required fresh review, then run noxroot finish with its result.";
+    return `Obtain the required fresh review, then run ${cliCommand("finish")} with its result.`;
   }
   if (record.status === "changes-requested") {
-    return "Address the review findings, then run noxroot finish again.";
+    return `Address the review findings, then run ${cliCommand("finish")} again.`;
   }
   if (record.status === "blocked") {
-    return "Resolve the blocked result, then run noxroot finish again.";
+    return `Resolve the blocked result, then run ${cliCommand("finish")} again.`;
   }
-  return "Continue from the recorded result; rerun noxroot finish after any edit.";
+  return `Continue from the recorded result; rerun ${cliCommand("finish")} after any edit.`;
 }
 
 export async function inspectGuidedContinuation(
@@ -162,10 +163,10 @@ function guidedHandoff(
     "",
     "NEXT",
     record.status === "review-pending"
-      ? `Have a fresh reviewer return the strict JSON contract, then run noxroot finish --task ${record.id} --review-file <repository-relative-json>.`
+      ? `Have a fresh reviewer return the strict JSON contract, then run ${cliCommand(`finish --task ${record.id} --review-file <repository-relative-json>`)}.`
       : record.status === "incomplete"
         ? unavailable
-          ? `Make the approved check runnable (${unavailable.command.executable} from ${unavailable.command.cwd}: ${unavailable.evidence.stderr || "could not start"}), then rerun noxroot finish --task ${record.id}.`
+          ? `Make the approved check runnable (${unavailable.command.executable} from ${unavailable.command.cwd}: ${unavailable.evidence.stderr || "could not start"}), then rerun ${cliCommand(`finish --task ${record.id}`)}.`
           : "Review the unverified change and add or approve an applicable project check if one exists."
         : "Review the resulting change; apply any learning only after confirmation.",
   ].join("\n");
@@ -200,7 +201,7 @@ export async function startGuidedRun(input: {
     calls: [],
     verification: [],
     verificationGaps: [],
-    handoff: `Guided task ${input.id} started. Next: noxroot finish --task ${input.id}`,
+    handoff: `Guided task ${input.id} started. Next: ${cliCommand(`finish --task ${input.id}`)}`,
   };
   return partial;
 }

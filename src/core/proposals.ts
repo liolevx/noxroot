@@ -12,18 +12,26 @@ import type {
   RepositoryProfile,
 } from "../model.js";
 import type { AdoptionInspection } from "../detection/adoption.js";
+import { cliCommand } from "../invocation.js";
 
 const MANAGED_START = "<!-- noxroot:start -->";
 const MANAGED_END = "<!-- noxroot:end -->";
-const MANAGED_BLOCK = `${MANAGED_START}
+function managedBlock(lifecycleEnabled: boolean): string {
+  const workflow = lifecycleEnabled
+    ? `For a code-changing task, run \`${cliCommand('start "<task>"')}\` before editing and \`${cliCommand("finish")}\` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.
+
+When \`.noxroot/skills/\` exists, load only the task-relevant \`SKILL.md\`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.`
+    : `The existing repository coordinator remains authoritative for code-changing work. Noxroot does not add a second task lifecycle, reviewer, or learning loop.
+
+Use \`${cliCommand('context "<task>"')}\` when focused repository context would help and \`${cliCommand("verify --plan")}\` to inspect applicable approved checks. Follow the existing repository workflow for implementation, review, and durable learning.`;
+  return `${MANAGED_START}
 ## Noxroot workflow
 
 Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant routes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge.
 
-For a code-changing task, run \`noxroot start "<task>"\` before editing and \`noxroot finish\` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.
-
-When \`.noxroot/skills/\` exists, load only the task-relevant \`SKILL.md\`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.
+${workflow}
 ${MANAGED_END}`;
+}
 
 const VERIFY_SKILL = `---
 name: verify-change
@@ -129,18 +137,27 @@ function configContent(modules: ModuleAssessment[]): string {
   const enabled = modules
     .filter((module) => module.status === "recommended" || module.status === "enabled")
     .map((module) => module.id);
-  return stringify({
+  const lifecycleEnabled = enabled.includes("orchestration");
+  const config: Record<string, unknown> = {
     version: 1,
     modules: enabled,
     roots: ["."],
     entrypoints: ["AGENTS.md"],
     context: { budgetBytes: 16_000, documentWarningBytes: 24_000 },
-    autonomy: { default: 0, implementation: 2, review: 3, merge: 0, delivery: 0 },
-    agents: { default: "manual", adapters: { manual: { type: "manual" } } },
-    budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1, outputBytes: 65_536 },
     sensitivePaths: [],
     retention: { evidenceDays: 30, maximumRuns: 100 },
-  });
+  };
+  if (lifecycleEnabled) {
+    config.autonomy = { default: 0, implementation: 2, review: 3, merge: 0, delivery: 0 };
+    config.agents = { default: "manual", adapters: { manual: { type: "manual" } } };
+    config.budgets = {
+      workerCalls: 2,
+      reviewerCalls: 2,
+      repairIterations: 1,
+      outputBytes: 65_536,
+    };
+  }
+  return stringify(config);
 }
 
 function verificationContent(commands: CandidateCommand[]): string {
@@ -307,9 +324,9 @@ Active run state, application runtime sessions, application memory, user data, a
 `;
 }
 
-function integrateAgents(source: string): ProposedFile {
+function integrateAgents(source: string, block: string): ProposedFile {
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
-  const managedBlock = MANAGED_BLOCK.replaceAll("\n", newline);
+  const managedBlock = block.replaceAll("\n", newline);
   if (source.includes(".noxroot/knowledge/INDEX.md") && !source.includes(MANAGED_START)) {
     return reference("AGENTS.md", "Reuse the existing equivalent Noxroot knowledge entrypoint.");
   }
@@ -364,7 +381,8 @@ export function assessModules(
   const hasUserFacingProduct = profile.evidence.some(
     (item) => item.claim === "User-facing web application",
   );
-  const hasChecks = profile.candidateCommands.length > 0;
+  const hasChecks =
+    profile.candidateCommands.length > 0 || (adoption?.verificationWrappers.length ?? 0) > 0;
   const orchestrationConflict = adoption?.capabilities.some(
     (item) => item.id === "task-orchestration" && item.decision === "conflict",
   );
@@ -394,7 +412,9 @@ export function assessModules(
       label: "Verification",
       status: hasChecks ? status("verification", "recommended") : "blocked",
       reason: hasChecks
-        ? `${profile.candidateCommands.length} candidate command(s) require confirmation.`
+        ? adoption?.verificationWrappers.length
+          ? `${adoption.verificationWrappers.length} documented repository verification wrapper(s) can be reused.`
+          : `${profile.candidateCommands.length} candidate command(s) require confirmation.`
         : "No authoritative verification command was detected.",
     },
     {
@@ -418,8 +438,12 @@ export function assessModules(
     {
       id: "learning",
       label: "Learning",
-      status: status("learning", profile.empty ? "optional" : "recommended"),
-      reason: "Only completed, evidenced runs may propose durable consolidation.",
+      status: orchestrationConflict
+        ? "blocked"
+        : status("learning", profile.empty ? "optional" : "recommended"),
+      reason: orchestrationConflict
+        ? "Learning tied to Noxroot completion is disabled while the existing coordinator owns the lifecycle."
+        : "Only completed, evidenced runs may propose durable consolidation.",
     },
     {
       id: "browser-qa",
@@ -439,14 +463,24 @@ export async function buildProposals(
 ): Promise<ProposedFile[]> {
   if (adoption && !adoption.initializationAllowed) return [];
   const present = new Set(profile.files);
+  const decision = (id: CapabilityAssessment["id"]): CapabilityDecision | undefined =>
+    adoption?.capabilities.find((item) => item.id === id)?.decision;
+  const orchestrationConflict = decision("task-orchestration") === "conflict";
+  const effectiveModules = modules.map((module) =>
+    orchestrationConflict && (module.id === "orchestration" || module.id === "learning")
+      ? {
+          ...module,
+          status: "blocked" as const,
+          reason: "The existing repository coordinator owns this lifecycle capability.",
+        }
+      : module,
+  );
   const active = (id: ModuleAssessment["id"]): boolean =>
-    modules.some(
+    effectiveModules.some(
       (module) =>
         module.id === id && (module.status === "recommended" || module.status === "enabled"),
     );
   const proposals: ProposedFile[] = [];
-  const decision = (id: CapabilityAssessment["id"]): CapabilityDecision | undefined =>
-    adoption?.capabilities.find((item) => item.id === id)?.decision;
   const generatedSkillPaths = [
     ...(active("verification") &&
     decision("verification-skill") !== "reuse" &&
@@ -454,19 +488,27 @@ export async function buildProposals(
       ? [".noxroot/skills/verify-change/SKILL.md"]
       : []),
     ...(active("orchestration") &&
+    (adoption?.reviewSkillPaths.length ?? 0) === 0 &&
     decision("task-orchestration") !== "reuse" &&
     decision("task-orchestration") !== "not-assessed"
       ? [".noxroot/skills/independent-review/SKILL.md"]
       : []),
     ...(active("product-ux") &&
+    (adoption?.productUxSkillPaths.length ?? 0) === 0 &&
     decision("product-ux-guidance") !== "reuse" &&
     decision("product-ux-guidance") !== "not-assessed"
       ? [".noxroot/skills/product-ux-review/SKILL.md"]
       : []),
   ];
   const skillPaths = [
-    ...new Set([...generatedSkillPaths, ...(adoption?.verificationSkillPaths ?? [])]),
+    ...new Set([
+      ...generatedSkillPaths,
+      ...(adoption?.verificationSkillPaths ?? []),
+      ...(adoption?.reviewSkillPaths ?? []),
+      ...(adoption?.productUxSkillPaths ?? []),
+    ]),
   ];
+  const instructions = managedBlock(active("orchestration"));
   const needsIndex =
     (active("agent-routing") || active("project-knowledge")) &&
     decision("project-knowledge") !== "not-assessed" &&
@@ -480,12 +522,16 @@ export async function buildProposals(
           "Create a concise vendor-neutral entrypoint.",
           `# Repository agent instructions
 
-${MANAGED_BLOCK}
+${instructions}
 `,
         ),
       );
-    } else if (needsIndex) {
-      proposals.push(integrateAgents(await readFile(path.join(profile.root, "AGENTS.md"), "utf8")));
+    } else {
+      const integration = integrateAgents(
+        await readFile(path.join(profile.root, "AGENTS.md"), "utf8"),
+        instructions,
+      );
+      if (integration.action === "patch" || needsIndex) proposals.push(integration);
     }
   }
   if (!present.has(".noxroot/config.yml")) {
@@ -493,7 +539,7 @@ ${MANAGED_BLOCK}
       proposed(
         ".noxroot/config.yml",
         "Add the versioned minimum Noxroot configuration.",
-        configContent(modules),
+        configContent(effectiveModules),
       ),
     );
   }

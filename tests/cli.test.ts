@@ -72,12 +72,12 @@ describe("CLI contracts", () => {
     cleanup.push(fixture.cleanup);
     const concise = await run(["preview", "--root", fixture.root]);
     expect(concise.stdout).toContain("Proposed (7): create 7");
-    expect(concise.stdout).toContain("Next: noxroot preview --diff");
+    expect(concise.stdout).toContain("Next: npx --yes noxroot@0.1.0 preview --diff");
     expect(concise.stdout).not.toContain("--- /dev/null");
     const exact = await run(["preview", "--diff", "--root", fixture.root]);
     expect(exact.stdout).toContain("Exact proposed changes");
     expect(exact.stdout).toContain("--- /dev/null");
-    expect(exact.stdout).toContain("Next: noxroot init");
+    expect(exact.stdout).toContain("Next: npx --yes noxroot@0.1.0 init");
   });
 
   it("cancels non-interactive initialization without --yes", async () => {
@@ -107,7 +107,7 @@ describe("CLI contracts", () => {
     ]);
   });
 
-  it("refuses init when preview finds overlapping repository orchestration", async () => {
+  it("installs only companion capabilities and refuses a second lifecycle", async () => {
     const root = await temporaryDirectory("noxroot-cli-conflict-");
     cleanup.push(() => rm(root, { recursive: true, force: true }));
     await mkdir(path.join(root, "tools"), { recursive: true });
@@ -120,14 +120,30 @@ describe("CLI contracts", () => {
       path.join(root, "tools", "flow.py"),
       'workflow = "git worktree implementation worker verification reviewer merge"\n',
     );
-    const before = await hashTree(root);
-
     const { stdout, stderr } = await run(["init", "--yes", "--root", root]);
 
-    expect(stdout).toContain("Initialization allowed: no");
-    expect(stderr).toContain("Initialization refused");
+    expect(stdout).toContain("Initialization allowed: yes");
+    expect(stdout).toContain("Mode: companion");
+    expect(stderr).toBe("");
+    const initialized = await hashTree(root);
+    process.exitCode = 0;
+
+    const started = await run(["start", "change greeting", "--root", root]);
+    expect(started.stdout).toContain("Noxroot lifecycle is disabled for this repository");
     expect(process.exitCode).toBe(3);
-    expect(await hashTree(root)).toBe(before);
+    expect(await hashTree(root)).toBe(initialized);
+
+    for (const args of [
+      ["run", "change greeting", "--dry-run", "--root", root],
+      ["finish", "--root", root],
+      ["learn", "--task", "missing", "--root", root],
+    ]) {
+      process.exitCode = 0;
+      const refused = await run(args);
+      expect(refused.stdout).toMatch(/Noxroot (?:lifecycle|learning) is disabled/);
+      expect(process.exitCode).toBe(3);
+      expect(await hashTree(root)).toBe(initialized);
+    }
   });
 
   it("makes run --dry-run command-free and write-free", async () => {

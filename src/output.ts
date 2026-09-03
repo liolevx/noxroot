@@ -1,4 +1,5 @@
 import type { ContextPackage, PreviewResult, VerificationResult } from "./model.js";
+import { cliCommand } from "./invocation.js";
 
 export function renderPreview(result: PreviewResult, options: { diff?: boolean } = {}): string {
   const manager =
@@ -29,12 +30,16 @@ export function renderPreview(result: PreviewResult, options: { diff?: boolean }
   const unavailableModules = result.modules.filter((module) =>
     ["not applicable", "blocked"].includes(module.status),
   );
+  const companionMode = result.capabilities.some(
+    (item) => item.id === "task-orchestration" && item.decision === "conflict",
+  );
   const lines = [
     "NOXROOT PREVIEW",
     `Detected: ${detected.join(", ") || "No application architecture yet"}${manager}`,
     `Existing instructions: ${instructions.join(", ") || "none"}`,
     `Approved check candidates found: ${result.profile.candidateCommands.map((item) => item.id).join(", ") || "none"}`,
     `Initialization allowed: ${result.initializationAllowed ? "yes" : "no"}`,
+    `Mode: ${companionMode ? "companion" : "full"}`,
     "Capabilities:",
     ...result.capabilities.map(
       (item) =>
@@ -68,12 +73,12 @@ export function renderPreview(result: PreviewResult, options: { diff?: boolean }
     "",
     "No repository files changed. No project command, agent, or network request ran.",
     !result.initializationAllowed
-      ? "Next: resolve the reported repository-development lifecycle conflict; initialization is refused."
+      ? "Next: resolve the reported instruction conflict; initialization is refused."
       : result.proposedFiles.length === 0
-        ? 'Next: no setup changes are recommended; run noxroot context "<task>".'
+        ? `Next: no setup changes are recommended; run ${cliCommand('context "<task>"')}.`
         : options.diff
-          ? "Next: noxroot init"
-          : "Next: noxroot preview --diff",
+          ? `Next: ${cliCommand("init")}`
+          : `Next: ${cliCommand("preview --diff")}`,
   );
   return `${lines.join("\n")}\n`;
 }

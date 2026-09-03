@@ -15,12 +15,14 @@ import {
   revisionInCurrentHistory,
 } from "./adapters/vcs.js";
 import { loadConfig } from "./config/load.js";
+import type { NoxrootConfig } from "./config/schema.js";
 import { buildContext } from "./core/context.js";
 import { doctorRepository } from "./core/doctor.js";
 import { applyProposals } from "./core/init.js";
 import { previewRepository } from "./core/preview.js";
 import { buildProposals } from "./core/proposals.js";
 import { inspectRepositoryAdoption } from "./detection/adoption.js";
+import { cliCommand, VERSION } from "./invocation.js";
 import { applyLearning, proposeLearnings } from "./knowledge/learn.js";
 import type { PreviewResult } from "./model.js";
 import { effectiveAutonomy } from "./orchestration/autonomy.js";
@@ -47,7 +49,6 @@ import {
   selectVerification,
 } from "./verification/index.js";
 
-const VERSION = "0.1.0";
 const DESCRIPTION =
   "A repo-aware workflow that helps coding agents build with the right context, checks, and project knowledge.";
 
@@ -85,6 +86,29 @@ function progress(io: Io, message: string): void {
   io.stderr(`${message}\n`);
 }
 
+function moduleAvailable(
+  config: NoxrootConfig | undefined,
+  module: NoxrootConfig["modules"][number],
+): boolean {
+  return config === undefined || config.modules.includes(module);
+}
+
+function refuseDisabledModule(
+  io: Io,
+  asJson: boolean | undefined,
+  config: NoxrootConfig | undefined,
+  module: "orchestration" | "learning",
+): boolean {
+  if (moduleAvailable(config, module)) return false;
+  const reason =
+    module === "orchestration"
+      ? `Noxroot lifecycle is disabled for this repository. Its existing repository coordinator remains authoritative. Use ${cliCommand('context "<task>"')} or ${cliCommand("verify --plan")} without creating a second task lifecycle.`
+      : "Noxroot learning is disabled for this repository. Follow the repository's existing workflow for durable knowledge.";
+  emit(io, asJson, { refused: { module, reason } }, `${reason}\n`);
+  process.exitCode = EXIT.refused;
+  return true;
+}
+
 function globals(command: Command): GlobalOptions {
   return command.optsWithGlobals<GlobalOptions>();
 }
@@ -115,6 +139,14 @@ async function selectModules(preview: PreviewResult, io: Io): Promise<PreviewRes
       (id) => !preview.modules.some((module) => module.id === id),
     );
     if (unknown.length) throw new Error(`Unknown module id(s): ${unknown.join(", ")}`);
+    const unavailable = preview.modules.filter(
+      (module) => selected.has(module.id) && ["blocked", "not applicable"].includes(module.status),
+    );
+    if (unavailable.length) {
+      throw new Error(
+        `Cannot enable unavailable module(s): ${unavailable.map((module) => `${module.id} (${module.reason})`).join(", ")}`,
+      );
+    }
     const modules = preview.modules.map((module) =>
       selected.has(module.id)
         ? { ...module, status: "enabled" as const }
@@ -245,7 +277,9 @@ async function inferGuidedTaskId(root: string, explicit?: string): Promise<strin
         `Active guided task state is incompatible with the current branch history: ${stale.map((record) => record.id).join(", ")}. Return to the recorded branch or select a compatible task explicitly with --task <id>.`,
       );
     }
-    throw new Error('No active guided task was found. Start one with noxroot start "<task>".');
+    throw new Error(
+      `No active guided task was found. Start one with ${cliCommand('start "<task>"')}.`,
+    );
   }
   throw new Error(
     `Multiple active guided tasks need an explicit --task id: ${eligible.map((record) => record.id).join(", ")}`,
@@ -291,7 +325,7 @@ function renderStart(
     "",
     "Ready for your coding agent.",
     `Task: ${id}`,
-    "Next: make the change, then run noxroot finish.",
+    `Next: make the change, then run ${cliCommand("finish")}.`,
     `Local record: ${recordPath}`,
   ].join("\n")}\n`;
 }
@@ -358,7 +392,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           if (common.json) writeJson(io, { preview, applied: { created: [] }, refused: true });
           process.exitCode = EXIT.refused;
           io.stderr(
-            "Initialization refused; resolve the reported repository-development lifecycle conflict. No files were changed.\n",
+            "Initialization refused; resolve the reported instruction conflict. No files were changed.\n",
           );
           return;
         }
@@ -414,7 +448,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           if (common.json) writeJson(io, { preview, applied: { created: [] }, refused: true });
           process.exitCode = EXIT.refused;
           io.stderr(
-            "Synchronization refused; resolve the reported repository-development lifecycle conflict. No files were changed.\n",
+            "Synchronization refused; resolve the reported instruction conflict. No files were changed.\n",
           );
           return;
         }
@@ -506,9 +540,10 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .action(async (task: string, _options: unknown, command: Command) => {
       const common = globals(command);
       const root = path.resolve(common.root);
+      const config = await loadConfig(root);
+      if (refuseDisabledModule(io, common.json, config, "orchestration")) return;
       const continuation = await findGuidedContinuation(root, task);
       if (continuation) {
-        const config = await loadConfig(root);
         const continuationState = await inspectGuidedContinuation(
           root,
           continuation,
@@ -531,7 +566,6 @@ export function createProgram(customIo?: Partial<Io>): Command {
         return;
       }
       const context = await buildContext(task, root);
-      const config = await loadConfig(root);
       const autonomy = effectiveAutonomy(config);
       if (!autonomy.guided.authorized) {
         emit(io, common.json, { refused: autonomy.guided, context }, `${autonomy.guided.reason}\n`);
@@ -572,9 +606,10 @@ export function createProgram(customIo?: Partial<Io>): Command {
       ) => {
         const common = globals(command);
         const root = path.resolve(common.root);
+        const config = await loadConfig(root);
+        if (refuseDisabledModule(io, common.json, config, "orchestration")) return;
         progress(io, "Preparing context");
         const context = await buildContext(task, root);
-        const config = await loadConfig(root);
         const adapter = options.guided ? new ManualAgentAdapter() : configuredAgent(config);
         const checks = await planVerification(root);
         const autonomy = effectiveAutonomy(config);
@@ -657,7 +692,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             io,
             common.json,
             { plan, context, record, recordPath },
-            `NOXROOT GUIDED TASK\nTask id: ${id}\nSelected context: ${context.selected.length} files (~${context.budget.estimatedTokens} tokens)\nApproved checks captured: ${checks.length}\nNo agent was invoked.\nNext: noxroot finish --task ${id}\nEvidence: ${recordPath}\n`,
+            `NOXROOT GUIDED TASK\nTask id: ${id}\nSelected context: ${context.selected.length} files (~${context.budget.estimatedTokens} tokens)\nApproved checks captured: ${checks.length}\nNo agent was invoked.\nNext: ${cliCommand(`finish --task ${id}`)}\nEvidence: ${recordPath}\n`,
           );
           return;
         }
@@ -782,9 +817,10 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .action(async (options: { task?: string; reviewFile?: string }, command: Command) => {
       const common = globals(command);
       const root = path.resolve(common.root);
+      const config = await loadConfig(root);
+      if (refuseDisabledModule(io, common.json, config, "orchestration")) return;
       const taskId = await inferGuidedTaskId(root, options.task);
       const record = await readRunRecord<GuidedRunRecord>(root, taskId);
-      const config = await loadConfig(root);
       const autonomy = effectiveAutonomy(config);
       const adapter = configuredAgent(config);
       const controller = new AbortController();
@@ -821,7 +857,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           io,
           common.json,
           { record: finished, recordPath, completion, learning },
-          `${finished.handoff}\n\nDocumentation\n  Not assessed automatically; no deterministic documentation signal was produced.\n\nLearning\n  ${learning.proposals.length ? `${learning.proposals.length} reusable proposal(s) available; inspect with noxroot learn --task ${taskId}.` : "No reusable project-knowledge candidate identified."}\n\nLocal record: ${recordPath}\n`,
+          `${finished.handoff}\n\nDocumentation\n  Not assessed automatically; no deterministic documentation signal was produced.\n\nLearning\n  ${learning.proposals.length ? `${learning.proposals.length} reusable proposal(s) available; inspect with ${cliCommand(`learn --task ${taskId}`)}.` : "No reusable project-knowledge candidate identified."}\n\nLocal record: ${recordPath}\n`,
         );
         if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
         else if (finished.status === "incomplete") process.exitCode = EXIT.verification;
@@ -841,6 +877,8 @@ export function createProgram(customIo?: Partial<Io>): Command {
     .option("--yes", "confirm proposal application non-interactively")
     .action(async (options: { task: string; apply?: boolean; yes?: boolean }, command: Command) => {
       const common = globals(command);
+      const config = await loadConfig(common.root);
+      if (refuseDisabledModule(io, common.json, config, "learning")) return;
       const record = await readRunRecord<RunRecord>(common.root, options.task);
       const result = await proposeLearnings(common.root, record);
       const applicable = result.proposals.filter(

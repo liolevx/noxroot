@@ -4,15 +4,14 @@
 
 # Noxroot
 
-**Focused repository context, verification, and durable project memory for the coding agent you
-already use.**
+**Portable repository context, verification, and project memory for coding agents.**
 
 Set it up once. Then keep talking to your coding agent normally.
 
-Noxroot prepares code-changing tasks with the relevant files, rules, decisions, and approved checks.
-Afterward it checks the actual diff and proposes durable documentation only when a reusable lesson
-was validated. It is local and open source. It does not provide a model, replace Git, or take
-ownership of your workflow.
+Noxroot gives a coding agent the relevant files, rules, decisions, and approved checks for each
+change. It checks the resulting diff and carries validated project knowledge into later sessions. It
+is local and open source. It does not provide a model, replace Git, or take ownership of your
+workflow.
 
 ## What Noxroot changes
 
@@ -31,9 +30,9 @@ the background until code-changing work needs it.
   <img src="docs/assets/noxroot-workflow.svg" alt="Noxroot prepares focused context, supports your coding agent, verifies the change, and keeps useful project knowledge" width="900">
 </p>
 
-This loop is Noxroot's orchestration. It prepares the task, gives your chosen coding agent focused
-repository context, runs the relevant verification, and proposes any reusable learning. Noxroot does
-not replace your coding agent or run a permanent agent team.
+When Noxroot owns the lifecycle, this loop is its orchestration. It prepares the task, gives your
+chosen coding agent focused repository context, runs the relevant verification, and proposes any
+reusable learning. Noxroot does not replace your coding agent or run a permanent agent team.
 
 ## Memory that compounds
 
@@ -64,22 +63,25 @@ before it runs with `noxroot verify --plan`.
 ## One quiet workflow
 
 ```bash
-npx noxroot init
+npx noxroot@latest init
 
 # Later, for a code-changing task:
-noxroot start "add a page where users can save favourite restaurants"
+npx --yes noxroot@0.1.0 start "add a page where users can save favourite restaurants"
 # your existing coding agent builds the change
-noxroot finish
+npx --yes noxroot@0.1.0 finish
 ```
 
 Run `init` once per repository, not once per chat or day. It shows a read-only diagnosis, reuses
 existing documentation, and proposes a thin managed entrypoint without replacing a good `AGENTS.md`
-or copying documentation into a Noxroot-only format.
+or copying documentation into a Noxroot-only format. The entrypoint pins the Noxroot version and
+uses `npx`, so the repository needs no global or project installation. npm retrieves the CLI through
+its normal cache when an agent invokes it.
 
 Before setup, preview labels each capability `create`, `reuse`, `conflict`, or `not-assessed`.
-Noxroot creates only a confirmed gap. Existing project systems are reused, an overlapping
-repository-development coordinator stops initialization, and missing evidence leaves that part of
-the repository unchanged.
+Noxroot creates only a confirmed gap. Existing project systems are reused, and missing evidence
+leaves that capability unchanged. If another tool already coordinates repository changes, Noxroot
+can add non-overlapping context and verification support while that coordinator keeps ownership of
+task lifecycle, review, and learning. Noxroot will not install a second lifecycle beside it.
 
 For code-changing work, compatible agents are instructed to run `start` before editing and `finish`
 when the change is ready to check. Questions, explanations, reviews, and other read-only work do not
@@ -97,7 +99,7 @@ still varies by coding tool, so the commands remain available for manual use.
 | Task-context routes               | `.noxroot/routes.yml`                                                                                       | Select relevant files, rules, tests, decisions, and skills                 |
 | Verification policy and skill     | `.noxroot/verification.yml`, `.noxroot/skills/verify-change/SKILL.md`                                       | Define approved checks and the procedure for checking a change             |
 | Review skills                     | `.noxroot/skills/independent-review/SKILL.md`, `.noxroot/skills/product-ux-review/SKILL.md` when applicable | Provide fresh review procedures when the change requires them              |
-| Learning procedure after finish   | `noxroot finish`, then `noxroot learn`                                                                      | Propose a small knowledge update when something reusable was validated     |
+| Learning procedure after finish   | `finish`, then `learn` through the pinned `npx` command                                                     | Propose a small knowledge update when something reusable was validated     |
 | Local task state created by start | `.git/noxroot/runs/*.json` in a standard checkout                                                           | Store baselines and results without treating them as project documentation |
 
 Only missing capabilities are proposed. A mature repository may need only a small entrypoint and
@@ -119,11 +121,11 @@ This example is produced from Noxroot's own repository and locked to the documen
 ```text
 $ noxroot context "improve reviewer decision safety"
 
-Selected 6 of 115 repository files · ~3,230 tokens
+Selected 6 of 116 repository files · ~3,230 tokens
 Likely owner: src/adapters/agents.ts
 Likely tests: tests/agent-review.test.ts
 Approved checks: format-check, lint, typecheck, test, build
-Deliberately excluded: 109 unrelated files
+Deliberately excluded: 110 unrelated files
 ```
 
 Selection is advisory and explainable. It is not permission to edit a file, and a request such as
@@ -171,6 +173,7 @@ NOXROOT PREVIEW
 Detected: Node.js project, TypeScript (npm)
 Approved check candidates found: lint, typecheck, test, build
 Initialization allowed: yes
+Mode: full
 Capabilities:
 - Project knowledge: create
 - Task routes: create
@@ -183,7 +186,7 @@ Unknown: Continuous integration
 Trust: files changed 0; repository commands 0; agent calls 0; network requests 0.
 
 No repository files changed. No project command, agent, or network request ran.
-Next: noxroot preview --diff
+Next: npx --yes noxroot@0.1.0 preview --diff
 ```
 
 Use `preview --diff` to inspect every proposed setup patch. The intended beta entry point is
