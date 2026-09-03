@@ -186,6 +186,22 @@ function verificationContent(commands: CandidateCommand[]): string {
 
 const MAX_INDEX_DOCUMENTS = 12;
 
+function documentFamily(pathname: string): { key: string; preference: number } {
+  const segments = pathname.split("/");
+  const docsIndex = segments.findIndex((segment) => segment.toLowerCase() === "docs");
+  const locale = docsIndex >= 0 ? segments[docsIndex + 1] : undefined;
+  if (!locale || !/^[a-z]{2}(?:-[a-z]{2,4})?$/i.test(locale)) {
+    return { key: pathname.toLowerCase(), preference: 0 };
+  }
+  const family = [...segments];
+  family.splice(docsIndex + 1, 1);
+  const normalizedLocale = locale.toLowerCase();
+  return {
+    key: family.join("/").toLowerCase(),
+    preference: normalizedLocale === "en" || normalizedLocale.startsWith("en-") ? 1 : 2,
+  };
+}
+
 function allUsefulDocuments(
   profile: RepositoryProfile,
   adoption?: AdoptionInspection,
@@ -206,7 +222,7 @@ function allUsefulDocuments(
     ordinary: 6,
     instructions: 7,
   };
-  return documents
+  const uniquePaths = documents
     .filter(
       (document, index, all) =>
         all.findIndex((candidate) => candidate.path === document.path) === index,
@@ -215,6 +231,23 @@ function allUsefulDocuments(
       (left, right) =>
         priority[left.kind] - priority[right.kind] || left.path.localeCompare(right.path),
     );
+  const families = new Map<string, RepositoryDocument>();
+  for (const document of uniquePaths) {
+    const candidate = documentFamily(document.path);
+    const current = families.get(candidate.key);
+    if (!current) {
+      families.set(candidate.key, document);
+      continue;
+    }
+    const currentPreference = documentFamily(current.path).preference;
+    if (
+      candidate.preference < currentPreference ||
+      (candidate.preference === currentPreference && document.path.localeCompare(current.path) < 0)
+    ) {
+      families.set(candidate.key, document);
+    }
+  }
+  return [...families.values()];
 }
 
 function usefulDocuments(

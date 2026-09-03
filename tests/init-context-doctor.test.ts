@@ -92,6 +92,46 @@ describe("initialization, sync safety, context, and doctor", () => {
     expect(index).toContain("Additional repository documentation remains in place");
   });
 
+  it("indexes one canonical document from a translated documentation family", async () => {
+    const root = await temporaryDirectory("noxroot-translated-docs-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    for (const locale of ["en", "fr", "de"]) {
+      await mkdir(path.join(root, "docs", locale, "docs", "tutorial"), { recursive: true });
+      await writeFile(
+        path.join(root, "docs", locale, "docs", "tutorial", "testing.md"),
+        `# Testing (${locale})\n`,
+      );
+    }
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      [
+        "# Instructions",
+        "",
+        "Testing documentation:",
+        "- [English](docs/en/docs/tutorial/testing.md)",
+        "- [French](docs/fr/docs/tutorial/testing.md)",
+        "- [German](docs/de/docs/tutorial/testing.md)",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(path.join(root, "pyproject.toml"), '[project]\nname = "sample"\n');
+
+    const preview = await previewRepository(root);
+    const index = preview.proposedFiles.find(
+      (item) => item.path === ".noxroot/knowledge/INDEX.md",
+    )?.content;
+    const references = preview.proposedFiles
+      .filter((item) => item.action === "reference")
+      .map((item) => item.path);
+
+    expect(index).toContain("../../docs/en/docs/tutorial/testing.md");
+    expect(index).not.toContain("../../docs/fr/docs/tutorial/testing.md");
+    expect(index).not.toContain("../../docs/de/docs/tutorial/testing.md");
+    expect(references).toContain("docs/en/docs/tutorial/testing.md");
+    expect(references).not.toContain("docs/fr/docs/tutorial/testing.md");
+    expect(references).not.toContain("docs/de/docs/tutorial/testing.md");
+  });
+
   it("updates only an existing managed block and preserves content before and after it", async () => {
     const fixture = await fixtureCopy("managed-agents");
     cleanup.push(fixture.cleanup);
