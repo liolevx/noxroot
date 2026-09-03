@@ -38,11 +38,7 @@ describe("local run retention", () => {
       });
     }
 
-    const result = await enforceRunRetention(
-      root,
-      { evidenceDays: 30, maximumRuns: 100 },
-      now,
-    );
+    const result = await enforceRunRetention(root, { evidenceDays: 30, maximumRuns: 100 }, now);
 
     expect(result).toMatchObject({ retained: 100, protected: 2 });
     expect(result.removed).toHaveLength(500);
@@ -77,11 +73,7 @@ describe("local run retention", () => {
     const runs = path.join(await localStateRoot(root), "runs");
     await writeFile(path.join(runs, "malformed.json"), "not json\n");
 
-    const result = await enforceRunRetention(
-      root,
-      { evidenceDays: 30, maximumRuns: 100 },
-      now,
-    );
+    const result = await enforceRunRetention(root, { evidenceDays: 30, maximumRuns: 100 }, now);
 
     expect(result).toEqual({ removed: ["old-completed"], retained: 3, protected: 2 });
     expect(await readFile(path.join(runs, "old-incomplete.json"), "utf8")).toContain(

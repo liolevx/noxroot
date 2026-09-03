@@ -440,15 +440,7 @@ function nativeVerificationCommands(
           : tool === "ruff"
             ? [...runner.slice(1), "ruff", "check", "."]
             : [...runner.slice(1), "mypy", "."];
-      commands.push(
-        scopedCommand(
-          tool,
-          runner[0]!,
-          args,
-          cwd,
-          `${manifest} [tool.${tool}]`,
-        ),
-      );
+      commands.push(scopedCommand(tool, runner[0]!, args, cwd, `${manifest} [tool.${tool}]`));
     }
   }
   for (const manifest of files.filter(
@@ -544,7 +536,8 @@ function detectEvidence(
       status: "confirmed",
       claim: "Independent example collection",
       sources: nestedManifests.slice(0, 12),
-      detail: "Choose one contained project as the Noxroot root; do not configure the collection as one application.",
+      detail:
+        "Choose one contained project as the Noxroot root; do not configure the collection as one application.",
     });
   }
 

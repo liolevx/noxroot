@@ -326,10 +326,7 @@ export async function inspectRepositoryAdoption(
   const sources = new Map<string, string>();
   const references: Reference[] = [];
   const missing: Reference[] = [];
-  const narrativeRoots = [
-    ...instructionFiles,
-    ...(fileSet.has("README.md") ? ["README.md"] : []),
-  ];
+  const narrativeRoots = [...instructionFiles, ...(fileSet.has("README.md") ? ["README.md"] : [])];
   const queue = narrativeRoots.map((file) => ({ file, depth: 0 }));
   const visited = new Set<string>();
   let bytes = 0;
@@ -543,51 +540,51 @@ export async function inspectRepositoryAdoption(
     projectCollection
       ? assessment("task-routes", "Task routes", "not-assessed", [], collectionGap)
       : routeReferences.length > 0 || fileSet.has(".noxroot/routes.yml")
-      ? assessment(
-          "task-routes",
-          "Task routes",
-          "reuse",
-          [...new Set(routeReferences.map((item) => item.path))].sort(),
-        )
-      : profile.empty || missingRouteReferences.length > 0 || incomplete
         ? assessment(
             "task-routes",
             "Task routes",
-            "not-assessed",
-            [],
-            profile.empty
-              ? ["No repository source exists yet, so task routes cannot be assessed."]
-              : missingRouteReferences.length
-                ? missingRouteReferences.map(
-                    (item) => `Referenced path was not available: ${item.path}`,
-                  )
-                : profile.stats.incompleteReasons,
+            "reuse",
+            [...new Set(routeReferences.map((item) => item.path))].sort(),
           )
-        : assessment("task-routes", "Task routes", "create"),
+        : profile.empty || missingRouteReferences.length > 0 || incomplete
+          ? assessment(
+              "task-routes",
+              "Task routes",
+              "not-assessed",
+              [],
+              profile.empty
+                ? ["No repository source exists yet, so task routes cannot be assessed."]
+                : missingRouteReferences.length
+                  ? missingRouteReferences.map(
+                      (item) => `Referenced path was not available: ${item.path}`,
+                    )
+                  : profile.stats.incompleteReasons,
+            )
+          : assessment("task-routes", "Task routes", "create"),
   );
   capabilities.push(
     projectCollection
       ? assessment("verification-policy", "Verification", "not-assessed", [], collectionGap)
       : verificationWrappers.length > 0 || fileSet.has(".noxroot/verification.yml")
-      ? assessment(
-          "verification-policy",
-          "Verification",
-          "reuse",
-          verificationWrappers.length
-            ? verificationWrappers.map((item) =>
-                `${item.executable} ${item.args.join(" ")} (${item.source})`.trim(),
-              )
-            : [".noxroot/verification.yml"],
-        )
-      : profile.candidateCommands.length > 0
-        ? assessment("verification-policy", "Verification", "create")
-        : assessment(
+        ? assessment(
             "verification-policy",
             "Verification",
-            "not-assessed",
-            [],
-            ["No authoritative verification wrapper or candidate checks were found."],
-          ),
+            "reuse",
+            verificationWrappers.length
+              ? verificationWrappers.map((item) =>
+                  `${item.executable} ${item.args.join(" ")} (${item.source})`.trim(),
+                )
+              : [".noxroot/verification.yml"],
+          )
+        : profile.candidateCommands.length > 0
+          ? assessment("verification-policy", "Verification", "create")
+          : assessment(
+              "verification-policy",
+              "Verification",
+              "not-assessed",
+              [],
+              ["No authoritative verification wrapper or candidate checks were found."],
+            ),
   );
   const verificationDecision = capabilities.at(-1)!.decision;
   capabilities.push(
@@ -612,27 +609,27 @@ export async function inspectRepositoryAdoption(
     projectCollection
       ? assessment("task-orchestration", "Task orchestration", "not-assessed", [], collectionGap)
       : coordinators.length > 0
-      ? assessment(
-          "task-orchestration",
-          "Task orchestration",
-          "conflict",
-          coordinators.map(
-            ({ name, declaredIn, evidence }) => `${name} (${declaredIn}; ${evidence.join(", ")})`,
-          ),
-        )
-      : noxrootOwnsOrchestration
-        ? assessment("task-orchestration", "Task orchestration", "reuse", [".noxroot/config.yml"])
-        : profile.empty || incomplete
-          ? assessment(
-              "task-orchestration",
-              "Task orchestration",
-              "not-assessed",
-              [],
-              profile.empty
-                ? ["No repository source exists yet, so task orchestration cannot be assessed."]
-                : profile.stats.incompleteReasons,
-            )
-          : assessment("task-orchestration", "Task orchestration", "create"),
+        ? assessment(
+            "task-orchestration",
+            "Task orchestration",
+            "conflict",
+            coordinators.map(
+              ({ name, declaredIn, evidence }) => `${name} (${declaredIn}; ${evidence.join(", ")})`,
+            ),
+          )
+        : noxrootOwnsOrchestration
+          ? assessment("task-orchestration", "Task orchestration", "reuse", [".noxroot/config.yml"])
+          : profile.empty || incomplete
+            ? assessment(
+                "task-orchestration",
+                "Task orchestration",
+                "not-assessed",
+                [],
+                profile.empty
+                  ? ["No repository source exists yet, so task orchestration cannot be assessed."]
+                  : profile.stats.incompleteReasons,
+              )
+            : assessment("task-orchestration", "Task orchestration", "create"),
   );
   if (adjacentCapabilities.length > 0) {
     capabilities.push(
@@ -640,8 +637,8 @@ export async function inspectRepositoryAdoption(
         "coordination-ledger",
         "External work ledger",
         "adjacent",
-        adjacentCapabilities.map(({ path: sourcePath, evidence }) =>
-          `${sourcePath} (${evidence.join(", ")})`,
+        adjacentCapabilities.map(
+          ({ path: sourcePath, evidence }) => `${sourcePath} (${evidence.join(", ")})`,
         ),
       ),
     );

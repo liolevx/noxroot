@@ -138,7 +138,9 @@ export async function enforceRunRetention(
   let protectedCount = 0;
   for (const name of names) {
     try {
-      const record = JSON.parse(await readFile(path.join(directory, name), "utf8")) as RetentionRecord;
+      const record = JSON.parse(
+        await readFile(path.join(directory, name), "utf8"),
+      ) as RetentionRecord;
       if (typeof record.status === "string" && TERMINAL_RUN_STATUSES.has(record.status)) {
         removable.push({ name, timestamp: recordTime(record) });
       } else {

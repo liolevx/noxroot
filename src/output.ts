@@ -258,7 +258,7 @@ export function renderPreview(
       "Next",
       [
         !result.initializationAllowed
-          ? result.conflicts[0] ?? "Resolve the reported repository conflict."
+          ? (result.conflicts[0] ?? "Resolve the reported repository conflict.")
           : result.proposedFiles.length === 0
             ? cliCommand('context "<task>"')
             : options.diff

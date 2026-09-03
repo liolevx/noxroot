@@ -350,7 +350,10 @@ function renderStart(
   ].join("\n")}\n`;
 }
 
-async function repositoryTaskStatus(root: string, sensitivePaths: string[] = []): Promise<{
+async function repositoryTaskStatus(
+  root: string,
+  sensitivePaths: string[] = [],
+): Promise<{
   repository: { root: string; branch?: string; dirty: boolean };
   active: Array<{ record: GuidedRunRecord; continuation: GuidedContinuationState }>;
   incompatible: string[];
@@ -412,7 +415,10 @@ function renderTaskStatus(result: Awaited<ReturnType<typeof repositoryTaskStatus
   return `${lines.join("\n")}\n`;
 }
 
-async function syncSummary(root: string, preview: PreviewResult): Promise<{
+async function syncSummary(
+  root: string,
+  preview: PreviewResult,
+): Promise<{
   repositoryVersion: string | null;
   runningVersion: string;
   managedChanges: number;
@@ -422,7 +428,7 @@ async function syncSummary(root: string, preview: PreviewResult): Promise<{
     const instructions = await readFile(path.join(root, "AGENTS.md"), "utf8");
     const managed = /<!-- noxroot:start -->([\s\S]*?)<!-- noxroot:end -->/.exec(instructions)?.[1];
     repositoryVersion = managed
-      ? /\bnoxroot@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/.exec(managed)?.[1] ?? null
+      ? (/\bnoxroot@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/.exec(managed)?.[1] ?? null)
       : null;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
