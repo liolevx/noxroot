@@ -400,6 +400,73 @@ function uniqueCommandIds(commands: CandidateCommand[]): CandidateCommand[] {
   });
 }
 
+function scopedCommand(
+  id: string,
+  executable: string,
+  args: string[],
+  cwd: string,
+  source: string,
+): CandidateCommand {
+  return {
+    id: cwd === "." ? id : `${slug(cwd)}-${id}`,
+    executable,
+    args,
+    cwd,
+    source,
+    appliesTo: cwd === "." ? ["**/*"] : [`${cwd}/**`],
+  };
+}
+
+function nativeVerificationCommands(
+  files: string[],
+  contents: ContentMap,
+  projectManifest: (file: string) => boolean,
+): CandidateCommand[] {
+  const commands: CandidateCommand[] = [];
+  const fileSet = new Set(files);
+  for (const manifest of files.filter(
+    (file) => projectManifest(file) && path.posix.basename(file) === "pyproject.toml",
+  )) {
+    const source = contents[manifest];
+    if (!source) continue;
+    const cwd = path.posix.dirname(manifest);
+    const located = (file: string): string => (cwd === "." ? file : `${cwd}/${file}`);
+    const runner = fileSet.has(located("uv.lock")) ? ["uv", "run"] : ["python", "-m"];
+    for (const tool of ["pytest", "ruff", "mypy"] as const) {
+      if (!new RegExp(`^\\s*\\[tool\\.${tool}(?:\\.|])`, "m").test(source)) continue;
+      const args =
+        tool === "pytest"
+          ? [...runner.slice(1), "pytest"]
+          : tool === "ruff"
+            ? [...runner.slice(1), "ruff", "check", "."]
+            : [...runner.slice(1), "mypy", "."];
+      commands.push(
+        scopedCommand(
+          tool,
+          runner[0]!,
+          args,
+          cwd,
+          `${manifest} [tool.${tool}]`,
+        ),
+      );
+    }
+  }
+  for (const manifest of files.filter(
+    (file) => projectManifest(file) && path.posix.basename(file) === "Cargo.toml",
+  )) {
+    const cwd = path.posix.dirname(manifest);
+    commands.push(scopedCommand("cargo-test", "cargo", ["test"], cwd, manifest));
+    commands.push(scopedCommand("cargo-check", "cargo", ["check"], cwd, manifest));
+  }
+  for (const manifest of files.filter(
+    (file) => projectManifest(file) && path.posix.basename(file) === "go.mod",
+  )) {
+    const cwd = path.posix.dirname(manifest);
+    commands.push(scopedCommand("go-test", "go", ["test", "./..."], cwd, manifest));
+  }
+  return commands;
+}
+
 function aggregateEvidence(evidence: Evidence[]): Evidence[] {
   const grouped = new Map<string, Evidence[]>();
   for (const item of evidence) {
@@ -592,6 +659,18 @@ function detectEvidence(
       : packageManagerEvidence(files, contents, undefined));
 
   for (const command of ciVerificationCommands(contents)) {
+    if (
+      !commands.some(
+        (candidate) =>
+          candidate.executable === command.executable &&
+          candidate.cwd === command.cwd &&
+          JSON.stringify(candidate.args) === JSON.stringify(command.args),
+      )
+    ) {
+      commands.push(command);
+    }
+  }
+  for (const command of nativeVerificationCommands(files, contents, projectManifest)) {
     if (
       !commands.some(
         (candidate) =>

@@ -460,6 +460,51 @@ describe("read-only preview", () => {
     expect(routes?.match(/- engine\/\*\*/g)).toHaveLength(1);
   });
 
+  it("proposes conventional native checks only from explicit cross-stack project evidence", async () => {
+    const root = await temporaryDirectory("noxroot-native-checks-");
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await mkdir(path.join(root, "engine"), { recursive: true });
+    await mkdir(path.join(root, "core"), { recursive: true });
+    await mkdir(path.join(root, "api"), { recursive: true });
+    await writeFile(
+      path.join(root, "engine", "pyproject.toml"),
+      '[project]\nname = "engine"\n\n[tool.pytest.ini_options]\ntestpaths = ["tests"]\n\n[tool.ruff]\nline-length = 100\n',
+    );
+    await writeFile(path.join(root, "engine", "uv.lock"), "version = 1\n");
+    await writeFile(path.join(root, "core", "Cargo.toml"), '[package]\nname = "core"\n');
+    await writeFile(path.join(root, "api", "go.mod"), "module example.test/api\n");
+
+    const result = await scanRepository(root);
+
+    expect(result.candidateCommands).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "engine-pytest",
+          executable: "uv",
+          args: ["run", "pytest"],
+          cwd: "engine",
+          appliesTo: ["engine/**"],
+        }),
+        expect.objectContaining({
+          id: "engine-ruff",
+          executable: "uv",
+          args: ["run", "ruff", "check", "."],
+          cwd: "engine",
+        }),
+        expect.objectContaining({ id: "core-cargo-test", cwd: "core" }),
+        expect.objectContaining({ id: "core-cargo-check", cwd: "core" }),
+        expect.objectContaining({
+          id: "api-go-test",
+          executable: "go",
+          args: ["test", "./..."],
+          cwd: "api",
+        }),
+      ]),
+    );
+  });
+
   it("does not promote embedded test fixtures into live nested projects", async () => {
     const root = await temporaryDirectory();
     cleanup.push(async () =>
