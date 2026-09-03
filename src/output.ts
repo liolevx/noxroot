@@ -107,7 +107,7 @@ export function renderInitMark(options: RenderOptions = {}): string {
 
 export function renderPreview(
   result: PreviewResult,
-  options: RenderOptions & { diff?: boolean } = {},
+  options: RenderOptions & { diff?: boolean; next?: string } = {},
 ): string {
   const manager =
     result.profile.packageManager.status === "confirmed"
@@ -258,13 +258,14 @@ export function renderPreview(
     ...section(
       "Next",
       [
-        !result.initializationAllowed
-          ? (result.conflicts[0] ?? "Resolve the reported repository conflict.")
-          : result.proposedFiles.length === 0
-            ? cliCommand('context "<task>"')
-            : options.diff
-              ? cliCommand("init")
-              : cliCommand("preview --diff"),
+        options.next ??
+          (!result.initializationAllowed
+            ? (result.conflicts[0] ?? "Resolve the reported repository conflict.")
+            : result.proposedFiles.length === 0
+              ? cliCommand('context "<task>"')
+              : options.diff
+                ? cliCommand("init")
+                : cliCommand("preview --diff")),
       ],
       options,
       ANSI.blue,

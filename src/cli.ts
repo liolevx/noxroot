@@ -597,6 +597,11 @@ export function createProgram(customIo?: Partial<Io>): Command {
               ...renderOptions(io, common),
               diff: options.diff || !options.dryRun,
               verbose: common.verbose || options.diff || !options.dryRun,
+              next: options.dryRun
+                ? options.diff
+                  ? cliCommand("sync --yes")
+                  : cliCommand("sync --dry-run --diff")
+                : "Applying the displayed managed changes.",
             })}`,
           );
         if (options.dryRun) {
@@ -619,7 +624,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         if (
           !(await confirm(
             io,
-            `Create ${preview.proposedFiles.length} missing file(s)?`,
+            `Apply ${preview.proposedFiles.length} displayed setup change(s)?`,
             options.yes,
           ))
         ) {
@@ -629,7 +634,15 @@ export function createProgram(customIo?: Partial<Io>): Command {
         }
         const result = await applyProposals(preview);
         if (common.json) writeJson(io, { summary, preview, applied: result });
-        else io.stdout(`Created: ${result.created.join(", ")}\n`);
+        else {
+          const changed = [
+            ...result.created.map((file) => `  Created ${file}`),
+            ...result.patched.map((file) => `  Patched ${file}`),
+          ];
+          io.stdout(
+            `${["Updated setup", ...changed, "", "Next", "  Keep working normally with your coding agent."].join("\n")}\n`,
+          );
+        }
       },
     );
 

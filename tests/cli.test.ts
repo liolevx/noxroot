@@ -185,6 +185,12 @@ describe("CLI contracts", () => {
     expect(result.stdout).toContain("Running CLI     0.1.0");
     expect(result.stdout).toMatch(/Managed changes [1-9]/);
     expect(result.stdout).toContain("Exact proposed changes");
+
+    const applied = await run(["sync", "--yes", "--root", fixture.root]);
+    expect(applied.stdout).toContain("Updated setup");
+    expect(applied.stdout).toContain("  Patched AGENTS.md");
+    expect(applied.stdout).toContain("Next\n  Keep working normally with your coding agent.");
+    expect(applied.stdout).not.toContain("Created:");
   });
 
   it("keeps context compact unless verbose evidence is requested", async () => {
