@@ -441,6 +441,21 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       item.score >= 20 &&
       fitsSelection(item),
   );
+  const topPathOwners = rankingTerms
+    .map((term) =>
+      candidates.find(
+        (item) =>
+          item.category === "source" &&
+          item.pathMatchedTerms.has(term) &&
+          item.score >= 20 &&
+          fitsSelection(item),
+      ),
+    )
+    .filter((item): item is RankedCandidate => item !== undefined)
+    .filter(
+      (item, index, all) => all.findIndex((candidate) => candidate.file === item.file) === index,
+    )
+    .slice(0, 3);
   const topTest = candidates.find(
     (item) =>
       item.category === "test" &&
@@ -461,6 +476,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   );
   const priority = [
     topOwner,
+    ...topPathOwners,
     topProcedure,
     ...candidates.filter((item) => ALWAYS_CONTEXT.has(item.file)),
     topTest,

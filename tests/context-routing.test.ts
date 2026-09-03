@@ -160,6 +160,33 @@ describe("bounded relevance routing", () => {
     }
   });
 
+  it("keeps a direct path match when broader files could consume the context budget", async () => {
+    const root = await temporaryDirectory("noxroot-context-term-coverage-");
+    try {
+      await mkdir(path.join(root, "app", "dashboard", "invoices"), { recursive: true });
+      await mkdir(path.join(root, "app", "ui"), { recursive: true });
+      await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
+      const broadSource = "export const copy = 'dashboard invoice empty state';\n".repeat(52);
+      for (const name of ["archive", "create", "edit", "overview", "settings"]) {
+        await writeFile(
+          path.join(root, "app", "dashboard", "invoices", `${name}.tsx`),
+          broadSource,
+        );
+      }
+      await writeFile(
+        path.join(root, "app", "ui", "search.tsx"),
+        "export function Search() { return <input aria-label='search' />; }\n".repeat(10),
+      );
+
+      const context = await buildContext("improve the dashboard invoice search empty state", root);
+
+      expect(context.selected.map((item) => item.path)).toContain("app/ui/search.tsx");
+      expect(context.budget.selectedBytes).toBeLessThanOrEqual(context.budget.maximumBytes);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("keeps generated recordings and payload artifacts out of focused context", async () => {
     const root = await temporaryDirectory("noxroot-context-artifacts-");
     try {
