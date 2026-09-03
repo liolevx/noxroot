@@ -484,17 +484,19 @@ export async function inspectRepositoryAdoption(
           "reuse",
           [...new Set(routeReferences.map((item) => item.path))].sort(),
         )
-      : missingRouteReferences.length > 0 || incomplete
+      : profile.empty || missingRouteReferences.length > 0 || incomplete
         ? assessment(
             "task-routes",
             "Task routes",
             "not-assessed",
             [],
-            missingRouteReferences.length
-              ? missingRouteReferences.map(
-                  (item) => `Referenced path was not available: ${item.path}`,
-                )
-              : profile.stats.incompleteReasons,
+            profile.empty
+              ? ["No repository source exists yet, so task routes cannot be assessed."]
+              : missingRouteReferences.length
+                ? missingRouteReferences.map(
+                    (item) => `Referenced path was not available: ${item.path}`,
+                  )
+                : profile.stats.incompleteReasons,
           )
         : assessment("task-routes", "Task routes", "create"),
   );
@@ -549,13 +551,15 @@ export async function inspectRepositoryAdoption(
             ({ name, declaredIn, evidence }) => `${name} (${declaredIn}; ${evidence.join(", ")})`,
           ),
         )
-      : incomplete
+      : profile.empty || incomplete
         ? assessment(
             "task-orchestration",
             "Task orchestration",
             "not-assessed",
             [],
-            profile.stats.incompleteReasons,
+            profile.empty
+              ? ["No repository source exists yet, so task orchestration cannot be assessed."]
+              : profile.stats.incompleteReasons,
           )
         : assessment("task-orchestration", "Task orchestration", "create"),
   );

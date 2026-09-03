@@ -61,6 +61,13 @@ describe("read-only preview", () => {
       ".noxroot/knowledge/INDEX.md",
     ]);
     expect(result.proposedFiles.some((file) => file.path.includes("architecture"))).toBe(false);
+    expect(result.capabilities.find((item) => item.id === "task-routes")?.decision).toBe(
+      "not-assessed",
+    );
+    expect(result.capabilities.find((item) => item.id === "task-orchestration")?.decision).toBe(
+      "not-assessed",
+    );
+    expect(renderPreview(result)).toContain("Mode\n  Setup only");
     expect(result.unknowns).toContain("Product intent");
     expect(result.contextEstimate.defaultBytes).toBeGreaterThan(0);
   });

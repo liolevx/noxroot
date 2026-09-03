@@ -142,6 +142,7 @@ export function renderPreview(
   const companionMode = result.capabilities.some(
     (item) => item.id === "task-orchestration" && item.decision === "conflict",
   );
+  const setupOnly = result.profile.empty;
   const conflictDetails = [
     ...result.conflicts,
     ...result.profile.stats.incompleteReasons,
@@ -159,7 +160,7 @@ export function renderPreview(
         : ["No application architecture detected"],
       options,
     ),
-    ...section("Mode", [companionMode ? "Companion" : "Full"], options),
+    ...section("Mode", [companionMode ? "Companion" : setupOnly ? "Setup only" : "Full"], options),
     ...section(
       "Reuse",
       capabilityLines(result.capabilities, "reuse", options),
