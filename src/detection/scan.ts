@@ -170,6 +170,7 @@ function commandFromScript(
   scriptName = id,
   cwd = ".",
   manifestPath = "package.json",
+  files: string[] = [],
 ): CandidateCommand {
   const args = manager === "yarn" ? [scriptName] : ["run", scriptName];
   const scope = cwd === "." ? "" : `${slug(cwd)}-`;
@@ -179,8 +180,22 @@ function commandFromScript(
     args,
     cwd,
     source: `${manifestPath} scripts.${scriptName}`,
-    appliesTo: cwd === "." ? (id === "test" ? ["src/**", "tests/**"] : ["**/*"]) : [`${cwd}/**`],
+    appliesTo: cwd === "." ? (id === "test" ? rootTestScope(files) : ["**/*"]) : [`${cwd}/**`],
   };
+}
+
+function rootTestScope(files: string[]): string[] {
+  const sourceDirectories = new Set<string>();
+  const rootExtensions = new Set<string>();
+  for (const file of files) {
+    const extension = /\.([cm]?[jt]sx?|vue|svelte|py|go|rs)$/i.exec(file)?.[1]?.toLowerCase();
+    if (!extension) continue;
+    const separator = file.indexOf("/");
+    if (separator === -1) rootExtensions.add(`*.${extension}`);
+    else sourceDirectories.add(`${file.slice(0, separator)}/**`);
+  }
+  const inferred = [...sourceDirectories].sort().concat([...rootExtensions].sort());
+  return inferred.length > 0 ? [...inferred, "package.json"] : ["**/*"];
 }
 
 function slug(value: string): string {
@@ -623,7 +638,7 @@ function detectEvidence(
         for (const id of ["lint", "typecheck", "test", "build"]) {
           if (id === "build" && testCoversBuild) continue;
           if (packageManifest.scripts[id])
-            commands.push(commandFromScript(manager.name, id, id, directory, packagePath));
+            commands.push(commandFromScript(manager.name, id, id, directory, packagePath, files));
         }
       }
     } catch {

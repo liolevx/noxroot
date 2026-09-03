@@ -111,6 +111,17 @@ describe("read-only preview", () => {
     });
   });
 
+  it("applies a root test script to root-level source and test files", async () => {
+    const fixture = await fixtureCopy("javascript");
+    cleanup.push(fixture.cleanup);
+
+    const result = await previewRepository(fixture.root);
+
+    expect(result.profile.candidateCommands).toContainEqual(
+      expect.objectContaining({ id: "test", appliesTo: ["*.js", "package.json"] }),
+    );
+  });
+
   it("discovers a non-mutating format check instead of a formatting writer", async () => {
     const root = await temporaryDirectory();
     cleanup.push(async () =>
