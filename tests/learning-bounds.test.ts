@@ -115,4 +115,16 @@ describe("durable knowledge corpus bounds", () => {
     );
     expect(await readFile(path.join(root, "README.md"), "utf8")).toBe("# Preserve me\n");
   });
+
+  it("rejects alternate spellings of the managed index as a learning destination", async () => {
+    const root = await temporaryDirectory();
+    roots.push(root);
+    for (const destination of [
+      ".noxroot/knowledge/./INDEX.md",
+      ".noxroot/knowledge/index.md",
+      ".noxroot\\knowledge\\INDEX.md",
+    ]) {
+      await expect(applyLearning(root, { ...proposal, destination })).rejects.toThrow(/owned/);
+    }
+  });
 });

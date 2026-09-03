@@ -68,9 +68,9 @@ function signature(candidate: Candidate): string {
 }
 
 function ownedDestination(destination: string): string | undefined {
-  const normalized = destination.replaceAll("\\", "/").replace(/^\.\//, "");
+  const normalized = path.posix.normalize(destination.replaceAll("\\", "/"));
   if (!normalized.startsWith(KNOWLEDGE_ROOT) || !normalized.endsWith(".md")) return undefined;
-  if (normalized.includes("../") || normalized === `${KNOWLEDGE_ROOT}INDEX.md`) return undefined;
+  if (normalized.toLowerCase() === `${KNOWLEDGE_ROOT}index.md`) return undefined;
   return normalized;
 }
 
@@ -286,23 +286,21 @@ async function existingOr(target: string, fallback: string): Promise<string> {
 }
 
 export async function applyLearning(root: string, proposal: LearningProposal): Promise<string[]> {
-  if (!ownedDestination(proposal.destination)) {
+  const destination = ownedDestination(proposal.destination);
+  if (!destination) {
     throw new Error("Learning may update only Noxroot-owned Markdown under .noxroot/knowledge/.");
   }
   if (proposal.conflict !== "none" || proposal.duplication !== "not-found") {
     throw new Error(`Learning proposal ${proposal.id} is not safely applicable.`);
   }
-  const target = await checkKnowledgePath(root, proposal.destination);
+  const target = await checkKnowledgePath(root, destination);
   const existing = await existingOr(target, "# Validated learnings\n\n");
   if (existing.includes(`<!-- noxroot-learning:${proposal.signature} -->`)) {
     return [proposal.destination];
   }
   const indexPath = await checkKnowledgePath(root, ".noxroot/knowledge/INDEX.md");
   const index = await existingOr(indexPath, "# Noxroot knowledge index\n\n");
-  const basename = proposal.destination
-    .replaceAll("\\", "/")
-    .replace(/^\.\//, "")
-    .slice(KNOWLEDGE_ROOT.length);
+  const basename = destination.slice(KNOWLEDGE_ROOT.length);
   const indexNext = index.includes(`](${basename})`)
     ? index
     : `${index.trimEnd()}\n\n- [Validated learnings](${basename}) — confirmed, deduplicated durable lessons.\n`;
