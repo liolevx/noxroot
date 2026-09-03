@@ -13,7 +13,7 @@ describe("documentation examples", () => {
       true,
     );
     expect(readme).toContain(
-      "Portable repository context, verification, and project memory for coding agents.",
+      "Noxroot gives coding agents focused repository context, runs checks that match each change, and",
     );
     const output = renderPreview(await previewRepository(path.join(fixtures, "typescript")));
     for (const line of [

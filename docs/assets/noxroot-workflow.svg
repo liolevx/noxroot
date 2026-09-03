@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1040" role="img" aria-labelledby="title desc">
-  <title id="title">Noxroot workflow</title>
-  <desc id="desc">Noxroot understands project memory, prepares focused task context, supports an existing coding agent, verifies the actual change, and keeps useful knowledge in project documentation.</desc>
+  <title id="title">Noxroot-owned workflow</title>
+  <desc id="desc">When Noxroot owns the lifecycle, it reuses repository knowledge, prepares focused task context, supports an existing coding agent, checks the actual change, and keeps useful knowledge in project documentation.</desc>
   <defs>
     <linearGradient id="arrowGradient" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#A78BFA"/>
@@ -30,7 +30,7 @@
           font-size="18" font-weight="800" letter-spacing="2.4">1 / PROJECT MEMORY</text>
     <text x="195" y="111" fill="#F8F7FC"
           font-family="Inter, ui-sans-serif, system-ui, sans-serif"
-          font-size="33" font-weight="800">Noxroot understands your repository</text>
+          font-size="33" font-weight="800">Reuses what your repository already knows</text>
     <text x="195" y="151" fill="#B9B2C2"
           font-family="Inter, ui-sans-serif, system-ui, sans-serif"
           font-size="23">Docs + decisions + conventions + skills</text>
@@ -48,7 +48,7 @@
           font-size="18" font-weight="800" letter-spacing="2.4">2 / TASK CONTEXT</text>
     <text x="195" y="321" fill="#F8F7FC"
           font-family="Inter, ui-sans-serif, system-ui, sans-serif"
-          font-size="33" font-weight="800">Only what this task needs</text>
+          font-size="33" font-weight="800">Focused context for this task</text>
     <text x="195" y="361" fill="#B9B2C2"
           font-family="Inter, ui-sans-serif, system-ui, sans-serif"
           font-size="23">Relevant files + rules + checks</text>
@@ -69,7 +69,7 @@
           font-size="33" font-weight="800">Builds with the right context</text>
     <text x="195" y="571" fill="#C4B5FD"
           font-family="Inter, ui-sans-serif, system-ui, sans-serif"
-          font-size="23">Codex + Claude + Cursor + others</text>
+          font-size="23">Your existing coding agent stays in control</text>
   </g>
 
   <path d="M600 608V638" stroke="url(#arrowGradient)" stroke-width="6"/>
@@ -87,7 +87,7 @@
           font-size="33" font-weight="800">Noxroot checks the actual change</text>
     <text x="195" y="781" fill="#CFC6A5"
           font-family="Inter, ui-sans-serif, system-ui, sans-serif"
-          font-size="23">Tests + types + builds + review when useful</text>
+          font-size="23">Approved tests + type checks + builds + evals</text>
   </g>
 
   <path d="M600 818V848" stroke="url(#arrowGradient)" stroke-width="6"/>

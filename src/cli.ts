@@ -50,7 +50,7 @@ import {
 } from "./verification/index.js";
 
 const DESCRIPTION =
-  "A repo-aware workflow that helps coding agents build with the right context, checks, and project knowledge.";
+  "Noxroot gives coding agents focused repository context, runs checks that match each change, and keeps validated project knowledge current.";
 
 export const EXIT = {
   success: 0,

@@ -4,14 +4,16 @@
 
 # Noxroot
 
-**Portable repository context, verification, and project memory for coding agents.**
+**Noxroot gives coding agents focused repository context, runs checks that match each change, and
+keeps validated project knowledge current.**
 
-Set it up once. Then keep talking to your coding agent normally.
+Set it up once. Then keep working with your coding agent normally.
 
-Noxroot gives a coding agent the relevant files, rules, decisions, and approved checks for each
-change. It checks the resulting diff and carries validated project knowledge into later sessions. It
-is local and open source. It does not provide a model, replace Git, or take ownership of your
-workflow.
+Noxroot reads the instructions, docs, skills, and checks your repository already has. For a
+code-changing task, it prepares a focused brief: what matters, what may change, and how the result
+should be checked. Afterward it checks the actual diff with approved commands and proposes a small
+Markdown update only when something reusable was validated. If another tool already owns part of
+that workflow, Noxroot leaves it in charge.
 
 ## What Noxroot changes
 
@@ -26,13 +28,14 @@ workflow.
 New chats do not require another `init`. Ordinary questions need no Noxroot task. Noxroot stays in
 the background until code-changing work needs it.
 
+When Noxroot owns the lifecycle, the workflow is:
+
 <p align="center">
-  <img src="docs/assets/noxroot-workflow.svg" alt="Noxroot prepares focused context, supports your coding agent, verifies the change, and keeps useful project knowledge" width="900">
+  <img src="docs/assets/noxroot-workflow.svg" alt="When Noxroot owns the lifecycle, it reuses repository knowledge, prepares focused context, supports your coding agent, checks the change, and keeps useful project knowledge" width="900">
 </p>
 
-When Noxroot owns the lifecycle, this loop is its orchestration. It prepares the task, gives your
-chosen coding agent focused repository context, runs the relevant verification, and proposes any
-reusable learning. Noxroot does not replace your coding agent or run a permanent agent team.
+It prepares focused context, runs relevant verification, and proposes reusable learning. Your coding
+agent stays in control.
 
 ## Memory that compounds
 

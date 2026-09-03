@@ -1,7 +1,7 @@
 {
   "name": "noxroot",
   "version": "0.1.0",
-  "description": "A repo-aware workflow that helps coding agents build with the right context, checks, and project knowledge.",
+  "description": "Noxroot gives coding agents focused repository context, runs checks that match each change, and keeps validated project knowledge current.",
   "type": "module",
   "bin": {
     "noxroot": "dist/cli.js"
