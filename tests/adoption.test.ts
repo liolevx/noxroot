@@ -163,6 +163,14 @@ describe("mature repository adoption", () => {
     expect(preview.capabilities.find((item) => item.id === "task-orchestration")).toEqual(
       expect.objectContaining({ decision: "create", evidence: [] }),
     );
+    expect(preview.capabilities.find((item) => item.id === "coordination-ledger")).toEqual(
+      expect.objectContaining({
+        decision: "adjacent",
+        evidence: [
+          "docs/coordination.md (durable work state, cross-session continuity, coding-work coordination)",
+        ],
+      }),
+    );
     expect(preview.conflicts).not.toContainEqual(
       expect.stringContaining("repository-development coordinator"),
     );

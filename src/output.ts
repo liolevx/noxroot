@@ -180,6 +180,12 @@ export function renderPreview(
       ANSI.green,
     ),
     ...section(
+      "Works alongside",
+      capabilityLines(result.capabilities, "adjacent", options),
+      options,
+      ANSI.blue,
+    ),
+    ...section(
       "Add",
       capabilityLines(result.capabilities, "create", options),
       options,

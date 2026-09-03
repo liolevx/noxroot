@@ -35,6 +35,11 @@ interface CoordinatorEvidence {
   evidence: string[];
 }
 
+interface AdjacentCapabilityEvidence {
+  path: string;
+  evidence: string[];
+}
+
 export interface AdoptionInspection {
   capabilities: CapabilityAssessment[];
   initializationAllowed: boolean;
@@ -278,6 +283,29 @@ function implementationCoordinatorBehaviors(source: string): string[] {
     .map((marker) => marker.label);
 }
 
+const ADJACENT_LEDGER_BEHAVIORS = [
+  {
+    label: "durable work state",
+    match:
+      /\b(?:ledger|journal|issue tracker|work log)\b.{0,180}\b(?:decisions?|open items?|unresolved items?|handoffs?|session notes?)\b|\b(?:decisions?|open items?|unresolved items?|handoffs?)\b.{0,180}\b(?:ledger|journal|issue tracker|work log)\b/i,
+  },
+  {
+    label: "cross-session continuity",
+    match: /\b(?:cross-session|across sessions?|new session|resume|resuming|handoff)\b/i,
+  },
+  {
+    label: "coding-work coordination",
+    match: /\b(?:coding|repository|development|implementation|work)\b/i,
+  },
+] as const;
+
+function adjacentLedgerBehaviors(source: string): string[] {
+  const normalized = source.replace(/\s+/g, " ");
+  return ADJACENT_LEDGER_BEHAVIORS.filter((behavior) => behavior.match.test(normalized)).map(
+    (behavior) => behavior.label,
+  );
+}
+
 function assessment(
   id: CapabilityAssessment["id"],
   label: string,
@@ -298,7 +326,11 @@ export async function inspectRepositoryAdoption(
   const sources = new Map<string, string>();
   const references: Reference[] = [];
   const missing: Reference[] = [];
-  const queue = instructionFiles.map((file) => ({ file, depth: 0 }));
+  const narrativeRoots = [
+    ...instructionFiles,
+    ...(fileSet.has("README.md") ? ["README.md"] : []),
+  ];
+  const queue = narrativeRoots.map((file) => ({ file, depth: 0 }));
   const visited = new Set<string>();
   let bytes = 0;
   while (queue.length > 0 && visited.size < MAX_REFERENCE_FILES && bytes < MAX_REFERENCE_BYTES) {
@@ -460,6 +492,14 @@ export async function inspectRepositoryAdoption(
     if (coordinators.some((item) => `${item.name}\0${item.declaredIn}` === key)) continue;
     coordinators.push({ name: surface.path, declaredIn: surface.from, evidence });
   }
+  const adjacentCapabilities: AdjacentCapabilityEvidence[] = [];
+  for (const [sourcePath, source] of sources) {
+    if (NON_PROJECT_SURFACE.test(sourcePath)) continue;
+    const evidence = adjacentLedgerBehaviors(source);
+    if (evidence.length !== ADJACENT_LEDGER_BEHAVIORS.length) continue;
+    if (declaredCoordinatorBehaviors(source).length === COORDINATOR_BEHAVIORS.length) continue;
+    adjacentCapabilities.push({ path: sourcePath, evidence });
+  }
 
   const incomplete = profile.stats.incompleteReasons.length > 0;
   const authoritativeKnowledge = profile.documents.filter(
@@ -582,6 +622,18 @@ export async function inspectRepositoryAdoption(
             )
           : assessment("task-orchestration", "Task orchestration", "create"),
   );
+  if (adjacentCapabilities.length > 0) {
+    capabilities.push(
+      assessment(
+        "coordination-ledger",
+        "External work ledger",
+        "adjacent",
+        adjacentCapabilities.map(({ path: sourcePath, evidence }) =>
+          `${sourcePath} (${evidence.join(", ")})`,
+        ),
+      ),
+    );
+  }
   const productDocuments = [
     ...references
       .filter(

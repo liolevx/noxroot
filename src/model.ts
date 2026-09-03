@@ -94,7 +94,7 @@ export interface ProposedFile {
   expectedHash?: string;
 }
 
-export type CapabilityDecision = "create" | "reuse" | "conflict" | "not-assessed";
+export type CapabilityDecision = "create" | "reuse" | "adjacent" | "conflict" | "not-assessed";
 
 export interface CapabilityAssessment {
   id:
@@ -103,6 +103,7 @@ export interface CapabilityAssessment {
     | "verification-policy"
     | "verification-skill"
     | "task-orchestration"
+    | "coordination-ledger"
     | "product-ux-guidance";
   label: string;
   decision: CapabilityDecision;
