@@ -105,7 +105,8 @@ describe("documentation examples", () => {
     const workflow = await readFile(path.resolve("docs/assets/noxroot-workflow.svg"), "utf8");
     expect(workflow).toContain('viewBox="0 0 1100 1040"');
     expect(workflow).toContain("PROJECT MEMORY");
-    expect(workflow).toContain("TASK CONTEXT");
+    expect(workflow).toContain("TASK BRIEF");
+    expect(workflow).toContain("Noxroot selects what matters for this task");
     expect(workflow).toContain("YOUR CODING AGENT");
     expect(workflow).toContain("VERIFICATION");
     expect(workflow).toContain("LEARNING LOOP");
