@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -47,6 +48,26 @@ describe("safe process execution and verification trust", () => {
       expect(result.args[0]).toMatch(/npm-cli\.js$/);
     },
   );
+
+  it.runIf(
+    process.platform === "win32" &&
+      existsSync(
+        path.join(path.dirname(process.execPath), "node_modules", "corepack", "dist", "pnpm.js"),
+      ),
+  )("invokes Corepack package managers without a command shell on Windows", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const result = await runProcess({
+      executable: "pnpm",
+      args: ["--version"],
+      cwd: root,
+      repositoryRoot: root,
+      timeoutMs: 15_000,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.executable).toBe(process.execPath);
+    expect(result.args[0]).toMatch(/corepack[\\/]dist[\\/]pnpm\.js$/);
+  });
 
   it("rejects process working-directory escapes", async () => {
     const root = await temporaryDirectory();
