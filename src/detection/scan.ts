@@ -445,6 +445,41 @@ function detectEvidence(
   const packagePaths = files
     .filter((file) => path.posix.basename(file) === "package.json" && projectManifest(file))
     .sort();
+  const collectionManifest = (file: string): boolean =>
+    !/(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:playgrounds?|sandboxes?|benchmarks?|canary)(?:\/|$)/.test(
+      file,
+    );
+  const projectManifests = files.filter(
+    (file) =>
+      ["package.json", "pyproject.toml", "Cargo.toml", "go.mod"].includes(
+        path.posix.basename(file),
+      ) && collectionManifest(file),
+  );
+  const nestedManifests = projectManifests.filter((file) => file.includes("/"));
+  const hasRootManifest = projectManifests.some((file) => !file.includes("/"));
+  const exampleLikeManifests = nestedManifests.filter((file) =>
+    /(?:^|\/)(?:examples?|demos?|starters?|templates?|tutorials?|lessons?|chapters?|chapter[-_]?\d+)(?:\/|$)/i.test(
+      file,
+    ),
+  );
+  const readmeDescribesCollection =
+    /\b(?:course|tutorial|workshop|collection)\b/i.test(contents["README.md"] ?? "") &&
+    /\b(?:examples?|lessons?|chapters?|starter projects?|sample projects?)\b/i.test(
+      contents["README.md"] ?? "",
+    );
+  if (
+    !hasRootManifest &&
+    nestedManifests.length >= 4 &&
+    (exampleLikeManifests.length >= Math.ceil(nestedManifests.length / 2) ||
+      readmeDescribesCollection)
+  ) {
+    evidence.push({
+      status: "confirmed",
+      claim: "Independent example collection",
+      sources: nestedManifests.slice(0, 12),
+      detail: "Choose one contained project as the Noxroot root; do not configure the collection as one application.",
+    });
+  }
 
   for (const packagePath of packagePaths) {
     const packageText = contents[packagePath];

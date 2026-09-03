@@ -285,6 +285,45 @@ describe("read-only preview", () => {
     );
   });
 
+  it("refuses to configure an independent example collection as one application", async () => {
+    const root = await temporaryDirectory("noxroot-example-collection-");
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await writeFile(
+      path.join(root, "README.md"),
+      "# Web course\n\nA collection of lessons and starter projects.\n",
+    );
+    for (const directory of [
+      "lessons/01-routing",
+      "lessons/02-data",
+      "examples/starter",
+      "examples/final",
+    ]) {
+      await mkdir(path.join(root, directory), { recursive: true });
+      await writeFile(
+        path.join(root, directory, "package.json"),
+        JSON.stringify({ name: directory, scripts: { build: "next build" } }),
+      );
+    }
+
+    const result = await previewRepository(root);
+
+    expect(result.profile.evidence).toContainEqual(
+      expect.objectContaining({ claim: "Independent example collection" }),
+    );
+    expect(result.initializationAllowed).toBe(false);
+    expect(result.proposedFiles).toEqual([]);
+    expect(result.capabilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "task-routes", decision: "not-assessed" }),
+        expect.objectContaining({ id: "verification-policy", decision: "not-assessed" }),
+        expect.objectContaining({ id: "task-orchestration", decision: "not-assessed" }),
+      ]),
+    );
+    expect(renderPreview(result)).toContain("Select one project with --root before initializing.");
+  });
+
   it("aggregates repeated architecture evidence across a monorepo", async () => {
     const root = await temporaryDirectory();
     cleanup.push(async () =>

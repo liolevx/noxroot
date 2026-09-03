@@ -502,6 +502,12 @@ export async function inspectRepositoryAdoption(
   }
 
   const incomplete = profile.stats.incompleteReasons.length > 0;
+  const projectCollection = profile.evidence.some(
+    (item) => item.status === "confirmed" && item.claim === "Independent example collection",
+  );
+  const collectionGap = [
+    "This repository contains independent examples. Select one project with --root before initializing.",
+  ];
   const authoritativeKnowledge = profile.documents.filter(
     (item) => item.authoritative && item.kind !== "instructions",
   );
@@ -534,7 +540,9 @@ export async function inspectRepositoryAdoption(
         : assessment("project-knowledge", "Project knowledge", "create"),
   );
   capabilities.push(
-    routeReferences.length > 0 || fileSet.has(".noxroot/routes.yml")
+    projectCollection
+      ? assessment("task-routes", "Task routes", "not-assessed", [], collectionGap)
+      : routeReferences.length > 0 || fileSet.has(".noxroot/routes.yml")
       ? assessment(
           "task-routes",
           "Task routes",
@@ -558,7 +566,9 @@ export async function inspectRepositoryAdoption(
         : assessment("task-routes", "Task routes", "create"),
   );
   capabilities.push(
-    verificationWrappers.length > 0 || fileSet.has(".noxroot/verification.yml")
+    projectCollection
+      ? assessment("verification-policy", "Verification", "not-assessed", [], collectionGap)
+      : verificationWrappers.length > 0 || fileSet.has(".noxroot/verification.yml")
       ? assessment(
           "verification-policy",
           "Verification",
@@ -599,7 +609,9 @@ export async function inspectRepositoryAdoption(
         : assessment("verification-skill", "Verification skill", "create"),
   );
   capabilities.push(
-    coordinators.length > 0
+    projectCollection
+      ? assessment("task-orchestration", "Task orchestration", "not-assessed", [], collectionGap)
+      : coordinators.length > 0
       ? assessment(
           "task-orchestration",
           "Task orchestration",
@@ -668,6 +680,7 @@ export async function inspectRepositoryAdoption(
   );
 
   const conflicts = [
+    ...(projectCollection ? collectionGap : []),
     ...(genuineInstructionConflict
       ? [
           `Multiple root agent instruction sources require reconciliation: ${rootInstructions.join(", ")}`,
@@ -680,7 +693,7 @@ export async function inspectRepositoryAdoption(
   ];
   // A conflict blocks only the overlapping capability. Initialization remains safe when
   // Noxroot can install non-overlapping companion capabilities without changing authority.
-  const initializationAllowed = !genuineInstructionConflict;
+  const initializationAllowed = !genuineInstructionConflict && !projectCollection;
   return {
     capabilities,
     initializationAllowed,
