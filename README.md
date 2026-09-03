@@ -142,7 +142,7 @@ Outcome
 Confidence  High
 
 Task context
-  7 files · ~3,690 tokens
+  7 files · ~3,980 tokens
   src/adapters/agents.ts
   src/orchestration/review.ts
   .noxroot/skills/independent-review/SKILL.md
