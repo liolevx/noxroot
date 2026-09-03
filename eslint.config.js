@@ -9,6 +9,7 @@ export default tseslint.config(
       "eslint.config.js",
       "tests/built-safety.mjs",
       "tests/package-smoke.mjs",
+      "tests/acceptance/*.mjs",
       "tests/fixtures/**",
     ],
   },
