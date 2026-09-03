@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildContext } from "../src/core/context.js";
 import { temporaryDirectory } from "./helpers.js";
+import { fixtureCopy } from "./helpers.js";
 
 describe("bounded relevance routing", () => {
   it("ranks reviewer ownership and tests without letting fixtures consume the package", async () => {
@@ -63,6 +64,33 @@ describe("bounded relevance routing", () => {
       expect(context.budget.selectedBytes).toBeLessThanOrEqual(context.budget.maximumBytes);
     } finally {
       await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("builds a bounded task brief for a conventional Next.js feature", async () => {
+    const fixture = await fixtureCopy("nextjs");
+    try {
+      const context = await buildContext(
+        "add a page where users can save favourite restaurants",
+        fixture.root,
+      );
+      const selected = context.selected.map((item) => item.path);
+
+      expect(context.confidence).toBe("high");
+      expect(context.likelyOwningSource).toContain("app/restaurants/page.tsx");
+      expect(context.likelyOwningSource).toContain("components/restaurants/saved-restaurants.tsx");
+      expect(context.likelyTests).toContain("tests/restaurants/saved-restaurants.test.tsx");
+      expect(context.requiredVerification.map((command) => command.id)).toEqual([
+        "lint",
+        "typecheck",
+        "test",
+        "build",
+      ]);
+      expect(selected).not.toContain("app/settings/page.tsx");
+      expect(selected).not.toContain("components/settings/profile-form.tsx");
+      expect(context.budget.selectedBytes).toBeLessThan(context.budget.maximumBytes);
+    } finally {
+      await fixture.cleanup();
     }
   });
 });
