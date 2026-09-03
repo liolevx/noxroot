@@ -129,10 +129,13 @@ function guidedHandoff(
 ): string {
   const checked = checks.map((result) => {
     const invocation = [result.command.executable, ...result.command.args].join(" ");
-    const detail = (result.evidence.stderr || result.evidence.stdout)
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 300);
+    const detail =
+      result.status === "passed"
+        ? ""
+        : (result.evidence.stderr || result.evidence.stdout)
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 300);
     return `${result.command.id}: ${result.status} | ${invocation} | cwd ${result.command.cwd} | exit ${result.evidence.exitCode ?? "not started"}${detail ? ` | ${detail}` : ""}`;
   });
   const unavailable = checks.find((result) => result.status === "unavailable");

@@ -548,6 +548,39 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     );
   });
 
+  it("keeps passing-check output out of the concise handoff", async () => {
+    const root = await repository();
+    const record = await startGuidedRun({
+      id: "guided-clean-output",
+      task: "change value",
+      root,
+      context,
+      effectiveAutonomy: effectiveAutonomy(undefined),
+      trustedVerificationPolicy: [
+        {
+          id: "node-check",
+          executable: process.execPath,
+          args: ["-e", "process.stderr.write('harmless warning')"],
+          cwd: ".",
+          timeoutMs: 10_000,
+          appliesTo: ["src/**"],
+        },
+      ],
+    });
+    await writeFile(path.join(root, "src", "value.ts"), "export const value = 3;\n");
+
+    const finished = await finishGuidedRun({
+      root,
+      record,
+      adapter: new ManualAgentAdapter(),
+      reviewAuthorized: false,
+    });
+
+    expect(finished.handoff).toContain("node-check: passed");
+    expect(finished.handoff).not.toContain("exit 0 | harmless warning");
+    expect(finished.verification[0]?.[0]?.evidence.stderr).toContain("harmless warning");
+  });
+
   it("shows an unavailable command, cwd, failure, and retry in the human handoff", async () => {
     const root = await repository();
     await mkdir(path.join(root, ".noxroot"), { recursive: true });
