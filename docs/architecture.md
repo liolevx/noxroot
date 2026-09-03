@@ -2,9 +2,9 @@
 
 Noxroot is one Node.js/TypeScript package. The CLI layer parses input and keeps machine output
 separate from diagnostics. Core functions return typed values and do not write implicitly. Detection
-uses bounded filesystem APIs, never project execution or an LLM. Proposal generation produces
-complete file contents and unified creation patches. Initialization is the only component that
-applies those proposals.
+uses bounded filesystem APIs, groups repeated monorepo evidence, and never runs project code or an
+LLM. Proposal generation produces complete file contents and unified creation patches.
+Initialization is the only component that applies those proposals.
 
 Mature-repository adoption follows explicit repository-relative references from agent instructions.
 It recognizes thin forwarding files, existing Agent Skills, documented verification wrappers, and
@@ -15,6 +15,10 @@ overlapping capability, or preserve a capability that could not be assessed. An 
 keeps lifecycle, review, and learning authority while Noxroot may add only non-overlapping context
 and verification support. Noxroot does not interpret arbitrary route schemas or integrate
 coordinators.
+
+Generated knowledge indexes link at most twelve high-signal documents. Additional documentation
+stays in its original location and remains available through repository instructions and task
+context. Verification command ids include their project path when nested project names repeat.
 
 Verification configuration distinguishes candidate discovery from executable trust. The process
 adapter accepts an executable and argument array, validates the working directory, uses

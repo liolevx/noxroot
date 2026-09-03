@@ -172,7 +172,7 @@ function commandFromScript(
   manifestPath = "package.json",
 ): CandidateCommand {
   const args = manager === "yarn" ? [scriptName] : ["run", scriptName];
-  const scope = cwd === "." ? "" : `${path.posix.basename(cwd)}-`;
+  const scope = cwd === "." ? "" : `${slug(cwd)}-`;
   return {
     id: `${scope}${id}`,
     executable: manager,
@@ -181,6 +181,13 @@ function commandFromScript(
     source: `${manifestPath} scripts.${scriptName}`,
     appliesTo: cwd === "." ? (id === "test" ? ["src/**", "tests/**"] : ["**/*"]) : [`${cwd}/**`],
   };
+}
+
+function slug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function packageManagerEvidence(
@@ -350,7 +357,7 @@ function ciVerificationCommands(contents: ContentMap): CandidateCommand[] {
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-|-$/g, "") || commandName;
-        const scope = stepCwd === "." ? "" : `${path.posix.basename(stepCwd)}-`;
+        const scope = stepCwd === "." ? "" : `${slug(stepCwd)}-`;
         commands.push({
           id: `${scope}${name}`,
           executable,
@@ -363,6 +370,60 @@ function ciVerificationCommands(contents: ContentMap): CandidateCommand[] {
     }
   }
   return commands;
+}
+
+function uniqueCommandIds(commands: CandidateCommand[]): CandidateCommand[] {
+  const ordered = [...commands].sort(
+    (left, right) =>
+      left.id.localeCompare(right.id) ||
+      left.cwd.localeCompare(right.cwd) ||
+      left.source.localeCompare(right.source),
+  );
+  const counts = new Map<string, number>();
+  for (const command of ordered) counts.set(command.id, (counts.get(command.id) ?? 0) + 1);
+  const used = new Set<string>();
+  return ordered.map((command) => {
+    let id = command.id;
+    if ((counts.get(id) ?? 0) > 1) {
+      const sourceScope = slug(command.source.split(/\s+(?:jobs|scripts)\./, 1)[0] ?? "check");
+      const cwdScope = command.cwd === "." ? sourceScope : slug(command.cwd);
+      if (cwdScope && !id.startsWith(`${cwdScope}-`)) id = `${cwdScope}-${id}`;
+    }
+    const base = id;
+    let suffix = 2;
+    while (used.has(id)) {
+      id = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    used.add(id);
+    return id === command.id ? command : { ...command, id };
+  });
+}
+
+function aggregateEvidence(evidence: Evidence[]): Evidence[] {
+  const grouped = new Map<string, Evidence[]>();
+  for (const item of evidence) {
+    const key = `${item.status}\0${item.claim}`;
+    grouped.set(key, [...(grouped.get(key) ?? []), item]);
+  }
+  return [...grouped.values()].map((items) => {
+    const first = items[0]!;
+    const allSources = [...new Set(items.flatMap((item) => item.sources))].sort();
+    const sources = allSources.slice(0, 12);
+    const details = [...new Set(items.map((item) => item.detail).filter(Boolean))] as string[];
+    const omittedSources = allSources.length - sources.length;
+    const detailParts = [
+      ...details.slice(0, 3),
+      ...(details.length > 3 ? [`${details.length - 3} additional detail(s) omitted.`] : []),
+      ...(omittedSources > 0 ? [`${omittedSources} additional source(s) omitted.`] : []),
+    ];
+    return {
+      status: first.status,
+      claim: first.claim,
+      sources,
+      ...(detailParts.length ? { detail: detailParts.join(" ") } : {}),
+    };
+  });
 }
 
 function detectEvidence(
@@ -378,7 +439,9 @@ function detectEvidence(
   const fileSet = new Set(files);
   const packageManagers: Array<{ path: string; evidence: PackageManagerEvidence }> = [];
   const projectManifest = (file: string): boolean =>
-    !/(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?)(?:\/|$)/.test(file);
+    !/(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?|playgrounds?|sandboxes?|benchmarks?|canary)(?:\/|$)/.test(
+      file,
+    );
   const packagePaths = files
     .filter((file) => path.posix.basename(file) === "package.json" && projectManifest(file))
     .sort();
@@ -564,7 +627,11 @@ function detectEvidence(
       sources: ci.slice(0, 5),
     });
   }
-  return { evidence, commands, packageManager };
+  return {
+    evidence: aggregateEvidence(evidence),
+    commands: uniqueCommandIds(commands),
+    packageManager,
+  };
 }
 
 export async function scanRepository(

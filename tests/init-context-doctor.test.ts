@@ -57,7 +57,39 @@ describe("initialization, sync safety, context, and doctor", () => {
     expect(await readFile(path.join(fixture.root, "README.md"), "utf8")).toContain(
       "must be preserved",
     );
-    expect((await previewRepository(fixture.root)).proposedFiles).toEqual([]);
+    const after = await previewRepository(fixture.root);
+    expect(after.proposedFiles).toEqual([]);
+    expect(after.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
+      decision: "reuse",
+    });
+  });
+
+  it("keeps a generated knowledge index bounded when a repository has many referenced documents", async () => {
+    const root = await temporaryDirectory("noxroot-index-bounds-");
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, "docs"));
+    const references: string[] = [];
+    for (let index = 0; index < 24; index += 1) {
+      const file = `docs/decision-${index}.md`;
+      references.push(`[Decision ${index}](${file})`);
+      await writeFile(path.join(root, file), `# Decision ${index}\n`);
+    }
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      `# Instructions\n\nProject knowledge: ${references.join(", ")}\n`,
+    );
+    await writeFile(path.join(root, "package.json"), '{"name":"sample"}\n');
+
+    const preview = await previewRepository(root);
+    const index = preview.proposedFiles.find(
+      (item) => item.path === ".noxroot/knowledge/INDEX.md",
+    )?.content;
+    const documentReferences = preview.proposedFiles.filter((item) => item.action === "reference");
+    expect((index?.match(/existing repository documentation/g) ?? []).length).toBeLessThanOrEqual(
+      12,
+    );
+    expect(documentReferences.length).toBeLessThanOrEqual(12);
+    expect(index).toContain("Additional repository documentation remains in place");
   });
 
   it("updates only an existing managed block and preserves content before and after it", async () => {

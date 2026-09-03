@@ -7,6 +7,8 @@ import { doctorRepository } from "../src/core/doctor.js";
 import { applyProposals } from "../src/core/init.js";
 import { previewRepository } from "../src/core/preview.js";
 import { inspectRepositoryAdoption } from "../src/detection/adoption.js";
+import { scanRepository } from "../src/detection/scan.js";
+import { assessModules, buildProposals } from "../src/core/proposals.js";
 import { planVerification } from "../src/verification/index.js";
 import { fixtureCopy, hashTree, temporaryDirectory } from "./helpers.js";
 
@@ -183,6 +185,31 @@ describe("mature repository adoption", () => {
     );
   });
 
+  it("does not treat coordinator fixtures as live repository authority", async () => {
+    const repository = await root();
+    await mkdir(path.join(repository, "src"), { recursive: true });
+    await mkdir(path.join(repository, "tests", "fixtures", "coordinator", "docs"), {
+      recursive: true,
+    });
+    await writeFile(path.join(repository, "src", "index.ts"), "export {};\n");
+    await writeFile(
+      path.join(repository, "tests", "fixtures", "coordinator", "AGENTS.md"),
+      "Use [automation](docs/automation.md).\n",
+    );
+    await writeFile(
+      path.join(repository, "tests", "fixtures", "coordinator", "docs", "automation.md"),
+      "Manage Git worktrees. Run coding workers. Execute verification. Require independent review.\n",
+    );
+
+    const preview = await previewRepository(repository);
+    expect(preview.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
+      decision: "create",
+    });
+    expect(preview.conflicts).not.toContainEqual(
+      expect.stringContaining("repository-development coordinator"),
+    );
+  });
+
   it("preserves an uncertain capability instead of generating a parallel system", async () => {
     const repository = await root();
     await writeFile(
@@ -198,6 +225,37 @@ describe("mature repository adoption", () => {
       true,
     );
     expect(preview.proposedFiles.map((item) => item.path)).not.toContain(".noxroot/routes.yml");
+  });
+
+  it("does not enable lifecycle modules when orchestration could not be assessed", async () => {
+    const repository = await root();
+    await writeFile(path.join(repository, "AGENTS.md"), "# Repository instructions\n");
+    await writeFile(path.join(repository, "README.md"), "# Sample\n");
+    await mkdir(path.join(repository, "src"));
+    await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        writeFile(path.join(repository, "src", `${index}.ts`), "export {};\n"),
+      ),
+    );
+
+    const profile = await scanRepository(repository, { limits: { maxFiles: 3 } });
+    const adoption = await inspectRepositoryAdoption(profile);
+    const modules = assessModules(profile, undefined, adoption);
+    const proposals = await buildProposals(profile, modules, adoption);
+    const config = parse(
+      proposals.find((item) => item.path === ".noxroot/config.yml")?.content ?? "",
+    ) as { modules: string[] };
+    const instructions = proposals.find((item) => item.path === "AGENTS.md")?.content ?? "";
+
+    expect(adoption.capabilities.find((item) => item.id === "task-orchestration")).toMatchObject({
+      decision: "not-assessed",
+    });
+    expect(modules.find((item) => item.id === "orchestration")?.status).toBe("blocked");
+    expect(modules.find((item) => item.id === "learning")?.status).toBe("blocked");
+    expect(config.modules).not.toContain("orchestration");
+    expect(config.modules).not.toContain("learning");
+    expect(instructions).not.toContain(' start "');
+    expect(instructions).not.toContain(" finish");
   });
 
   it("does not confuse an application runtime entrypoint with repository orchestration", async () => {

@@ -67,6 +67,9 @@ describe("read-only preview", () => {
     expect(result.capabilities.find((item) => item.id === "task-orchestration")?.decision).toBe(
       "not-assessed",
     );
+    expect(renderPreview({ ...result, profile: { ...result.profile, empty: false } })).toContain(
+      "Context only",
+    );
     expect(renderPreview(result)).toContain("Mode\n  Setup only");
     expect(result.unknowns).toContain("Product intent");
     expect(result.contextEstimate.defaultBytes).toBeGreaterThan(0);
@@ -258,6 +261,53 @@ describe("read-only preview", () => {
     );
   });
 
+  it("uses path-qualified command ids when nested project basenames repeat", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    for (const directory of ["basics/demo", "seo/demo"]) {
+      await mkdir(path.join(root, directory), { recursive: true });
+      await writeFile(
+        path.join(root, directory, "package.json"),
+        JSON.stringify({ name: directory, scripts: { build: "fixture build" } }),
+      );
+      await writeFile(path.join(root, directory, "package-lock.json"), "{}\n");
+    }
+
+    const result = await scanRepository(root);
+    expect(result.candidateCommands.map((command) => command.id)).toEqual([
+      "basics-demo-build",
+      "seo-demo-build",
+    ]);
+    expect(new Set(result.candidateCommands.map((command) => command.id)).size).toBe(
+      result.candidateCommands.length,
+    );
+  });
+
+  it("aggregates repeated architecture evidence across a monorepo", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    for (const directory of ["apps/admin", "apps/site", "packages/ui"]) {
+      await mkdir(path.join(root, directory, "src"), { recursive: true });
+      await writeFile(
+        path.join(root, directory, "package.json"),
+        JSON.stringify({ name: directory, dependencies: { react: "19.0.0" } }),
+      );
+      await writeFile(path.join(root, directory, "src", "App.tsx"), "export const App = 1;\n");
+    }
+
+    const result = await scanRepository(root);
+    const node = result.evidence.filter((item) => item.claim === "Node.js project");
+    const web = result.evidence.filter((item) => item.claim === "User-facing web application");
+    expect(node).toHaveLength(1);
+    expect(node[0]?.sources).toHaveLength(3);
+    expect(web).toHaveLength(1);
+    expect(web[0]?.sources).toContain("apps/site/package.json");
+  });
+
   it("discovers nested Node and Python projects with scoped checks from manifests and CI", async () => {
     const root = await temporaryDirectory();
     cleanup.push(async () =>
@@ -358,6 +408,8 @@ describe("read-only preview", () => {
     )?.content;
     expect(routes).toContain("web/**");
     expect(routes).toContain("engine/**");
+    expect(routes?.match(/- web\/\*\*/g)).toHaveLength(1);
+    expect(routes?.match(/- engine\/\*\*/g)).toHaveLength(1);
   });
 
   it("does not promote embedded test fixtures into live nested projects", async () => {
@@ -451,6 +503,34 @@ describe("read-only preview", () => {
       expect.objectContaining({ claim: "User-facing web application" }),
     );
     expect(result.modules.find((item) => item.id === "product-ux")?.status).toBe("not applicable");
+  });
+
+  it("does not promote a host repository from a nested playground application", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await writeFile(path.join(root, "Cargo.toml"), "[package]\nname='host'\nversion='0.1.0'\n");
+    await mkdir(path.join(root, "src"));
+    await writeFile(path.join(root, "src", "lib.rs"), "pub fn parse() {}\n");
+    await mkdir(path.join(root, "playground", "web", "src"), { recursive: true });
+    await writeFile(
+      path.join(root, "playground", "web", "package.json"),
+      JSON.stringify({ name: "playground", dependencies: { react: "19.0.0" } }),
+    );
+    await writeFile(
+      path.join(root, "playground", "web", "src", "App.tsx"),
+      "export const App = () => <main />;\n",
+    );
+
+    const result = await previewRepository(root);
+    expect(result.profile.evidence).not.toContainEqual(
+      expect.objectContaining({ claim: "User-facing web application" }),
+    );
+    expect(result.modules.find((item) => item.id === "product-ux")?.status).toBe("not applicable");
+    expect(result.proposedFiles.map((item) => item.path)).not.toContain(
+      ".noxroot/skills/product-ux-review/SKILL.md",
+    );
   });
 
   it("never follows a symlink escape", async () => {

@@ -14,6 +14,8 @@ const MAX_REFERENCE_FILES = 80;
 const MAX_REFERENCE_BYTES = 512_000;
 const TEXT_REFERENCE = /\.(?:md|mdx|ya?ml)$/i;
 const INSTRUCTION_NAME = /^(?:AGENTS|CLAUDE|copilot-instructions)\.md$/i;
+const NON_PROJECT_SURFACE =
+  /(?:^|\/)(?:tests?\/)?fixtures?(?:\/|$)|(?:^|\/)(?:examples?|samples?|playgrounds?|sandboxes?)(?:\/|$)/i;
 
 interface Reference {
   from: string;
@@ -289,8 +291,8 @@ function assessment(
 export async function inspectRepositoryAdoption(
   profile: RepositoryProfile,
 ): Promise<AdoptionInspection> {
-  const instructionFiles = profile.files.filter((file) =>
-    INSTRUCTION_NAME.test(path.posix.basename(file)),
+  const instructionFiles = profile.files.filter(
+    (file) => INSTRUCTION_NAME.test(path.posix.basename(file)) && !NON_PROJECT_SURFACE.test(file),
   );
   const fileSet = new Set(profile.files);
   const sources = new Map<string, string>();
@@ -383,7 +385,9 @@ export async function inspectRepositoryAdoption(
     ),
   );
 
-  const skillFiles = profile.files.filter((file) => path.posix.basename(file) === "SKILL.md");
+  const skillFiles = profile.files.filter(
+    (file) => path.posix.basename(file) === "SKILL.md" && !NON_PROJECT_SURFACE.test(file),
+  );
   const verificationSkillPaths: string[] = [];
   const reviewSkillPaths: string[] = [];
   const productUxSkillPaths: string[] = [];
@@ -417,6 +421,19 @@ export async function inspectRepositoryAdoption(
 
   const declaredEntrypoints = await entrypoints(profile);
   const verificationWrappers = documentedWrappers(sources, declaredEntrypoints);
+  const noxrootConfigSource = fileSet.has(".noxroot/config.yml")
+    ? await readableText(profile, ".noxroot/config.yml")
+    : undefined;
+  let noxrootOwnsOrchestration = false;
+  if (noxrootConfigSource) {
+    try {
+      const parsed = parseYaml(noxrootConfigSource) as { modules?: unknown };
+      noxrootOwnsOrchestration =
+        Array.isArray(parsed.modules) && parsed.modules.includes("orchestration");
+    } catch {
+      // Malformed Noxroot configuration is reported by preview and doctor.
+    }
+  }
   const coordinators: CoordinatorEvidence[] = [];
   for (const entrypoint of declaredEntrypoints) {
     if (!entrypoint.source || !fileSet.has(entrypoint.source)) continue;
@@ -551,17 +568,19 @@ export async function inspectRepositoryAdoption(
             ({ name, declaredIn, evidence }) => `${name} (${declaredIn}; ${evidence.join(", ")})`,
           ),
         )
-      : profile.empty || incomplete
-        ? assessment(
-            "task-orchestration",
-            "Task orchestration",
-            "not-assessed",
-            [],
-            profile.empty
-              ? ["No repository source exists yet, so task orchestration cannot be assessed."]
-              : profile.stats.incompleteReasons,
-          )
-        : assessment("task-orchestration", "Task orchestration", "create"),
+      : noxrootOwnsOrchestration
+        ? assessment("task-orchestration", "Task orchestration", "reuse", [".noxroot/config.yml"])
+        : profile.empty || incomplete
+          ? assessment(
+              "task-orchestration",
+              "Task orchestration",
+              "not-assessed",
+              [],
+              profile.empty
+                ? ["No repository source exists yet, so task orchestration cannot be assessed."]
+                : profile.stats.incompleteReasons,
+            )
+          : assessment("task-orchestration", "Task orchestration", "create"),
   );
   const productDocuments = [
     ...references
