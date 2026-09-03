@@ -9,16 +9,16 @@
 
 # Noxroot
 
-**The right repository context before a change. The right checks after it. Useful knowledge for the
-next task.**
+**Your project remembers. Every change gets checked.**
 
-Set up Noxroot once. Then keep working with your coding agent normally.
+Noxroot gives coding agents the repository context each task needs, checks the resulting diff with
+approved commands, and proposes useful lessons as project documentation for the next task.
 
-Noxroot finds the instructions, docs, skills, and checks your repository already has. Before a code
-change, it gives the agent a small task brief: what matters, what may change, and which checks
-apply. After the change, it checks the real diff and proposes a Markdown update only when the
-project learned something worth keeping. If another tool already owns part of the workflow, Noxroot
-leaves it in charge.
+It reuses the docs, rules, skills, and checks your repository already has. Use it with Codex, Claude
+Code, Cursor, OpenCode, Copilot CLI, and other coding agents.
+
+Set up Noxroot once. Then keep working with your coding agent normally. If another tool already owns
+part of the workflow, Noxroot leaves it in charge.
 
 ## What Noxroot changes
 
@@ -136,11 +136,41 @@ This tested example comes from Noxroot's own repository:
 ```text
 $ noxroot context "improve reviewer decision safety"
 
-Selected 6 of 116 repository files · ~3,230 tokens
-Likely owner: src/adapters/agents.ts
-Likely tests: tests/agent-review.test.ts
-Approved checks: format-check, lint, typecheck, test, build
-Deliberately excluded: 110 unrelated files
+NOXROOT  task brief
+
+improve reviewer decision safety
+Confidence  High
+
+Outcome
+  improve reviewer decision safety
+
+Selected
+  6 of 128 files · ~3,230 tokens
+  src/adapters/agents.ts
+  .noxroot/skills/independent-review/SKILL.md
+  .noxroot/knowledge/INDEX.md
+  AGENTS.md
+  .noxroot/config.yml
+  tests/agent-review.test.ts
+
+Likely owner
+  src/adapters/agents.ts
+
+Likely tests
+  tests/agent-review.test.ts
+
+Checks
+  npm run format:check
+  npm run lint
+  npm run typecheck
+  npm run test
+  npm run build
+
+Excluded
+  20 files left out
+
+Next
+  Build the requested change.
 ```
 
 Selection is advisory, not permission to edit. "Do not deploy" remains an exclusion; it never
@@ -184,24 +214,28 @@ node dist/cli.js preview --root tests/fixtures/typescript
 The fixture produces this abbreviated output:
 
 ```text
-NOXROOT PREVIEW
-Detected: Node.js project, TypeScript (npm)
-Approved check candidates found: lint, typecheck, test, build
-Initialization allowed: yes
-Mode: full
-Capabilities:
-- Project knowledge: create
-- Task routes: create
-- Verification: create
-- Verification skill: create
-- Task orchestration: create
-- Product and UX guidance: not-assessed; missing evidence: No user-facing product surface was detected.
-Proposed (7): create 7
-Unknown: Continuous integration
-Trust: files changed 0; repository commands 0; agent calls 0; network requests 0.
+NOXROOT  preview
 
-No repository files changed. No project command, agent, or network request ran.
-Next: npx --yes noxroot@0.1.0 preview --diff
+Detected
+  Node.js · TypeScript · npm
+
+Mode
+  Full
+
+Add
+  Project knowledge
+  Task routes
+  Verification
+  Verification skill
+  Task orchestration
+
+Not assessed
+  Product and UX guidance
+
+No files changed. No project commands or agents ran. No network requests were made.
+
+Next
+  npx --yes noxroot@0.1.0 preview --diff
 ```
 
 Use `preview --diff` to inspect every proposed setup patch. The intended beta entry point is
@@ -226,11 +260,11 @@ Python, Go, Rust, and other stacks. CI covers Windows, macOS, and Linux.
 
 ## Inspect the details when you need them
 
-`preview --diff` shows proposed writes. `context` explains file selection. `verify --plan` shows
-approved commands without running them. `verify --changed` runs applicable checks. `run --dry-run`
-shows a connected execution plan. `doctor` explains configuration problems. `learn --task ID` shows
-confirmable durable proposals. Data commands support `--json`, with progress and diagnostics on
-standard error.
+`--verbose` shows detailed human-readable evidence. `preview --diff` shows proposed writes.
+`context` explains file selection. `verify --plan` shows approved commands without running them.
+`verify --changed` runs applicable checks. `run --dry-run` shows a connected execution plan.
+`doctor` explains configuration problems. `learn --task ID` shows confirmable durable proposals.
+Data commands support `--json`, with progress and diagnostics on standard error.
 
 Read the [command reference](docs/commands.md), [configuration](docs/configuration.md),
 [architecture](docs/architecture.md), [adapter protocol](docs/adapters.md), and
