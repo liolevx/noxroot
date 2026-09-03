@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ReviewerResponse } from "../adapters/agents.js";
 import { loadConfig } from "../config/load.js";
@@ -74,24 +74,70 @@ function ownedDestination(destination: string): string | undefined {
   return normalized;
 }
 
-async function knowledgeCorpus(root: string, documentLimit: number): Promise<string> {
-  const directory = path.join(root, ".noxroot", "knowledge");
-  try {
-    const files = (await readdir(directory)).filter((file) => file.endsWith(".md")).sort();
-    const sections: string[] = [];
-    let bytes = 0;
-    for (const file of files) {
-      const absolute = path.join(directory, file);
-      const size = (await stat(absolute)).size;
-      if (size > documentLimit || bytes + size > MAX_CORPUS_BYTES) continue;
-      sections.push(`\n<!-- ${file} -->\n${await readFile(absolute, "utf8")}`);
-      bytes += size;
+async function checkKnowledgePath(root: string, relative: string): Promise<string> {
+  const target = resolveWithin(root, relative);
+  let current = path.resolve(root);
+  for (const segment of path.relative(current, target).split(path.sep)) {
+    current = path.join(current, segment);
+    try {
+      if ((await lstat(current)).isSymbolicLink()) {
+        throw new Error("Learning cannot follow a symbolic link in owned knowledge.");
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") break;
+      throw error;
     }
-    return sections.join("");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return "";
-    throw error;
   }
+  return target;
+}
+
+async function knowledgeCorpus(
+  root: string,
+  documentLimit: number,
+): Promise<{
+  text: string;
+  bytes: number;
+  sizes: Map<string, number>;
+}> {
+  const directory = path.join(root, ".noxroot", "knowledge");
+  await checkKnowledgePath(root, KNOWLEDGE_ROOT);
+  const sections: string[] = [];
+  const sizes = new Map<string, number>();
+  let bytes = 0;
+  let loadedBytes = 0;
+  let visited = 0;
+  const visit = async (folder: string): Promise<void> => {
+    const entries = (await readdir(folder, { withFileTypes: true })).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+    for (const entry of entries) {
+      if (++visited > 4096)
+        throw new Error(
+          "Knowledge corpus inspection limit reached; consolidate before adding learning.",
+        );
+      const absolute = path.join(folder, entry.name);
+      if (entry.isSymbolicLink())
+        throw new Error("Learning cannot follow a symbolic link in owned knowledge.");
+      if (entry.isDirectory()) {
+        await visit(absolute);
+      } else if (entry.isFile() && entry.name.endsWith(".md")) {
+        const size = (await stat(absolute)).size;
+        sizes.set(absolute, size);
+        bytes += size;
+        if (size > documentLimit || loadedBytes + size > MAX_CORPUS_BYTES) continue;
+        sections.push(
+          `\n<!-- ${path.relative(directory, absolute)} -->\n${await readFile(absolute, "utf8")}`,
+        );
+        loadedBytes += size;
+      }
+    }
+  };
+  try {
+    await visit(directory);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  return { text: sections.join(""), bytes, sizes };
 }
 
 function structuredCandidates(run: RunRecord): ReviewerResponse["learningCandidates"] {
@@ -147,6 +193,14 @@ export async function proposeLearnings(root: string, run: RunRecord): Promise<Le
   const candidates = structuredCandidates(run)
     .map(fromReviewer)
     .filter((candidate): candidate is Candidate => candidate !== undefined);
+  if (candidates.length === 0) {
+    return {
+      taskId: run.id,
+      proposals: [],
+      rejected: [],
+      message: "No durable learning identified",
+    };
+  }
   const config = await loadConfig(root);
   const documentLimit = config?.context.documentWarningBytes ?? DEFAULT_DOCUMENT_LIMIT;
   const corpus = await knowledgeCorpus(root, documentLimit);
@@ -176,13 +230,23 @@ export async function proposeLearnings(root: string, run: RunRecord): Promise<Le
     if (seen.has(digest)) continue;
     seen.add(digest);
     const marker = `<!-- noxroot-learning:${digest} -->`;
-    if (corpus.includes(marker)) continue;
+    if (corpus.text.includes(marker)) continue;
     const evidenceLine = candidate.evidence.join("; ");
-    const conflictingMarker = corpus.includes(`- Evidence: ${evidenceLine}`);
+    const conflictingMarker = corpus.text.includes(`- Evidence: ${evidenceLine}`);
     const content = proposalContent(normalized, digest, run.id, confirmedOn);
-    const target = resolveWithin(root, destination);
+    const target = await checkKnowledgePath(root, destination);
     const existing = await existingOr(target, "# Validated learnings\n\n");
     const projected = `${existing.trimEnd()}\n\n${content.trim()}\n`;
+    if (
+      corpus.bytes - (corpus.sizes.get(target) ?? 0) + Buffer.byteLength(projected) >
+      MAX_CORPUS_BYTES
+    ) {
+      rejected.push({
+        destination,
+        reason: `The knowledge corpus would exceed ${MAX_CORPUS_BYTES} bytes. Consolidate existing knowledge before adding another entry.`,
+      });
+      continue;
+    }
     if (Buffer.byteLength(projected) > documentLimit) {
       rejected.push({
         destination,
@@ -222,24 +286,46 @@ async function existingOr(target: string, fallback: string): Promise<string> {
 }
 
 export async function applyLearning(root: string, proposal: LearningProposal): Promise<string[]> {
+  if (!ownedDestination(proposal.destination)) {
+    throw new Error("Learning may update only Noxroot-owned Markdown under .noxroot/knowledge/.");
+  }
   if (proposal.conflict !== "none" || proposal.duplication !== "not-found") {
     throw new Error(`Learning proposal ${proposal.id} is not safely applicable.`);
   }
-  const target = resolveWithin(root, proposal.destination);
-  await mkdir(path.dirname(target), { recursive: true });
+  const target = await checkKnowledgePath(root, proposal.destination);
   const existing = await existingOr(target, "# Validated learnings\n\n");
   if (existing.includes(`<!-- noxroot-learning:${proposal.signature} -->`)) {
     return [proposal.destination];
   }
-  const indexPath = resolveWithin(root, ".noxroot/knowledge/INDEX.md");
+  const indexPath = await checkKnowledgePath(root, ".noxroot/knowledge/INDEX.md");
   const index = await existingOr(indexPath, "# Noxroot knowledge index\n\n");
-  const basename = path.posix.basename(proposal.destination);
+  const basename = proposal.destination
+    .replaceAll("\\", "/")
+    .replace(/^\.\//, "")
+    .slice(KNOWLEDGE_ROOT.length);
   const indexNext = index.includes(`](${basename})`)
     ? index
     : `${index.trimEnd()}\n\n- [Validated learnings](${basename}) — confirmed, deduplicated durable lessons.\n`;
   const targetNext = `${existing.trimEnd()}\n\n${proposal.content.trim()}\n`;
   const config = await loadConfig(root);
   const documentLimit = config?.context.documentWarningBytes ?? DEFAULT_DOCUMENT_LIMIT;
+  const corpus = await knowledgeCorpus(root, documentLimit);
+  const projectedBytes =
+    corpus.bytes -
+    (corpus.sizes.get(target) ?? 0) -
+    (corpus.sizes.get(indexPath) ?? 0) +
+    Buffer.byteLength(targetNext) +
+    Buffer.byteLength(indexNext);
+  if (projectedBytes > MAX_CORPUS_BYTES) {
+    throw new Error(
+      `Knowledge corpus would exceed ${MAX_CORPUS_BYTES} bytes; consolidate it before applying another entry.`,
+    );
+  }
+  if (Buffer.byteLength(indexNext) > documentLimit) {
+    throw new Error(
+      `Knowledge index would exceed ${documentLimit} bytes; consolidate it before applying another entry.`,
+    );
+  }
   if (Buffer.byteLength(targetNext) > documentLimit) {
     throw new Error(
       `Learning destination ${proposal.destination} would exceed ${documentLimit} bytes; consolidate it before applying another entry.`,
@@ -247,6 +333,7 @@ export async function applyLearning(root: string, proposal: LearningProposal): P
   }
   const targetTemp = `${target}.tmp-${process.pid}`;
   const indexTemp = `${indexPath}.tmp-${process.pid}`;
+  await mkdir(path.dirname(target), { recursive: true });
   await writeFile(targetTemp, targetNext, { encoding: "utf8", flag: "wx", mode: 0o600 });
   await writeFile(indexTemp, indexNext, { encoding: "utf8", flag: "wx", mode: 0o600 });
   await rename(targetTemp, target);
