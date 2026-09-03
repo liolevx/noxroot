@@ -12,8 +12,12 @@ describe("documentation examples", () => {
     expect(readme.startsWith('<p align="center">\n  <img src="docs/assets/noxroot-logo.svg"')).toBe(
       true,
     );
-    expect(readme).toContain("Project memory and verification for coding agents.");
-    expect(readme).toContain("A CLI for task context, project checks, and reusable documentation.");
+    expect(readme).toContain(
+      "Give coding agents the project context they need, then check what they changed.",
+    );
+    expect(readme).toContain(
+      "A CLI for project memory, focused task briefs, approved checks, and reusable documentation.",
+    );
     expect(readme).toContain("Then keep talking to your coding agent normally:");
     expect(readme).toContain("actions/workflows/ci.yml/badge.svg?branch=main");
     expect(readme).toContain("license-Apache--2.0-blue.svg");

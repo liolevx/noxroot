@@ -10,15 +10,19 @@ Mature-repository adoption follows explicit repository-relative references from 
 It recognizes thin forwarding files, existing Agent Skills, documented verification wrappers, and
 clear repository-development coordinator overlap. Behavioral ownership determines the boundary: a
 coordination ledger, session journal, or issue tracker does not satisfy Noxroot task orchestration.
-Proposal decisions are deliberately small: create a proven gap, reuse explicit evidence, disable an
-overlapping capability, or preserve a capability that could not be assessed. An existing coordinator
-keeps lifecycle, review, and learning authority while Noxroot may add only non-overlapping context
-and verification support. Noxroot does not interpret arbitrary route schemas or integrate
-coordinators.
+It is reported as an adjacent capability when durable work state, cross-session continuity, and
+coding-work coordination are all evidenced. Noxroot does not infer this boundary from a product
+name, filename, or implementation language. Proposal decisions are deliberately small: create a
+proven gap, reuse explicit evidence, disable an overlapping capability, or preserve a capability
+that could not be assessed. An existing coordinator keeps lifecycle, review, and learning authority
+while Noxroot may add only non-overlapping context and verification support. Noxroot does not
+interpret arbitrary route schemas or integrate coordinators.
 
 Generated knowledge indexes link at most twelve high-signal documents. Additional documentation
 stays in its original location and remains available through repository instructions and task
-context. Verification command ids include their project path when nested project names repeat.
+context. Translations of one document count as one family in the index. Independent example
+collections require selecting one contained project before setup. Verification command ids include
+their project path when nested project names repeat.
 
 Verification configuration distinguishes candidate discovery from executable trust. The process
 adapter accepts an executable and argument array, validates the working directory, uses
@@ -34,6 +38,10 @@ Guided orchestration is a two-command lifecycle. Start persists repository ident
 bounded context, effective autonomy, and a hash of the approved verification policy. Finish derives
 the real diff and affected checks from that snapshot, then emits a portable reviewer package or a
 strict decision. Local state is never treated as application runtime state.
+
+Completed and approved local records are pruned by age and count after a run finishes. Running,
+incomplete, failed, blocked, review-pending, and malformed recovery evidence is never removed by
+automatic retention.
 
 Review applicability is recomputed from the actual diff after affected checks pass. Routine bounded
 changes can complete without review; user-facing, security-sensitive, or broad changes request the
@@ -53,8 +61,11 @@ semantic modules are deferred.
 
 Controlled learning consumes deterministic verification evidence or already parsed structured
 reviewer candidates. Deterministic signatures deduplicate Noxroot-owned knowledge; first creation
-also updates the index. Canonical `.noxroot/skills/*/SKILL.md` files are short, standards-compatible
-procedures selected through ordinary routing, not a new skill runtime or vendor-specific tree.
+also updates the index. Every proposed entry names its confirmation date and source task. Per-file
+and total corpus bounds prevent accumulated Markdown from silently consuming future context; a full
+destination requires deliberate consolidation before another write. Canonical
+`.noxroot/skills/*/SKILL.md` files are short, standards-compatible procedures selected through
+ordinary routing, not a new skill runtime or vendor-specific tree.
 
 Trust boundaries are described in [security.md](security.md). Public behavior belongs in tests
 before it is claimed in the README.
