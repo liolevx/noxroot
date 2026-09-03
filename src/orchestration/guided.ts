@@ -235,7 +235,7 @@ export async function finishGuidedRun(input: {
     input.sensitivePaths ?? [],
   );
   const diffHash = createHash("sha256").update(diff).digest("hex");
-  const reviewAssessment = assessReviewNeed(changedPaths, diff);
+  const reviewAssessment = assessReviewNeed(changedPaths, diff, record.task);
   const commands = selectVerification(record.trustedVerificationPolicy, changedPaths);
   const checks = await executeVerification(input.root, commands, {
     ...(input.signal === undefined ? {} : { signal: input.signal }),

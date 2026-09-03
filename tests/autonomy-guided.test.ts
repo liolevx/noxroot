@@ -338,7 +338,7 @@ commands:
     await git(root, ["add", "."]);
     await git(root, ["commit", "-m", "noxroot fixture"]);
 
-    await cli(["start", "improve the panel", "--json", "--root", root]);
+    await cli(["start", "review the panel accessibility", "--json", "--root", root]);
     await writeFile(path.join(root, "web", "components", "panel.tsx"), "export const Panel = 2;\n");
     const finished = JSON.parse((await cli(["finish", "--json", "--root", root])).stdout) as {
       record: { status: string };
@@ -346,7 +346,7 @@ commands:
     expect(finished.record.status).toBe("review-pending");
 
     const current = JSON.parse(
-      (await cli(["start", "improve the panel", "--json", "--root", root])).stdout,
+      (await cli(["start", "review the panel accessibility", "--json", "--root", root])).stdout,
     ) as {
       continuation: {
         changedPaths: string[];
@@ -363,7 +363,7 @@ commands:
 
     await writeFile(path.join(root, "web", "components", "panel.tsx"), "export const Panel = 3;\n");
     const stale = JSON.parse(
-      (await cli(["start", "improve the panel", "--json", "--root", root])).stdout,
+      (await cli(["start", "review the panel accessibility", "--json", "--root", root])).stdout,
     ) as {
       continuation: {
         verification: { status: string; current: boolean };
@@ -493,7 +493,7 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(await readFile(path.join(root, reviewPath), "utf8")).toContain('"approved"');
   });
 
-  it("requests UX review from the actual UI diff even without Playwright", async () => {
+  it("requests UX review for an actual interaction change even without Playwright", async () => {
     const root = await repository();
     await writeFile(path.join(root, "src", "App.tsx"), "export const App = () => <main />;\n");
     await git(root, ["add", "."]);
@@ -516,7 +516,7 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     });
     await writeFile(
       path.join(root, "src", "App.tsx"),
-      "export const App = () => <main>Ready</main>;\n",
+      "export const App = () => <button onClick={() => undefined}>Ready</button>;\n",
     );
     const finished = await finishGuidedRun({
       root,
@@ -526,7 +526,41 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     });
     expect(finished.status).toBe("review-pending");
     expect(finished.reviewAssessment).toMatchObject({ required: true, kinds: ["ux"] });
-    expect(JSON.stringify(finished.reviewerPackage)).toContain("<main>Ready</main>");
+    expect(JSON.stringify(finished.reviewerPackage)).toContain("<button onClick");
+  });
+
+  it("does not require review for a bounded UI copy change", async () => {
+    const root = await repository();
+    await writeFile(path.join(root, "src", "App.tsx"), "export const App = () => <main>Old</main>;\n");
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "frontend fixture"]);
+    const command = {
+      id: "node-check",
+      executable: process.execPath,
+      args: ["-e", "process.exit(0)"],
+      cwd: ".",
+      timeoutMs: 10_000,
+      appliesTo: ["src/**"],
+    };
+    const record = await startGuidedRun({
+      id: "guided-ui-copy",
+      task: "update the page label",
+      root,
+      context,
+      effectiveAutonomy: effectiveAutonomy(undefined),
+      trustedVerificationPolicy: [command],
+    });
+    await writeFile(path.join(root, "src", "App.tsx"), "export const App = () => <main>Ready</main>;\n");
+
+    const finished = await finishGuidedRun({
+      root,
+      record,
+      adapter: new ManualAgentAdapter(),
+      reviewAuthorized: false,
+    });
+
+    expect(finished.status).toBe("completed");
+    expect(finished.reviewAssessment).toEqual({ required: false, kinds: [], reasons: [] });
   });
 
   it("permits an incomplete handoff without approving when no check matches", async () => {
