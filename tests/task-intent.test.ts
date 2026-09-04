@@ -21,4 +21,19 @@ describe("task intent", () => {
     expect(intent.requiredOutcomes).toEqual(["Fix parsing and add a regression test"]);
     expect(intent.explicitExclusions).toEqual([]);
   });
+
+  it.each([
+    ["Do not deploy and fix the parser", "fix the parser", "Do not deploy", ""],
+    ["Fix parser but do not deploy and add tests", "Fix parser", "do not deploy", "add tests"],
+  ])("preserves positive work after a negative clause: %s", (task, first, exclusion, second) => {
+    const intent = parseTaskIntent(task);
+    expect(intent.requiredOutcomes).toEqual(second ? [first, second] : [first]);
+    expect(intent.explicitExclusions).toEqual([exclusion]);
+  });
+
+  it("keeps a negative object list together", () => {
+    const intent = parseTaskIntent("Fix the parser but do not change the API and documentation");
+    expect(intent.requiredOutcomes).toEqual(["Fix the parser"]);
+    expect(intent.explicitExclusions).toEqual(["do not change the API and documentation"]);
+  });
 });
