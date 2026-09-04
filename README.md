@@ -32,15 +32,11 @@ Code, Cursor, OpenCode, Copilot CLI, and other coding agents.
 New chats do not require another `init`. Ordinary questions need no Noxroot task. Noxroot stays in
 the background until code-changing work needs it.
 
-Inspect the relevant files and checks before the agent starts editing:
+Example task brief (illustrative excerpt):
 
 <p align="center">
-  <img src="docs/assets/noxroot-terminal.png" alt="Noxroot terminal example: preserve project filters on back navigation, with likely source files, a navigation test, and checks to run" width="594">
+  <img src="docs/assets/noxroot-terminal.png" alt="Example Noxroot task brief: preserve project filters on back navigation, with relevant files, related tests, and checks to run" width="800">
 </p>
-
-Output excerpt with illustrative project paths and checks, not a captured test run. The brief
-identifies likely source files, related tests, and commands to run. It does not claim those checks
-have passed.
 
 ## Project memory, not chat history
 
@@ -142,7 +138,7 @@ still inspect the surrounding code. Existing routes stay unchanged.
 
 ## Try the read-only diagnosis
 
-Noxroot is not published to npm yet. From source, use Node.js `>=22.12 <27`:
+To try Noxroot from source, use Node.js `>=22.12 <27`:
 
 ```bash
 git clone https://github.com/liolevx/noxroot.git

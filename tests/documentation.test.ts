@@ -37,17 +37,15 @@ describe("documentation examples", () => {
 
   it("labels the terminal illustration without inventing a successful run", async () => {
     const readme = await readFile(path.resolve("README.md"), "utf8");
-    expect(readme).toContain(
-      "Output excerpt with illustrative project paths and checks, not a captured test run.",
-    );
+    expect(readme).toContain("Example task brief (illustrative excerpt):");
     expect(readme).toContain(
       '`context "<task>"` is read-only. It does not start a task or run checks.',
     );
     expect(readme).not.toContain("improve reviewer decision safety");
     const png = await readFile(path.resolve("docs/assets/noxroot-terminal.png"));
     expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
-    expect(png.readUInt32BE(16)).toBe(594);
-    expect(png.readUInt32BE(20)).toBe(867);
+    expect(png.readUInt32BE(16)).toBe(1264);
+    expect(png.readUInt32BE(20)).toBe(861);
   });
 
   it("documents the application-agent framework boundary", async () => {
@@ -106,7 +104,7 @@ describe("documentation examples", () => {
     expect(logo).toContain('viewBox="0 0 1600 440"');
     expect(logo).toContain("Noxroot owl mark");
     expect(readme).toContain('src="docs/assets/noxroot-terminal.png"');
-    expect(readme).toContain('width="594"');
+    expect(readme).toContain('width="800"');
     expect(readme).toContain(".noxroot/skills/verify-change/SKILL.md");
     expect(readme).toContain(".noxroot/local/runs/*.json");
     expect(readme).not.toContain("—");
