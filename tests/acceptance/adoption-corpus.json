@@ -1,0 +1,102 @@
+[
+  {
+    "repo": "expressjs/express",
+    "stack": "JavaScript server",
+    "task": "preserve response headers when sending a file"
+  },
+  {
+    "repo": "pallets/flask",
+    "stack": "Python web framework",
+    "task": "preserve request context during streamed responses"
+  },
+  {
+    "repo": "encode/starlette",
+    "stack": "Python ASGI",
+    "task": "handle client disconnects during a streaming response"
+  },
+  {
+    "repo": "encode/httpx",
+    "stack": "Python HTTP client",
+    "task": "preserve timeout settings when following redirects"
+  },
+  {
+    "repo": "psf/requests",
+    "stack": "Legacy Python HTTP client",
+    "task": "preserve session cookies when following redirects"
+  },
+  {
+    "repo": "django/django",
+    "stack": "Large Python framework",
+    "task": "validate allowed hosts before redirecting a request"
+  },
+  {
+    "repo": "sveltejs/kit",
+    "stack": "Svelte monorepo",
+    "task": "restore scroll position when navigating back"
+  },
+  {
+    "repo": "withastro/astro",
+    "stack": "Astro monorepo",
+    "task": "preserve route parameters in server rendering"
+  },
+  {
+    "repo": "nuxt/nuxt",
+    "stack": "Vue framework monorepo",
+    "task": "preserve route middleware order during navigation"
+  },
+  {
+    "repo": "honojs/hono",
+    "stack": "TypeScript server",
+    "task": "preserve response headers through error middleware"
+  },
+  {
+    "repo": "expressjs/morgan",
+    "stack": "Small legacy JavaScript middleware",
+    "task": "skip request logging when a response matches the skip predicate"
+  },
+  {
+    "repo": "isaacs/node-lru-cache",
+    "stack": "TypeScript cache library",
+    "task": "evict expired entries without changing item ordering"
+  },
+  {
+    "repo": "markdown-it/markdown-it",
+    "stack": "JavaScript parser",
+    "task": "preserve escaped characters inside inline links"
+  },
+  {
+    "repo": "chalk/chalk",
+    "stack": "JavaScript terminal library",
+    "task": "preserve nested styles when closing a color sequence"
+  },
+  {
+    "repo": "gin-gonic/gin",
+    "stack": "Go server",
+    "task": "preserve route parameters through nested middleware"
+  },
+  {
+    "repo": "jmoiron/sqlx",
+    "stack": "Go database library",
+    "task": "report missing named query parameters before execution"
+  },
+  {
+    "repo": "rust-lang/regex",
+    "stack": "Rust workspace",
+    "task": "preserve Unicode word boundaries when finding matches"
+  },
+  {
+    "repo": "jqlang/jq",
+    "stack": "C command line parser",
+    "task": "report invalid JSON input with line and column information"
+  },
+  {
+    "repo": "jedisct1/libsodium",
+    "stack": "C library with native build",
+    "task": "report the library version through the public version API"
+  },
+  {
+    "repo": "colinsurprenant/director",
+    "stack": "Existing agent coordinator",
+    "task": "show pending open items when resuming work in another session"
+  }
+]
