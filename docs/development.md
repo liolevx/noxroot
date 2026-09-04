@@ -4,6 +4,9 @@ Requirements: Node.js `>=22.12 <27`, npm, and Git for lifecycle/worktree integra
 the full matrix on Node 24 across Linux, macOS, and Windows and installed-package smoke tests on
 Node 22 and 26 on Linux.
 
+On Windows with Corepack installed, first run `corepack prepare pnpm@10.0.0`. This caches the pinned
+test version. The adapter test then runs offline; CI performs preparation as a separate step.
+
 ```bash
 npm ci
 npm run format:check

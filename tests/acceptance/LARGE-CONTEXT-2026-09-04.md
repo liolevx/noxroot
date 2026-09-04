@@ -81,6 +81,23 @@ The final committed tree must also pass the clean Linux runner and the six check
 Windows/macOS/Linux and Node-version results. No merge, npm publication, or deployment is
 authorized.
 
+### Windows CI follow-up
+
+The first CI run passed five jobs and all nine new context tests, but the existing Windows Corepack
+smoke hit its 15-second test deadline and cleanup encountered a locked directory. That test ran
+unpinned `pnpm --version` from an empty directory, allowing Corepack registry lookup and download
+inside the test. Its child and outer deadlines were also identical.
+
+CI now prepares `pnpm@10.0.0` separately, with automatic latest-version promotion disabled. The test
+pins the same version and disables networking through the process adapter's explicit environment. It
+still requires exit zero, exact version output, no timeout, and the Node/Corepack invocation path.
+Only this test gets a 30-second outer deadline, leaving room for the unchanged 15-second child
+deadline and termination. A missing cache failed promptly in the local test; after preparation in an
+isolated cache, all ten process tests and full Windows validation passed. The
+[review](corepack-review-2026-09-04.json) approved the correction. Its documentation caveat was
+addressed by disabling promotion in CI and removing the unconditional default-preservation claim. No
+production code or success criterion was weakened. The latest PR run remains the final gate.
+
 All `/tmp/noxroot-large-context-*` source copies, installs, packages, and caches were removed by the
 harness, including failed attempts. The prior 4.7 MB evidence directory
 `/tmp/noxroot-legacy-acceptance-4KcWWC` remains unchanged. No worktrees or workspace-parent
