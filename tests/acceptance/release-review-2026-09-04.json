@@ -1,0 +1,6 @@
+{
+  "decision": "approved",
+  "summary": "The bounded setup-path fix closes the reproduced initialization escape. Preview rejects linked writable destinations, direct application independently checks every destination before mutation, and application plus rollback recheck paths instead of blindly following replacements. Root-link replacement and changed canonical ancestry are rejected; unrelated links remain compatible. Independently reran 42 tests across initialization path safety, initialization/context/doctor, and adoption: all passed. git diff --check passed. No remaining release blocker found in this fix. These checks are not race-free filesystem isolation: concurrent replacement between validation and filesystem operations remains a limitation, and rollback may intentionally leave recovery artifacts when a path becomes unsafe. No files were edited during review.",
+  "findings": [],
+  "learningCandidates": []
+}
