@@ -129,9 +129,12 @@ The task identity and ignored local store use the canonical repository. CLI opti
 user-selected root once at the command boundary. Direct state-layer fixtures also use canonical
 temporary paths. Nested-link and changed-root protections in `setupDestination` are unchanged.
 
-This adds one deterministic test, taking the suite to 207 cases. GitHub checks on the latest PR
-commit determine whether the Windows/macOS correction is confirmed; earlier successful local runs
-alone are not evidence of a passing CI result.
+This adds one deterministic test, taking the suite to 207 cases. Full Windows and clean Linux
+validation passed after the correction: 205 passed and two platform-specific skips each. Final
+package size is 124,396 bytes (347 bytes above the preceding candidate), unpacked 400,091 bytes. The
+independent [alias-root review](alias-root-review-2026-09-04.json) approved the fix. GitHub checks
+on the latest PR commit determine whether the Windows/macOS correction is confirmed; successful
+local runs alone are not evidence of a passing CI result.
 
 `legacy-workflows.mjs` takes an explicitly prepared `/tmp/noxroot-legacy-acceptance-*` directory
 containing inspected pinned `underscore/`, `bottle/`, and built `old-source/` directories. It
