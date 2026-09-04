@@ -1089,7 +1089,8 @@ export function createProgram(customIo?: Partial<Io>): Command {
           ),
         );
         if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
-        else if (finished.status === "incomplete") process.exitCode = EXIT.verification;
+        else if (finished.status === "incomplete" || finished.status === "failed")
+          process.exitCode = EXIT.verification;
         else if (!["approved", "completed", "review-pending"].includes(finished.status))
           process.exitCode = EXIT.agent;
       } finally {

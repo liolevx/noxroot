@@ -3,6 +3,8 @@ import path from "node:path";
 import { afterEach, expect, it } from "vitest";
 import {
   assertTaskStateWritable,
+  enforceRunRetention,
+  listRunRecords,
   localStateRoot,
   readRunRecord,
   replaceRunRecord,
@@ -58,6 +60,27 @@ it("rejects linked local state without modifying the target", async () => {
   );
   await expect(writeRunRecord(root, "one", {})).rejects.toThrow(/symbolic link/);
   expect(await readdir(outside)).toEqual([]);
+});
+
+it("refuses linked run directories before inspection or retention", async () => {
+  const root = await repository();
+  const outside = await temporaryDirectory("noxroot-state-retention-outside-");
+  cleanup.push(outside);
+  await mkdir(path.join(root, ".noxroot/local"), { recursive: true });
+  await writeFile(
+    path.join(outside, "old.json"),
+    '{"id":"old","status":"completed","finishedAt":"2000-01-01"}\n',
+  );
+  await symlink(
+    outside,
+    path.join(root, ".noxroot/local/runs"),
+    process.platform === "win32" ? "junction" : "dir",
+  );
+  await expect(listRunRecords(root)).rejects.toThrow("symbolic link");
+  await expect(enforceRunRetention(root, { evidenceDays: 1, maximumRuns: 1 })).rejects.toThrow(
+    "symbolic link",
+  );
+  expect(await readdir(outside)).toEqual(["old.json"]);
 });
 
 it("does not overwrite an existing local ignore policy", async () => {

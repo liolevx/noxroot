@@ -121,8 +121,8 @@ export async function writeRunRecord(root: string, id: string, value: unknown): 
 
 export async function readRunRecord<T>(root: string, id: string): Promise<T> {
   if (!/^[a-z0-9-]+$/i.test(id)) throw new Error("Task id contains unsupported characters.");
-  const stateRoot = await localStateRoot(root);
-  return JSON.parse(await readFile(path.join(stateRoot, "runs", `${id}.json`), "utf8")) as T;
+  const directory = await localRunDirectory(root);
+  return JSON.parse(await readFile(await setupDestination(directory, `${id}.json`), "utf8")) as T;
 }
 
 export async function replaceRunRecord(root: string, id: string, value: unknown): Promise<string> {
@@ -151,8 +151,15 @@ export async function replaceRunRecord(root: string, id: string, value: unknown)
   }
 }
 
+export async function localRunDirectory(root: string): Promise<string> {
+  const stateRoot = await localStateRoot(root);
+  return (await pathType(stateRoot))
+    ? setupDestination(stateRoot, "runs")
+    : path.join(stateRoot, "runs");
+}
+
 export async function listRunRecords<T>(root: string): Promise<T[]> {
-  const directory = path.join(await localStateRoot(root), "runs");
+  const directory = await localRunDirectory(root);
   let names: string[];
   try {
     names = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
@@ -163,7 +170,9 @@ export async function listRunRecords<T>(root: string): Promise<T[]> {
   const records: T[] = [];
   for (const name of names) {
     try {
-      records.push(JSON.parse(await readFile(path.join(directory, name), "utf8")) as T);
+      records.push(
+        JSON.parse(await readFile(await setupDestination(directory, name), "utf8")) as T,
+      );
     } catch {
       // A malformed or concurrently replaced record is not eligible for implicit selection.
     }
@@ -203,7 +212,7 @@ export async function enforceRunRetention(
   now = Date.now(),
   preserveIds: readonly string[] = [],
 ): Promise<RunRetentionResult> {
-  const directory = path.join(await localStateRoot(root), "runs");
+  const directory = await localRunDirectory(root);
   let names: string[];
   try {
     names = (await readdir(directory)).filter((name) => /^[a-z0-9-]+\.json$/i.test(name)).sort();
@@ -220,7 +229,7 @@ export async function enforceRunRetention(
   for (const name of names) {
     try {
       const record = JSON.parse(
-        await readFile(path.join(directory, name), "utf8"),
+        await readFile(await setupDestination(directory, name), "utf8"),
       ) as RetentionRecord;
       if (preservedNames.has(name)) {
         protectedCount += 1;
