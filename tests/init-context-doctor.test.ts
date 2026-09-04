@@ -120,6 +120,8 @@ describe("initialization, sync safety, context, and doctor", () => {
       "Even when status lists an active task, repeat start with that task's text before resuming edits",
     );
     expect(agents).toContain("status is read-only and does not check write access");
+    expect(agents).toContain(`noxroot@${VERSION} review --task <id>`);
+    expect(agents).toContain("Give its `--json` output to a fresh reviewer");
     expect(agents).toContain(".noxroot/knowledge/INDEX.md");
     expect(
       await readFile(path.join(fixture.root, ".noxroot", "knowledge", "INDEX.md"), "utf8"),

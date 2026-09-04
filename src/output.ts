@@ -5,18 +5,19 @@ import type {
   VerificationResult,
 } from "./model.js";
 import type { LearnResult } from "./knowledge/learn.js";
+import type { ApplyResult } from "./core/init.js";
 import { cliCommand, VERSION } from "./invocation.js";
 import type { GuidedRunRecord } from "./orchestration/guided.js";
 import { failureDetail, TIMEOUT_NEXT } from "./verification/diagnostics.js";
 
 export function renderGuidedFinish(
   record: GuidedRunRecord,
-  proposals: number,
+  learning: LearnResult,
   recordPath: string,
   options: RenderOptions,
 ): string {
   if (options.verbose)
-    return `${record.handoff}\n\nDocumentation: not assessed automatically.\nLearning: ${proposals} reusable proposal(s).\nLocal record: ${recordPath}\n`;
+    return `${record.handoff}\n\nDocumentation: not assessed automatically.\nLearning: ${learning.status}${learning.proposals.length ? `; ${learning.proposals.length} reusable proposal(s)` : ""}.\nLocal record: ${recordPath}\n`;
   const checks = record.verification.at(-1) ?? [];
   // Calls are historical. Only review-result states without a verification gap
   // can use the latest call as the current completion attempt's decision.
@@ -33,7 +34,7 @@ export function renderGuidedFinish(
   if (record.status === "incomplete" && checks.some((check) => check.status === "unavailable"))
     next = `Make the approved check runnable, then rerun ${cliCommand("finish")}.`;
   if (record.status === "review-pending")
-    next = `Provide a fresh review with ${cliCommand("finish --review-file <path>")}.`;
+    next = `Prepare the fresh-review handoff with ${cliCommand(`review --task ${record.id}`)}.`;
   if (record.status === "completed" || record.status === "approved")
     next = "Review the change before committing.";
   return [
@@ -47,7 +48,13 @@ export function renderGuidedFinish(
     ...record.verificationGaps.map((gap) => `Gap      ${gap}`),
     `Review   ${reviewResult ? `${reviewResult.review?.decision ?? reviewResult.reviewDecision ?? reviewResult.status}: ${reviewResult.summary}` : record.reviewAssessment?.required ? `Pending ${record.reviewAssessment.kinds.join("/")} review` : "Not required for this change"}`,
     "Docs     Not assessed automatically",
-    `Learning ${proposals ? `${proposals} proposal(s); inspect with ${cliCommand(`learn --task ${record.id}`)}` : "No reusable update proposed"}`,
+    `Learning ${
+      learning.status === "proposed"
+        ? `${learning.proposals.length} proposal(s); inspect with ${cliCommand(`learn --task ${record.id}`)}`
+        : learning.status === "not-assessed"
+          ? "Not assessed; an independent review is required"
+          : "Assessed; no reusable update identified"
+    }`,
     `Next     ${next}`,
     `Evidence ${recordPath}`,
     "",
@@ -150,6 +157,85 @@ export function renderWelcome(options: RenderOptions = {}): string {
 
 export function renderInitMark(options: RenderOptions = {}): string {
   return `${style("NOXROOT", ANSI.violet, options)} ${style("◆", ANSI.blue, options)} ${style("setup", ANSI.dim, options)}\n\n`;
+}
+
+export function renderInitApplied(result: ApplyResult, options: RenderOptions = {}): string {
+  const lines = [
+    title("setup ready", options),
+    "",
+    ...section(
+      "Changed",
+      [
+        ...(result.created.length
+          ? [`Created ${result.created.length} file${result.created.length === 1 ? "" : "s"}`]
+          : []),
+        ...(result.patched.length
+          ? [
+              `Updated ${result.patched.length} existing file${result.patched.length === 1 ? "" : "s"}`,
+            ]
+          : []),
+      ],
+      options,
+      ANSI.green,
+    ),
+    ...section(
+      "Reused",
+      result.referenced.length
+        ? [`${result.referenced.length} existing file${result.referenced.length === 1 ? "" : "s"}`]
+        : [],
+      options,
+      ANSI.blue,
+    ),
+  ];
+  if (options.verbose) {
+    lines.push(
+      ...section(
+        "Files",
+        [
+          ...result.created.map((file) => `created ${file}`),
+          ...result.patched.map((file) => `updated ${file}`),
+          ...result.referenced.map((file) => `reused ${file}`),
+        ],
+        options,
+      ),
+    );
+  }
+  lines.push(
+    ...section(
+      "Next",
+      [
+        "Review and commit this setup locally; no push is required.",
+        "Then give your coding agent a real code-changing task.",
+      ],
+      options,
+      ANSI.blue,
+    ),
+  );
+  return `${lines.join("\n").trimEnd()}\n`;
+}
+
+export function renderReviewHandoff(record: GuidedRunRecord, options: RenderOptions = {}): string {
+  const checks = record.verification.at(-1) ?? [];
+  return `${[
+    title("review handoff", options),
+    "",
+    `Task     ${record.id}`,
+    `Change   ${record.changeIdentity?.changeId ?? "not established"}`,
+    `Review   ${record.reviewAssessment?.kinds.join("/") || "independent"}`,
+    ...(record.reviewAssessment?.reasons ?? []).map((reason) => `Why      ${reason}`),
+    `Files    ${record.changedPaths?.length ?? 0}`,
+    `Checks   ${checks.filter((check) => check.status === "passed").length}/${checks.length} passed`,
+    "",
+    "Reviewer input",
+    `  ${cliCommand(`review --task ${record.id} --json`)}`,
+    "",
+    "Reviewer response",
+    "  Save the strict JSON response as an untracked file under .noxroot/local/.",
+    "",
+    "Continue",
+    `  ${cliCommand(`finish --task ${record.id} --review-file .noxroot/local/review.json`)}`,
+    "",
+  ].join("\n")}`;
 }
 
 export function renderPreview(
@@ -574,14 +660,23 @@ export function renderVerification(
 
 export function renderLearning(result: LearnResult, options: RenderOptions = {}): string {
   const lines = [title("learning", options), ""];
-  if (result.proposals.length === 0) {
+  if (result.status === "not-assessed") {
+    lines.push(
+      ...section(
+        "Not assessed",
+        ["An approved independent review of the current unchanged diff is required."],
+        options,
+        ANSI.yellow,
+      ),
+    );
+  } else if (result.proposals.length === 0) {
     lines.push(
       ...section(
         "No update",
         [
           result.rejected.length
             ? "No learning candidate was safe to propose."
-            : "No reusable project knowledge was identified.",
+            : "The approved review identified no reusable project knowledge.",
         ],
         options,
         ANSI.green,
@@ -614,7 +709,12 @@ export function renderLearning(result: LearnResult, options: RenderOptions = {})
       "Next",
       result.proposals.length
         ? [cliCommand(`learn --task ${result.taskId} --apply`)]
-        : ["Project memory was not changed."],
+        : result.status === "not-assessed"
+          ? [
+              `Run ${cliCommand(`finish --task ${result.taskId}`)} for the current diff and complete any required review.`,
+              "Project memory was not changed.",
+            ]
+          : ["Project memory was not changed."],
       options,
       ANSI.blue,
     ),

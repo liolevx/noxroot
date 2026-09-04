@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Improved
+
+- Rank focused implementation and test files ahead of broad historical acceptance harnesses for
+  ordinary task briefs.
+- End initialization with an accurate created, updated, and reused setup summary plus the next local
+  action.
+- Distinguish learning that was not assessed from an approved assessment with no reusable result.
+- Expose prepared independent-review packages through the read-only `review` command.
+
 ## 0.1.1 — 2026-09-04
 
 This patch release strengthens the existing Noxroot workflow without adding a new command or

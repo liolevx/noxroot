@@ -39,9 +39,11 @@ import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import {
   renderContext,
   renderGuidedFinish,
+  renderInitApplied,
   renderInitMark,
   renderLearning,
   renderPreview,
+  renderReviewHandoff,
   renderVerification,
   renderVerificationPlan,
   renderWelcome,
@@ -568,10 +570,13 @@ export function createProgram(customIo?: Partial<Io>): Command {
           io.stderr("Noxroot is already initialized; no files were proposed.\n");
           return;
         }
+        const writableChanges = preview.proposedFiles.filter(
+          (proposal) => proposal.action !== "reference",
+        ).length;
         if (
           !(await confirm(
             io,
-            `Create exactly ${preview.proposedFiles.length} proposed file(s)?`,
+            `Apply exactly ${writableChanges} displayed setup change(s)?`,
             options.yes,
           ))
         ) {
@@ -583,10 +588,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         }
         const result = await applyProposals(preview);
         if (common.json) writeJson(io, { preview, applied: result });
-        else
-          io.stdout(
-            `Created ${result.created.length} file(s):\n${result.created.map((file) => `- ${file}`).join("\n")}\n`,
-          );
+        else io.stdout(renderInitApplied(result, renderOptions(io, common)));
       },
     );
 
@@ -682,6 +684,30 @@ export function createProgram(customIo?: Partial<Io>): Command {
         config?.sensitivePaths ?? [],
       );
       emit(io, common.json, result, renderTaskStatus(result));
+    });
+
+  program
+    .command("review")
+    .description("show the prepared package for a required independent review")
+    .option("--task <task-id>", "guided task id; inferred when exactly one task is active")
+    .action(async (options: { task?: string }, command: Command) => {
+      const common = globals(command);
+      const root = path.resolve(common.root);
+      const config = await loadConfig(root);
+      if (refuseDisabledModule(io, common.json, config, "orchestration")) return;
+      const taskId = await inferGuidedTaskId(root, options.task);
+      const record = await readRunRecord<GuidedRunRecord>(root, taskId);
+      if (record.status !== "review-pending" || !record.reviewerPackage) {
+        throw new Error(
+          `Task ${taskId} has no pending review package. Run ${cliCommand(`finish --task ${taskId}`)} first.`,
+        );
+      }
+      emit(
+        io,
+        common.json,
+        record.reviewerPackage,
+        renderReviewHandoff(record, renderOptions(io, common)),
+      );
     });
 
   program
@@ -1095,8 +1121,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             reason: "No deterministic documentation signal was produced.",
           },
           learning: {
-            status:
-              learning.proposals.length > 0 ? ("proposed" as const) : ("no-candidate" as const),
+            status: learning.status,
             proposals: learning.proposals.length,
           },
         };
@@ -1105,12 +1130,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           io,
           common.json,
           { record: finished, recordPath, completion, learning, retention },
-          renderGuidedFinish(
-            finished,
-            learning.proposals.length,
-            recordPath,
-            renderOptions(io, common),
-          ),
+          renderGuidedFinish(finished, learning, recordPath, renderOptions(io, common)),
         );
         if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
         else if (finished.status === "incomplete" || finished.status === "failed")

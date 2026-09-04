@@ -80,13 +80,9 @@ Commit the reviewed setup before your first code-changing task; `start` requires
 baseline. This is a local commit; no push is needed. Still evaluating? `preview` and `context` work
 without initialization or a setup commit.
 
-Then keep talking to your coding agent normally. For code changes, compatible agents are instructed
-to run the pinned `start` before editing and `finish` afterward.
-
-Finish all edits, run `finish`, address any failures or required review, then commit. Rerun `finish`
-if you edit again. Approve real project commands during setup; see the
-[first-task guide](docs/getting-started.md) for missing checks, timeouts, and package-age
-restrictions.
+Then keep talking to your coding agent normally; compatible agents are instructed to record the
+baseline before a code change, run the approved checks afterward, and surface any required review.
+See the [first-task guide](docs/getting-started.md) when you want to inspect that flow yourself.
 
 `init` preserves existing documentation and pins the Noxroot version. `npx` downloads from
 [npm](https://www.npmjs.com/package/noxroot) into its cache; no global installation or clone is
@@ -98,10 +94,8 @@ ownership of lifecycle, review, and learning; Noxroot can supply context and ver
 it. A coordination ledger is adjacent, not a development coordinator. Noxroot does not import its
 log.
 
-Read-only work creates no task. In the same repository, branch, and worktree, a repeated `start`
-continues the active baseline. `finish` infers a single matching task; several matches require
-`--task <id>`. Commands remain available for manual use when an agent does not follow the
-instructions.
+Read-only work creates no task. A repeated `start` continues the same task on the same branch and
+worktree. Commands remain available for manual use when an agent does not follow the instructions.
 
 When upgrading, inspect the managed instruction changes with
 `npx noxroot@latest sync --dry-run --diff`. Apply them with `npx noxroot@latest sync` after review.
@@ -127,7 +121,8 @@ Existing `.git/noxroot` records stay in place, without a second store. If an age
 state, it must stop and request access before continuing.
 
 `SKILL.md` files are portable instructions for verification and review. `AGENTS.md`, the knowledge
-index, and routes guide context loading. `finish` and `learn` handle learning proposals.
+index, and routes guide context loading. `review` exposes the prepared package when a fresh review
+is required. Only an approved review of the unchanged diff can produce a learning proposal.
 
 Skills are instructions, not test evidence. Incomplete work cannot become approved. Noxroot does not
 push, merge, publish, or deploy.
@@ -210,8 +205,8 @@ Python, Go, Rust, and other stacks. CI covers Windows, macOS, and Linux.
 `context` explains file selection. `verify --plan` shows approved commands without running them.
 `verify --changed` runs applicable checks. `run --dry-run` shows a connected execution plan.
 `status` shows active work and the next action. `doctor` explains configuration problems.
-`learn --task ID` shows confirmable durable proposals. Data commands support `--json`, with progress
-and diagnostics on standard error.
+`review --task ID` prepares a fresh-review handoff. `learn --task ID` shows confirmable durable
+proposals. Data commands support `--json`, with progress and diagnostics on standard error.
 
 Read [Getting started](docs/getting-started.md), the [command reference](docs/commands.md),
 [configuration](docs/configuration.md), [architecture](docs/architecture.md),

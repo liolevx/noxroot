@@ -1,7 +1,13 @@
 import { expect, it } from "vitest";
 import path from "node:path";
 import { buildContext } from "../src/core/context.js";
-import { renderContext, renderGuidedFinish } from "../src/output.js";
+import {
+  renderContext,
+  renderGuidedFinish,
+  renderInitApplied,
+  renderLearning,
+} from "../src/output.js";
+import type { LearnResult } from "../src/knowledge/learn.js";
 import type { GuidedRunRecord } from "../src/orchestration/guided.js";
 
 it.each([false, true])("uses plain task-brief labels (verbose: %s)", async (verbose) => {
@@ -48,10 +54,51 @@ function record(status: GuidedRunRecord["status"]): GuidedRunRecord {
   } as unknown as GuidedRunRecord;
 }
 
+function learning(proposals = 0): LearnResult {
+  return {
+    taskId: "one",
+    status: proposals ? "proposed" : "not-assessed",
+    proposals: Array.from({ length: proposals }, () => ({}) as never),
+    rejected: [],
+  };
+}
+
+it("distinguishes unassessed learning from an assessed empty result", () => {
+  const unassessed = renderLearning(learning(), {});
+  const assessed = renderLearning({ ...learning(), status: "no-candidate" }, {});
+
+  expect(unassessed).toContain("Not assessed");
+  expect(unassessed).toContain("approved independent review");
+  expect(assessed).toContain("No update");
+  expect(assessed).toContain("approved review identified no reusable project knowledge");
+  expect(assessed).not.toContain("Not assessed");
+});
+
+it("summarizes setup writes and reuse without dumping paths by default", () => {
+  const result = {
+    created: [".noxroot/config.yml", ".noxroot/knowledge/INDEX.md"],
+    patched: ["AGENTS.md"],
+    referenced: ["README.md"],
+  };
+  const concise = renderInitApplied(result, {});
+  const verbose = renderInitApplied(result, { verbose: true });
+
+  expect(concise).toContain("Created 2 files");
+  expect(concise).toContain("Updated 1 existing file");
+  expect(concise).toContain("1 existing file");
+  expect(concise).not.toContain(".noxroot/config.yml");
+  expect(verbose).toContain("created .noxroot/config.yml");
+  expect(verbose).toContain("updated AGENTS.md");
+  expect(verbose).toContain("reused README.md");
+});
+
 it.each([80, 120])("keeps a routine finish short at %i columns without losing status", (width) => {
-  const plain = renderGuidedFinish(record("completed"), 0, ".noxroot/local/runs/one.json", {
-    width,
-  });
+  const plain = renderGuidedFinish(
+    record("completed"),
+    learning(),
+    ".noxroot/local/runs/one.json",
+    { width },
+  );
   expect(plain.trim().split("\n").length).toBeLessThanOrEqual(12);
   expect(plain).toContain("task completed");
   expect(plain).toContain("Changed  1 file\n");
@@ -62,7 +109,7 @@ it.each([80, 120])("keeps a routine finish short at %i columns without losing st
 });
 
 it("retains failure evidence and retry instructions in default output", () => {
-  const output = renderGuidedFinish(record("failed"), 0, "record.json", {});
+  const output = renderGuidedFinish(record("failed"), learning(), "record.json", {});
   expect(output).toContain("task failed");
   expect(output).toContain("expected 2, received 1");
   expect(output).toContain("Fix the failing check");
@@ -70,15 +117,17 @@ it("retains failure evidence and retry instructions in default output", () => {
 });
 
 it("does not turn passing checks into review approval", () => {
-  const output = renderGuidedFinish(record("review-pending"), 0, "record.json", {});
+  const output = renderGuidedFinish(record("review-pending"), learning(), "record.json", {});
   expect(output).toContain("task review-pending");
   expect(output).toContain("Pending ux review");
-  expect(output).toContain("--review-file");
+  expect(output).toContain("review --task one");
   expect(output).not.toContain("task completed");
 });
 
 it("keeps detailed handoff evidence available and adds no repeated banner", () => {
-  const output = renderGuidedFinish(record("completed"), 1, "record.json", { verbose: true });
+  const output = renderGuidedFinish(record("completed"), learning(1), "record.json", {
+    verbose: true,
+  });
   expect(output).toContain("Full handoff evidence");
   expect(output).toContain("Local record: record.json");
   expect(output).not.toContain("█");
@@ -99,7 +148,7 @@ it("shows why an invalid reviewer response blocked completion", () => {
       },
     },
   ];
-  const output = renderGuidedFinish(blocked, 0, "record.json", {});
+  const output = renderGuidedFinish(blocked, learning(), "record.json", {});
   expect(output).toContain("Review   blocked: Review response was not schema-valid JSON.");
   expect(output).not.toContain("Not required");
 });
@@ -121,7 +170,7 @@ it.each(["review-pending", "failed", "incomplete", "completed"] as const)(
         },
       },
     ];
-    const output = renderGuidedFinish(current, 0, "record.json", {});
+    const output = renderGuidedFinish(current, learning(), "record.json", {});
     expect(output).not.toContain("Approved previous diff");
     expect(output).not.toContain("Review   approved");
     if (status === "review-pending") expect(output).toContain("Pending ux review");
@@ -144,7 +193,9 @@ it("does not show an old blocked review after a new verification gap", () => {
       },
     },
   ];
-  expect(renderGuidedFinish(current, 0, "record.json", {})).not.toContain("Old invalid review");
+  expect(renderGuidedFinish(current, learning(), "record.json", {})).not.toContain(
+    "Old invalid review",
+  );
 });
 
 it.each(["approved", "changes-requested", "blocked"] as const)(
@@ -164,12 +215,12 @@ it.each(["approved", "changes-requested", "blocked"] as const)(
         },
       },
     ];
-    expect(renderGuidedFinish(current, 0, "record.json", {})).toContain(
+    expect(renderGuidedFinish(current, learning(), "record.json", {})).toContain(
       `Review   ${decision}: Current review result`,
     );
     current.status = "review-pending";
     current.reviewAssessment!.required = true;
-    const pending = renderGuidedFinish(current, 0, "record.json", {});
+    const pending = renderGuidedFinish(current, learning(), "record.json", {});
     expect(pending).toContain("Pending ux review");
     expect(pending).not.toContain("Current review result");
   },

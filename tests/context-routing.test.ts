@@ -22,6 +22,19 @@ describe("bounded relevance routing", () => {
     ).toContain("content contains task terms “review”, “decision”");
   });
 
+  it("keeps routine setup work on implementation and focused tests instead of acceptance history", async () => {
+    const context = await buildContext(
+      "Improve the first-run setup summary and readiness guidance",
+      path.resolve("."),
+    );
+    const selected = context.selected.map((item) => item.path);
+
+    expect(selected).toContain("src/output.ts");
+    expect(selected).toContain("src/cli.ts");
+    expect(context.likelyTests).toContain("tests/cli.test.ts");
+    expect(selected.some((item) => item.startsWith("tests/acceptance/"))).toBe(false);
+  });
+
   it("treats route includes as eligibility without blanket relevance", async () => {
     const context = await buildContext("document package release", path.resolve("."));
     const unrelated = context.selected.filter(
