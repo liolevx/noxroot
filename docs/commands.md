@@ -75,6 +75,18 @@ checks with their working directories, an exclusion count, and estimated tokens.
 conflicts remain visible. `--verbose` adds every selected path, selection reasons, individual
 exclusions, unknowns, and byte counts. JSON retains the complete bounded context package.
 
+Large source and test files can be selected as up to three line ranges rather than whole files.
+Human output labels these as partial. JSON adds `lineRanges` (one-based, inclusive) and
+`sourceBytes`; `bytes` counts only the selected ranges. These are reading hints, not embedded code
+or complete functions. Inspect surrounding code and refresh context after edits move the lines.
+Inspection remains capped at 96,000 bytes per file and 1,000,000 bytes across candidates. Missing
+owners, partial files, and inspection limits prevent high confidence.
+
+Fresh setup includes root-level source extensions in its routes. Existing route files are not
+rewritten by `init` or `sync`. If context reports excluded source files, review the includes in
+`.noxroot/routes.yml` before widening scope; updating the CLI alone does not change those
+boundaries.
+
 Routine `start`, continuation, and `finish` output separates the result from supporting evidence.
 The short finish view still shows failures, verification gaps, pending review, and a path to the
 full local record. Passing tests alone never turn a pending review into approval.

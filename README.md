@@ -137,8 +137,8 @@ push, merge, publish, or deploy.
 permission to edit. "Do not deploy" remains an exclusion; it never activates deployment work. Use
 `start` to record the task baseline and `finish` to check the resulting change.
 
-Large source files can fall outside the brief's budget. Use `--verbose` to inspect selection and
-read relevant source directly.
+Large files get bounded line ranges when relevant text is found. Partial context is labelled; agents
+still inspect the surrounding code. Existing routes stay unchanged.
 
 ## Try the read-only diagnosis
 
