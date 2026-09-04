@@ -98,6 +98,9 @@ working-tree state, active Noxroot tasks, changed paths since each baseline, whe
 matches the current diff, and the next applicable action. It does not invoke an agent or restore a
 chat session.
 
+Before resuming edits, repeat `start` with the active task's text. `status` does not check whether
+task state is writable and is not a substitute for `start`.
+
 ## `verify`
 
 `verify --plan` displays the confirmed policy without running it. `verify --changed` reads Git

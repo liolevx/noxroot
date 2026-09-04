@@ -25,7 +25,7 @@ function managedBlock(mode: WorkflowMode, hasKnowledgeIndex = true): string {
 
 If start fails, stop before editing and report the error. If finish fails, do not report the task complete. Request only the access needed to retry; do not disable the sandbox or create a second task-state store.
 
-For unfinished work, use \`${cliCommand("status")}\` before opening raw task records. Keep routine output brief; use \`--verbose\` or \`--json\` when supporting detail is needed.
+For unfinished work, use \`${cliCommand("status")}\` before opening raw task records. Even when status lists an active task, repeat start with that task's text before resuming edits: status is read-only and does not check write access. Keep routine output brief; use \`--verbose\` or \`--json\` when supporting detail is needed.
 
 When \`.noxroot/skills/\` exists, load only the task-relevant \`SKILL.md\`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.`
       : mode === "companion"

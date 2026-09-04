@@ -400,10 +400,11 @@ function renderTaskStatus(result: Awaited<ReturnType<typeof repositoryTaskStatus
     lines.push("Active tasks  none", "", "Next  Keep working normally with your coding agent.");
   } else {
     lines.push(`Active tasks  ${result.active.length}`);
+    lines.push("Before editing  Repeat start with the active task text to check write access.");
     for (const { record, continuation } of result.active) {
       lines.push(
         "",
-        `${record.id}  ${record.context.intent.requiredOutcomes[0] ?? record.task}`,
+        `${record.id}  ${record.task}`,
         `  Changed  ${continuation.changedPaths.length ? continuation.changedPaths.join(", ") : "none"}`,
         `  Verification  ${continuation.verification.summary}`,
         `  Next  ${continuation.nextAction}`,

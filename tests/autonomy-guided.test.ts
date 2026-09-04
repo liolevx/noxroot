@@ -289,9 +289,10 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     );
     await git(root, ["add", "."]);
     await git(root, ["commit", "-m", "noxroot fixture"]);
-    const started = JSON.parse(
-      (await cli(["start", "change the value", "--json", "--root", root])).stdout,
-    ) as { record: { id: string } };
+    const task = "change the value; do not deploy";
+    const started = JSON.parse((await cli(["start", task, "--json", "--root", root])).stdout) as {
+      record: { id: string };
+    };
     await writeFile(path.join(root, "src", "value.ts"), "export const value = 2;\n");
 
     const value = JSON.parse((await cli(["status", "--json", "--root", root])).stdout) as {
@@ -308,6 +309,17 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     const human = await cli(["status", "--root", root]);
     expect(human.stdout).toContain("Changed  src/value.ts");
     expect(human.stdout).toContain("Verification  Not run for the current diff.");
+    expect(human.stdout).toContain(
+      "Before editing  Repeat start with the active task text to check write access.",
+    );
+    expect(human.stdout).toContain(`${started.record.id}  ${task}\n`);
+    const displayed = human.stdout
+      .split("\n")
+      .find((line) => line.startsWith(`${started.record.id}  `))!
+      .slice(started.record.id.length + 2);
+    const resumed = JSON.parse((await cli(["start", displayed, "--json", "--root", root])).stdout);
+    expect(resumed.continued).toBe(true);
+    expect(resumed.record.id).toBe(started.record.id);
   });
 
   it("reports current and stale verification deterministically when continuing", async () => {
