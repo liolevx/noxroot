@@ -195,7 +195,7 @@ commands:
     expect(pendingValue.record.status).toBe("completed");
     expect(pendingValue.record.calls).toEqual([]);
     expect(pendingValue.completion.documentation.status).toBe("not-assessed");
-    expect(pendingValue.completion.learning.status).toBe("no-candidate");
+    expect(pendingValue.completion.learning.status).toBe("not-assessed");
 
     const reviewPath = path.join(root, ".noxroot", "local", "external-review.json");
     await writeFile(
@@ -441,9 +441,22 @@ commands:
     await cli(["start", "review the panel accessibility", "--json", "--root", root]);
     await writeFile(path.join(root, "web", "components", "panel.tsx"), "export const Panel = 2;\n");
     const finished = JSON.parse((await cli(["finish", "--json", "--root", root])).stdout) as {
-      record: { status: string };
+      record: { id: string; status: string };
     };
     expect(finished.record.status).toBe("review-pending");
+
+    const reviewHandoff = await cli(["review", "--task", finished.record.id, "--root", root]);
+    expect(reviewHandoff.stdout).toContain("NOXROOT  review handoff");
+    expect(reviewHandoff.stdout).toContain(`review --task ${finished.record.id} --json`);
+    expect(reviewHandoff.stdout).toContain("Save the strict JSON response");
+    const reviewPackage = JSON.parse(
+      (await cli(["review", "--task", finished.record.id, "--json", "--root", root])).stdout,
+    ) as { schemaVersion: number; taskId: string; changedPaths: string[] };
+    expect(reviewPackage).toMatchObject({
+      schemaVersion: 2,
+      taskId: finished.record.id,
+      changedPaths: ["web/components/panel.tsx"],
+    });
 
     const current = JSON.parse(
       (await cli(["start", "review the panel accessibility", "--json", "--root", root])).stdout,
@@ -934,7 +947,12 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     const checks = finished.verification.at(-1)!;
     for (const output of [
       finished.handoff,
-      renderGuidedFinish(finished, 0, "record.json", {}),
+      renderGuidedFinish(
+        finished,
+        { taskId: finished.id, status: "not-assessed", proposals: [], rejected: [] },
+        "record.json",
+        {},
+      ),
       renderVerification(checks, {}),
     ]) {
       expect(output).toContain("limit 1000ms");

@@ -62,6 +62,11 @@ describe("CLI contracts", () => {
       isTTY: true,
     });
     expect(initialized.stdout).toContain("NOXROOT ◆ setup");
+    expect(initialized.stdout).toContain("NOXROOT  setup ready");
+    expect(initialized.stdout).toContain("Changed\n  Created");
+    expect(initialized.stdout).toContain(
+      "Review and commit this setup locally; no push is required.",
+    );
 
     const preview = await run(["preview", "--no-color", "--root", root], { isTTY: true });
     expect(preview.stdout).not.toContain("◆");
@@ -110,6 +115,7 @@ describe("CLI contracts", () => {
       "init",
       "sync",
       "doctor",
+      "review",
       "context",
       "verify",
       "start",
@@ -322,13 +328,15 @@ describe("CLI contracts", () => {
 
     const human = await run(["learn", "--task", "completed-task", "--root", root]);
     expect(human.stdout).toContain("NOXROOT  learning");
-    expect(human.stdout).toContain("No reusable project knowledge was identified.");
+    expect(human.stdout).toContain("Not assessed");
+    expect(human.stdout).toContain("An approved independent review");
     expect(human.stdout).toContain("Project memory was not changed.");
     expect(human.stdout.trimStart()).not.toMatch(/^\{/);
 
     const machine = await run(["learn", "--task", "completed-task", "--json", "--root", root]);
     expect(JSON.parse(machine.stdout)).toMatchObject({
       taskId: "completed-task",
+      status: "not-assessed",
       proposals: [],
       message: "Learning requires an approved review of the current unchanged diff",
     });

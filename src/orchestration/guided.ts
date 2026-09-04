@@ -201,7 +201,9 @@ function guidedHandoff(
     "LEARNING",
     record.learningCandidates?.length
       ? `${record.learningCandidates.length} documentation candidate${record.learningCandidates.length === 1 ? "" : "s"} identified by review; duplication and ownership still need checking.`
-      : "No reusable project-knowledge candidate identified.",
+      : record.status === "approved"
+        ? "The approved review identified no reusable project-knowledge candidate."
+        : "Not assessed; reusable learning requires an approved review of the unchanged diff.",
     "",
     "NEXT",
     record.status === "review-pending"

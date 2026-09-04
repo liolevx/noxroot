@@ -25,6 +25,7 @@ export interface LearningProposal {
 
 export interface LearnResult {
   taskId: string;
+  status: "not-assessed" | "no-candidate" | "proposed";
   proposals: LearningProposal[];
   rejected: Array<{ reason: string; destination: string }>;
   message?: string;
@@ -217,6 +218,7 @@ export async function proposeLearnings(root: string, run: RunRecord): Promise<Le
   if (!(await currentApprovedChange(root, run))) {
     return {
       taskId: run.id,
+      status: "not-assessed",
       proposals: [],
       rejected: [],
       message: "Learning requires an approved review of the current unchanged diff",
@@ -228,6 +230,7 @@ export async function proposeLearnings(root: string, run: RunRecord): Promise<Le
   if (candidates.length === 0) {
     return {
       taskId: run.id,
+      status: "no-candidate",
       proposals: [],
       rejected: [],
       message: "No durable learning identified",
@@ -301,6 +304,7 @@ export async function proposeLearnings(root: string, run: RunRecord): Promise<Le
   }
   return {
     taskId: run.id,
+    status: proposals.length > 0 ? "proposed" : "no-candidate",
     proposals,
     rejected,
     ...(proposals.length === 0 ? { message: "No durable learning identified" } : {}),
