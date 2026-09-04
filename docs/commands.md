@@ -6,7 +6,7 @@ From your repository directory, run `npx noxroot@latest preview` to inspect setu
 files, then `npx noxroot@latest init` when ready. Requires Node.js `>=22.12 <27` and npm.
 
 Commands below use `noxroot` as shorthand. Without a global installation, use
-`npx --yes noxroot@0.1.0` in its place, or the version pinned in your repository instructions.
+`npx --yes noxroot@0.1.1` in its place, or the version pinned in your repository instructions.
 Compatible agents handle `start` and `finish`; you do not need to type them for each conversation.
 
 ## Global behavior

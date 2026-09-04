@@ -181,7 +181,7 @@ Not assessed
 No files changed. No project commands or agents ran. No network requests were made.
 
 Next
-  npx --yes noxroot@0.1.0 preview --diff
+  npx --yes noxroot@0.1.1 preview --diff
 ```
 
 </details>
@@ -215,7 +215,8 @@ and diagnostics on standard error.
 
 Read [Getting started](docs/getting-started.md), the [command reference](docs/commands.md),
 [configuration](docs/configuration.md), [architecture](docs/architecture.md),
-[adapter protocol](docs/adapters.md), and [security boundaries](docs/security.md).
+[adapter protocol](docs/adapters.md), [security boundaries](docs/security.md), and the
+[changelog](CHANGELOG.md).
 
 Noxroot is an experimental v0.1 MVP. Apache-2.0; see [CONTRIBUTING.md](CONTRIBUTING.md),
 [SECURITY.md](SECURITY.md), and [LICENSE](LICENSE).
