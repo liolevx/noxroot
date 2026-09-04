@@ -38,8 +38,13 @@ Before adding a dependency, explain why a platform API is insufficient. Producti
 limited to command parsing, schema validation, and YAML. Before claiming a new project shape or
 adapter, add a realistic fixture and failure-path coverage.
 
-Publication is not part of ordinary development. The owner must first create the npm package,
-configure npm trusted publishing for the exact GitHub repository/workflow on a GitHub-hosted runner,
-and authorize adding a publish workflow with `id-token: write`. Do not create or store a long-lived
-npm publication token. Trusted publishing automatically supplies provenance for eligible public
-packages.
+When working inside the Noxroot source checkout, use `node dist/cli.js` after building. `npx` can
+resolve this checkout's package instead of the registry package, without an installed command shim.
+
+`noxroot@0.1.0` is published on npm. Publication is not part of ordinary development. Future
+automated releases require the owner to configure npm trusted publishing for the exact GitHub
+repository and workflow, and authorize a publish workflow with `id-token: write` on a GitHub-hosted
+runner. That workflow is not configured yet. Do not create or store a long-lived npm publication
+token. Trusted publishing supplies provenance for eligible public packages; the first manual release
+does not have that provenance. npm's displayed README updates only when a new package version is
+published.

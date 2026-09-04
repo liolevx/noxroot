@@ -3,6 +3,10 @@
 `.noxroot/config.yml` uses schema version 1. Invalid values produce a file and field path. Versions
 other than 1 are rejected instead of guessed.
 
+Start with the configuration proposed by `init`; do not replace it with this reference example.
+Schema version `1` is separate from the npm package version. Updating the CLI does not authorize new
+checks or rewrite your task routes.
+
 ```yaml
 version: 1
 modules:
@@ -20,7 +24,7 @@ autonomy:
   merge: 0
   delivery: 0
 agents:
-  default: local-agent
+  default: manual
   adapters:
     manual:
       type: manual
@@ -48,6 +52,12 @@ browser:
   viewports:
     - { name: mobile, width: 390, height: 844 }
 ```
+
+The optional `local-agent` entry illustrates the adapter shape, not working flags for a particular
+coding tool. Leave `manual` selected for the normal workflow where your existing agent calls
+Noxroot. Command adapters are optional for delegated workers or automated review; see the
+[adapter protocol](adapters.md). The sample `browser-e2e` id must refer to a check you actually
+approved before enabling `browser`.
 
 Autonomy is enforced, never descriptive-only: level 0 permits read-only diagnosis/context/plans;
 implementation level 1 permits guided records; implementation level 2 permits a configured worker;

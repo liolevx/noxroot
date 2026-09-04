@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/liolevx/noxroot/actions/workflows/ci.yml"><img src="https://github.com/liolevx/noxroot/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://www.npmjs.com/package/noxroot"><img src="https://img.shields.io/npm/v/noxroot" alt="npm version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License: Apache-2.0"></a>
 </p>
 
@@ -29,10 +30,7 @@ Code, Cursor, OpenCode, Copilot CLI, and other coding agents.
 | Decisions and fixes disappear into old chats           | Useful lessons are proposed as Markdown and carried into future tasks once accepted |
 | The workflow depends on one coding tool                | The core works through a CLI, Markdown, JSON, and a command adapter                 |
 
-New chats do not require another `init`. Ordinary questions need no Noxroot task. Noxroot stays in
-the background until code-changing work needs it.
-
-Example task brief (illustrative excerpt):
+Example task brief:
 
 <p align="center">
   <img src="docs/assets/noxroot-terminal.png" alt="Example Noxroot task brief: preserve project filters on back navigation, with relevant files, related tests, and checks to run" width="800">
@@ -66,28 +64,29 @@ before it runs with `noxroot verify --plan`.
 
 ## Set up once
 
+Requires Node.js `>=22.12 <27` and npm. From your repository directory, inspect the proposed setup:
+
+```bash
+npx noxroot@latest preview
+```
+
+When ready, initialize once:
+
 ```bash
 npx noxroot@latest init
 ```
 
-Then keep talking to your coding agent normally:
+Commit the reviewed setup before your first code-changing task; `start` requires a clean Git
+baseline.
 
-```text
-Fix project filters resetting on back navigation.
-```
-
-For a code-changing task, compatible agents are instructed to use the pinned repository commands
-behind the scenes:
-
-```bash
-npx --yes noxroot@0.1.0 start "fix project filters resetting on back navigation"
-# your existing coding agent builds the change
-npx --yes noxroot@0.1.0 finish
-```
+Then keep talking to your coding agent normally. Ask for your own feature, fix, or refactor. For
+code-changing tasks, compatible agents are instructed to run `start` before editing and `finish`
+when the change is ready to check, using the version pinned in your repository.
 
 Run `init` once per repository. It previews a thin managed entrypoint, preserves existing
-documentation, and pins the Noxroot version. The pinned `npx` command needs no global or project
-installation.
+documentation, and pins the Noxroot version. `npx` downloads the package into npm's cache; no global
+installation or clone of Noxroot is needed. The package is available on
+[npm](https://www.npmjs.com/package/noxroot).
 
 Before setup, preview labels each capability `create`, `reuse`, `adjacent`, `conflict`, or
 `not-assessed`. Noxroot creates only a confirmed gap. Existing systems stay in place. Missing
@@ -97,11 +96,18 @@ review, and learning. A coordination ledger or session journal is reported as ad
 preserve work across sessions, but Noxroot does not import its log or treat it as a development
 coordinator.
 
-Questions, explanations, reviews, and other read-only work do not create tasks. If a new
-conversation continues the same task in the same repository, branch, and worktree, `start` reuses
-the active baseline instead of creating a duplicate. `finish` finds the task when exactly one
-matches. If several tasks match, Noxroot lists them and requires `--task <id>` instead of guessing.
-Instruction discovery varies by coding tool, so the commands remain available for manual use.
+Read-only work creates no task. In the same repository, branch, and worktree, a repeated `start`
+continues the active baseline. `finish` infers a single matching task; several matches require
+`--task <id>`. Commands remain available for manual use when an agent does not follow the
+instructions.
+
+When upgrading, inspect the managed instruction changes with
+`npx noxroot@latest sync --dry-run --diff`. Apply them with `npx noxroot@latest sync` after review.
+Starting a new chat does not require an upgrade or another initialization. See the
+[command reference](docs/commands.md) for manual tasks and sync limits.
+
+For the first change, continuation, and troubleshooting, read
+[Getting started](docs/getting-started.md).
 
 ### What setup can add
 
@@ -121,10 +127,8 @@ remains discoverable without being copied.
 Existing `.git/noxroot` records stay in place, without a second store. If an agent cannot write task
 state, it must stop and request access before continuing.
 
-`SKILL.md` files are portable, on-demand instructions. The generated verification skill tells an
-agent how to check a change; the independent-review and optional product/UX skills describe their
-reviews. Context loading comes from `AGENTS.md`, the knowledge index, and context routes, not a
-generated context skill. Learning comes from `finish` and `learn`, not a generated learning skill.
+`SKILL.md` files are portable instructions for verification and review. `AGENTS.md`, the knowledge
+index, and routes guide context loading. `finish` and `learn` handle learning proposals.
 
 Skills are instructions, not test evidence. Incomplete work cannot become approved. Noxroot does not
 push, merge, publish, or deploy.
@@ -136,7 +140,13 @@ permission to edit. "Do not deploy" remains an exclusion; it never activates dep
 Large files get bounded line ranges when relevant text is found. Partial context is labelled; agents
 still inspect the surrounding code. Existing routes stay unchanged.
 
-## Try the read-only diagnosis
+## Preview example
+
+`preview` reports what Noxroot found and what setup would add. Use `preview --diff` to inspect the
+proposed patches before writing anything.
+
+<details>
+<summary>See a sample preview and run it from source</summary>
 
 To try Noxroot from source, use Node.js `>=22.12 <27`:
 
@@ -175,8 +185,9 @@ Next
   npx --yes noxroot@0.1.0 preview --diff
 ```
 
-Use `preview --diff` to inspect every proposed setup patch. The intended beta entry point is
-`npx noxroot@latest preview`.
+</details>
+
+For local development and validation commands, see [Development](docs/development.md).
 
 ## Portable by design
 
@@ -184,8 +195,7 @@ Noxroot's universal interface is the CLI plus generated Markdown and JSON. Any a
 command or read a task package can use it. The generic adapter accepts an explicit executable and
 literal arguments. It does not guess vendor flags or use shell interpolation.
 
-Instruction discovery varies by client. Some tools read `AGENTS.md`, others use their own files, and
-some require manual invocation. Noxroot does not claim equal native integration everywhere.
+Instruction discovery varies by client. Native integration is not identical across tools.
 
 Application-agent frameworks are detected project architectures, not competitors or dependencies.
 Their tests and evals can become approved repository checks. Noxroot does not install or control
@@ -204,9 +214,9 @@ Python, Go, Rust, and other stacks. CI covers Windows, macOS, and Linux.
 `learn --task ID` shows confirmable durable proposals. Data commands support `--json`, with progress
 and diagnostics on standard error.
 
-Read the [command reference](docs/commands.md), [configuration](docs/configuration.md),
-[architecture](docs/architecture.md), [adapter protocol](docs/adapters.md), and
-[security boundaries](docs/security.md).
+Read [Getting started](docs/getting-started.md), the [command reference](docs/commands.md),
+[configuration](docs/configuration.md), [architecture](docs/architecture.md),
+[adapter protocol](docs/adapters.md), and [security boundaries](docs/security.md).
 
 Noxroot is an experimental v0.1 MVP. Apache-2.0; see [CONTRIBUTING.md](CONTRIBUTING.md),
 [SECURITY.md](SECURITY.md), and [LICENSE](LICENSE).
