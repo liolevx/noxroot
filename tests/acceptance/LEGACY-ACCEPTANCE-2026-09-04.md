@@ -105,16 +105,33 @@ copy. Each ran 204 tests with two platform-specific skips, formatting, lint, typ
 permission-confined preview, and installed-package smoke. The 600-record retention regression also
 passed. An intermediate test-only lint failure was corrected before these final runs.
 
-Product changes since `9602dcd`: three source files, ten added lines and three removed. Eight tests
-were added and existing continuation/initialization assertions extended. No runtime dependencies
-were added. The README changed from 1,461 to 1,451 whitespace-separated words, preserving its intro
-and existing visual assets. Final package size: 124,307 bytes, up 258 bytes from the preceding
-124,049-byte candidate; unpacked size 399,858 bytes. Reproduction scripts and reports are not
-shipped in the npm package.
+Before the CI correction below, changes since `9602dcd` covered three source files, ten added lines
+and three removed. Eight tests were added and existing continuation/initialization assertions
+extended. No runtime dependencies were added. The README changed from 1,461 to 1,451
+whitespace-separated words, preserving its intro and existing visual assets. Final package size:
+124,307 bytes, up 258 bytes from the preceding 124,049-byte candidate; unpacked size 399,858 bytes.
+Reproduction scripts and reports are not shipped in the npm package.
 
 The validated branch is pushed as [PR #9](https://github.com/liolevx/noxroot/pull/9). Its checks are
 the source of truth for GitHub Windows/macOS/Linux, Node 22/24/26, and package validation. This pass
 does not authorize merging or npm publication.
+
+### Cross-platform CI follow-up
+
+The first PR run passed Linux, Node 22/26 smoke, and package checks, but failed Windows and macOS
+tests on aliased temporary-directory roots. Review confirmed a real CLI issue as well: preview/init
+accepted an aliased `--root`, while lifecycle commands passed the alias to a canonical-root safety
+check and failed. Merely changing the test helper would have hidden that public CLI case.
+
+A new regression failed locally before the correction. It now exercises init, start, status,
+same-task continuation, and inferred finish through a directory alias with an actual syntax check.
+The task identity and ignored local store use the canonical repository. CLI options now resolve the
+user-selected root once at the command boundary. Direct state-layer fixtures also use canonical
+temporary paths. Nested-link and changed-root protections in `setupDestination` are unchanged.
+
+This adds one deterministic test, taking the suite to 207 cases. GitHub checks on the latest PR
+commit determine whether the Windows/macOS correction is confirmed; earlier successful local runs
+alone are not evidence of a passing CI result.
 
 `legacy-workflows.mjs` takes an explicitly prepared `/tmp/noxroot-legacy-acceptance-*` directory
 containing inspected pinned `underscore/`, `bottle/`, and built `old-source/` directories. It
