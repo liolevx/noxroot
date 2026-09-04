@@ -45,3 +45,35 @@ export async function canonicalDirectory(candidate: string): Promise<string> {
   if (!stat.isDirectory()) throw new Error(`Repository root is not a directory: ${candidate}`);
   return resolved;
 }
+
+// Setup accepts canonical roots from preview. Refuse links, including in-repository
+// links, so the reviewed destination never silently redirects a write.
+export async function setupDestination(root: string, relativePath: string): Promise<string> {
+  const target = resolveWithin(root, relativePath);
+  if ((await lstat(root)).isSymbolicLink()) {
+    throw new Error("Setup stopped: repository root is a symbolic link; run preview again.");
+  }
+  if (path.relative(root, await realpath(root)) !== "") {
+    throw new Error("Setup stopped: repository root changed; run preview again.");
+  }
+  let current = root;
+  for (const part of path.relative(root, target).split(path.sep)) {
+    current = path.join(current, part);
+    let entry;
+    try {
+      entry = await lstat(current);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") break;
+      throw error;
+    }
+    if (entry.isSymbolicLink()) {
+      throw new Error(
+        `Setup stopped: ${normalizeRelative(path.relative(root, current))} is a symbolic link; use an unlinked destination and run preview again.`,
+      );
+    }
+    if (current !== target && !entry.isDirectory()) {
+      throw new Error(`Setup stopped: ${path.relative(root, current)} is not a directory.`);
+    }
+  }
+  return target;
+}

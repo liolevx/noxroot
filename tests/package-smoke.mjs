@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import assert from "node:assert/strict";
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -7,6 +8,20 @@ const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const fixtureRoot = path.join(repositoryRoot, "tests", "fixtures", "typescript");
 const temporaryRoot = await mkdtemp(path.join(tmpdir(), "noxroot-package-smoke-"));
 const npmCache = path.join(temporaryRoot, "npm-cache");
+
+async function snapshot(root) {
+  const files = {};
+  async function visit(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const file = path.join(directory, entry.name);
+      if (entry.isDirectory()) await visit(file);
+      else
+        files[path.relative(root, file)] = entry.isSymbolicLink() ? "link" : await readFile(file);
+    }
+  }
+  await visit(root);
+  return files;
+}
 
 function run(executable, args, options = {}) {
   const result = spawnSync(executable, args, {
@@ -142,8 +157,80 @@ try {
   if (!generatedInstructions.includes("npx --yes noxroot@0.1.0 finish")) {
     throw new Error("Packed CLI initialization did not pin its finish command.");
   }
+  const initialized = await snapshot(initializedRoot);
+  invokeBinary(binary, ["init", "--yes", "--root", initializedRoot], installRoot);
+  assert.deepEqual(await snapshot(initializedRoot), initialized, "Repeated init must be a no-op");
+
+  // Synthetic older pin, not a claim that an earlier version was published.
+  const agentsPath = path.join(initializedRoot, "AGENTS.md");
+  const userPrefix = "# Repository instructions\n\nKeep changes focused.\n\n";
+  const userSuffix = "\n## User-owned notes\n\nUse existing documentation.\n";
+  const currentInstructions = userPrefix + generatedInstructions + userSuffix;
+  await writeFile(agentsPath, currentInstructions.replaceAll("noxroot@0.1.0", "noxroot@0.0.9"));
+  await writeFile(path.join(initializedRoot, "user-notes.md"), "Preserve this document.\n");
+  const beforeSync = await snapshot(initializedRoot);
+  const dryRun = JSON.parse(
+    invokeBinary(
+      binary,
+      ["sync", "--dry-run", "--diff", "--json", "--root", initializedRoot],
+      installRoot,
+    ),
+  );
+  assert.deepEqual(dryRun.summary, {
+    repositoryVersion: "0.0.9",
+    runningVersion: "0.1.0",
+    managedChanges: 1,
+  });
+  const changes = dryRun.preview.proposedFiles.filter((file) => file.action !== "reference");
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0].path, "AGENTS.md");
+  assert.equal(changes[0].action, "patch");
+  assert.ok(changes[0].patch.includes("noxroot@0.0.9"));
+  assert.ok(changes[0].patch.includes("noxroot@0.1.0"));
+  assert.deepEqual(await snapshot(initializedRoot), beforeSync, "Sync preview must not write");
+  assert.throws(
+    () => invokeBinary(binary, ["sync", "--json", "--root", initializedRoot], installRoot),
+    /requires --yes/,
+  );
+  assert.deepEqual(await snapshot(initializedRoot), beforeSync, "Unconfirmed sync must not write");
+  invokeBinary(binary, ["sync", "--yes", "--json", "--root", initializedRoot], installRoot);
+  assert.deepEqual(
+    await snapshot(initializedRoot),
+    {
+      ...beforeSync,
+      "AGENTS.md": Buffer.from(currentInstructions),
+    },
+    "Sync must change only the managed pin, preserving user content and knowledge",
+  );
+  const afterSync = await snapshot(initializedRoot);
+  const repeated = JSON.parse(
+    invokeBinary(
+      binary,
+      ["sync", "--dry-run", "--diff", "--json", "--root", initializedRoot],
+      installRoot,
+    ),
+  );
+  assert.equal(repeated.summary.managedChanges, 0);
+  assert.deepEqual(await snapshot(initializedRoot), afterSync);
+
+  const linkedRoot = path.join(temporaryRoot, "linked-repository");
+  const outside = path.join(temporaryRoot, "outside");
+  await mkdir(linkedRoot);
+  await mkdir(outside);
+  await symlink(outside, path.join(linkedRoot, ".noxroot"), "junction");
+  const linkedBefore = await snapshot(linkedRoot);
+  const linkedPreview = JSON.parse(
+    invokeBinary(binary, ["preview", "--json", "--root", linkedRoot], installRoot),
+  );
+  assert.equal(linkedPreview.initializationAllowed, false);
+  assert.throws(
+    () => invokeBinary(binary, ["init", "--yes", "--json", "--root", linkedRoot], installRoot),
+    /failed with 3/,
+  );
+  assert.deepEqual(await snapshot(linkedRoot), linkedBefore);
+  assert.deepEqual(await snapshot(outside), {});
   process.stdout.write(
-    `Packed CLI smoke passed on ${process.platform} with a real tarball install.\n`,
+    `Packed CLI smoke passed on ${process.platform}: real tarball install, repeated init, managed-pin upgrade, user-content preservation, and linked-destination refusal.\n`,
   );
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });

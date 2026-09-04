@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, rmdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { PreviewResult, ProposedFile } from "../model.js";
-import { resolveWithin } from "../security/paths.js";
+import { setupDestination } from "../security/paths.js";
 
 export interface ApplyResult {
   created: string[];
@@ -31,7 +31,7 @@ function writableProposal(
 export async function applyProposals(preview: PreviewResult): Promise<ApplyResult> {
   if (!preview.initializationAllowed) {
     throw new Error(
-      "Initialization stopped because the reviewed preview reported an unresolved instruction conflict.",
+      "Initialization stopped because the reviewed preview reported an unresolved setup conflict.",
     );
   }
   const writable = preview.proposedFiles.filter(writableProposal);
@@ -39,7 +39,7 @@ export async function applyProposals(preview: PreviewResult): Promise<ApplyResul
     .filter((proposal) => proposal.action === "reference")
     .map((proposal) => proposal.path);
   for (const proposal of writable) {
-    const target = resolveWithin(preview.root, proposal.path);
+    const target = await setupDestination(preview.root, proposal.path);
     if (proposal.action === "create" && (await exists(target))) {
       throw new Error(
         `Initialization stopped because ${proposal.path} now exists; run preview again.`,
@@ -68,7 +68,7 @@ export async function applyProposals(preview: PreviewResult): Promise<ApplyResul
   const temporary: string[] = [];
   try {
     for (const proposal of writable) {
-      const target = resolveWithin(preview.root, proposal.path);
+      const target = await setupDestination(preview.root, proposal.path);
       const createdDirectory = await mkdir(path.dirname(target), { recursive: true });
       if (createdDirectory) {
         let directory = path.dirname(target);
@@ -78,10 +78,12 @@ export async function applyProposals(preview: PreviewResult): Promise<ApplyResul
           directory = path.dirname(directory);
         }
       }
+      await setupDestination(preview.root, proposal.path);
       if (proposal.action === "patch") originals.set(target, await readFile(target, "utf8"));
       const temp = path.join(path.dirname(target), `.noxroot-${randomUUID()}.tmp`);
       temporary.push(temp);
       await writeFile(temp, proposal.content, { encoding: "utf8", flag: "wx", mode: 0o600 });
+      await setupDestination(preview.root, proposal.path);
       await rename(temp, target);
       temporary.splice(temporary.indexOf(temp), 1);
       if (proposal.action === "create") created.push(proposal.path);
@@ -89,17 +91,28 @@ export async function applyProposals(preview: PreviewResult): Promise<ApplyResul
     }
     return { created, patched, referenced: references };
   } catch (error) {
-    await Promise.allSettled(temporary.map((file) => rm(file, { force: true })));
+    // A path may have changed during application. Rollback must not follow it either.
+    const safeTarget = (file: string) =>
+      setupDestination(preview.root, path.relative(preview.root, file));
     await Promise.allSettled(
-      created.map((relative) => rm(resolveWithin(preview.root, relative), { force: true })),
+      temporary.map(async (file) => rm(await safeTarget(file), { force: true })),
     );
     await Promise.allSettled(
-      [...originals.entries()].map(([target, content]) => writeFile(target, content, "utf8")),
+      created.map(async (relative) =>
+        rm(await setupDestination(preview.root, relative), { force: true }),
+      ),
+    );
+    await Promise.allSettled(
+      [...originals.entries()].map(async ([target, content]) =>
+        writeFile(await safeTarget(target), content, "utf8"),
+      ),
     );
     for (const directory of [...new Set(createdDirectories)].sort(
       (left, right) => right.length - left.length,
     )) {
-      await rmdir(directory).catch(() => undefined);
+      await safeTarget(directory)
+        .then((safe) => rmdir(safe))
+        .catch(() => undefined);
     }
     throw error;
   }

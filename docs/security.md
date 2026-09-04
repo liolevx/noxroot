@@ -12,8 +12,11 @@ full fixture tree before and after preview, use scripts that would leave a marke
 symlink escapes, and assert secret values never reach output. Package-manager retrieval, when a user
 chooses it after publication, occurs outside the runtime preview boundary.
 
-Mutating setup shows complete patches, rechecks target absence, writes same-directory temporary
-files with restrictive modes, renames them into place, and never overwrites existing content.
+Mutating setup shows complete patches, rechecks target absence or the reviewed content hash, and
+refuses symbolic links and junctions at write destinations or their ancestors. It checks all
+destinations before writing, rechecks during application, and guards rollback paths too. Setup uses
+same-directory temporary files with restrictive modes and preserves unmanaged content. These checks
+are not an atomic filesystem transaction against a concurrent hostile process changing paths.
 Process execution uses direct executable/argument arrays, repository-contained working directories,
 timeouts, cancellation, a minimal environment, and output caps.
 

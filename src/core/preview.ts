@@ -3,7 +3,7 @@ import { ConfigurationError, loadConfig } from "../config/load.js";
 import type { PreviewResult } from "../model.js";
 import { scanRepository } from "../detection/scan.js";
 import { inspectRepositoryAdoption } from "../detection/adoption.js";
-import { canonicalDirectory } from "../security/paths.js";
+import { canonicalDirectory, setupDestination } from "../security/paths.js";
 import { assessModules, buildProposals } from "./proposals.js";
 
 function lineCount(source: string): number {
@@ -74,6 +74,15 @@ export async function previewRepository(root = process.cwd()): Promise<PreviewRe
   const changedProposals = proposedFiles.filter(
     (file) => file.action === "create" || file.action === "patch",
   );
+  const destinationConflicts = new Set<string>();
+  for (const proposal of changedProposals) {
+    try {
+      await setupDestination(canonicalRoot, proposal.path);
+    } catch (error) {
+      destinationConflicts.add((error as Error).message);
+    }
+  }
+  conflicts.push(...destinationConflicts);
   const proposalGrowth = (file: (typeof changedProposals)[number]): number =>
     lineCount(file.content ?? "") - (file.action === "patch" ? previousLineCount(file.patch) : 0);
   return {
@@ -83,7 +92,7 @@ export async function previewRepository(root = process.cwd()): Promise<PreviewRe
     modules,
     proposedFiles,
     capabilities: adoption.capabilities,
-    initializationAllowed: adoption.initializationAllowed,
+    initializationAllowed: adoption.initializationAllowed && destinationConflicts.size === 0,
     existingSetup,
     conflicts,
     unknowns,

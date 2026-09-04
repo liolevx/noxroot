@@ -544,7 +544,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
           if (common.json) writeJson(io, { preview, applied: { created: [] }, refused: true });
           process.exitCode = EXIT.refused;
           io.stderr(
-            "Initialization refused; resolve the reported instruction conflict. No files were changed.\n",
+            "Initialization refused; resolve the reported setup conflict. No files were changed.\n",
           );
           return;
         }
@@ -613,7 +613,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             writeJson(io, { summary, preview, applied: { created: [] }, refused: true });
           process.exitCode = EXIT.refused;
           io.stderr(
-            "Synchronization refused; resolve the reported instruction conflict. No files were changed.\n",
+            "Synchronization refused; resolve the reported setup conflict. No files were changed.\n",
           );
           return;
         }
