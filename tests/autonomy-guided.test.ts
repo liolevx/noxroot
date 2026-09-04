@@ -4,7 +4,11 @@ import { CommanderError } from "commander";
 import { afterEach, describe, expect, it } from "vitest";
 import { effectiveAutonomy } from "../src/orchestration/autonomy.js";
 import { finishGuidedRun, startGuidedRun } from "../src/orchestration/guided.js";
-import { ManualAgentAdapter } from "../src/adapters/agents.js";
+import {
+  ManualAgentAdapter,
+  type AgentAdapter,
+  type AgentRequest,
+} from "../src/adapters/agents.js";
 import { runProcess } from "../src/adapters/process.js";
 import { temporaryDirectory } from "./helpers.js";
 import { createProgram } from "../src/cli.js";
@@ -179,7 +183,12 @@ commands:
 
     const pending = await cli(["finish", "--json", "--root", root]);
     const pendingValue = JSON.parse(pending.stdout) as {
-      record: { status: string; calls: unknown[] };
+      record: {
+        id: string;
+        status: string;
+        calls: unknown[];
+        changeIdentity: { changeId: string };
+      };
       completion: { documentation: { status: string }; learning: { status: string } };
     };
     expect(pendingValue.record.status).toBe("completed");
@@ -191,6 +200,9 @@ commands:
     await writeFile(
       reviewPath,
       JSON.stringify({
+        schemaVersion: 2,
+        taskId: pendingValue.record.id,
+        changeId: pendingValue.record.changeIdentity.changeId,
         decision: "approved",
         summary: "The actual diff and affected check passed.",
         findings: [],
@@ -557,10 +569,46 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(pending.reviewerPackage).toBeUndefined();
     expect(pending.verification.at(-1)?.[0]?.status).toBe("passed");
 
-    const reviewPath = "review.json";
+    const reviewPath = ".noxroot/local/review.json";
+    await mkdir(path.join(root, ".noxroot", "local"), { recursive: true });
+    await expect(
+      finishGuidedRun({
+        root,
+        record: pending,
+        adapter: new ManualAgentAdapter(),
+        reviewAuthorized: false,
+        reviewFile: "src/value.ts",
+      }),
+    ).rejects.toThrow("untracked JSON file under .noxroot/local");
     await writeFile(
       path.join(root, reviewPath),
       JSON.stringify({
+        schemaVersion: 2,
+        taskId: pending.id,
+        changeId: "0".repeat(64),
+        decision: "approved",
+        summary: "This approval belongs to a different change.",
+        findings: [],
+        learningCandidates: [],
+      }),
+    );
+    const mismatched = await finishGuidedRun({
+      root,
+      record: pending,
+      adapter: new ManualAgentAdapter(),
+      reviewAuthorized: false,
+      reviewFile: reviewPath,
+    });
+    expect(mismatched.status).toBe("blocked");
+    expect(mismatched.calls.at(-1)?.result.output).toBe("");
+    expect(mismatched.calls.at(-1)?.result.diagnostics).toContain("not retained");
+
+    await writeFile(
+      path.join(root, reviewPath),
+      JSON.stringify({
+        schemaVersion: 2,
+        taskId: pending.id,
+        changeId: pending.changeIdentity!.changeId,
         decision: "approved",
         summary: "The bounded change and check evidence are acceptable.",
         findings: [],
@@ -614,6 +662,108 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(finished.status).toBe("review-pending");
     expect(finished.reviewAssessment).toMatchObject({ required: true, kinds: ["ux"] });
     expect(JSON.stringify(finished.reviewerPackage)).toContain("<button onClick");
+  });
+
+  it("rejects reviewer evidence reached through a linked local path", async () => {
+    const root = await repository();
+    const outside = await temporaryDirectory("noxroot-review-outside-");
+    cleanup.push(outside);
+    await mkdir(path.join(root, ".noxroot"), { recursive: true });
+    await writeFile(path.join(outside, "review.json"), "{}\n");
+    const record = await startGuidedRun({
+      id: "linked-review",
+      task: "change value",
+      root,
+      context,
+      effectiveAutonomy: effectiveAutonomy(undefined),
+      trustedVerificationPolicy: [
+        {
+          id: "node-check",
+          executable: process.execPath,
+          args: ["--version"],
+          cwd: ".",
+          timeoutMs: 10_000,
+          appliesTo: ["**/*"],
+        },
+      ],
+    });
+    await symlink(outside, path.join(root, ".noxroot", "local"), "junction");
+    await writeFile(path.join(root, "src/value.ts"), "export const value = 2;\n");
+
+    await expect(
+      finishGuidedRun({
+        root,
+        record,
+        adapter: new ManualAgentAdapter(),
+        reviewAuthorized: false,
+        reviewFile: ".noxroot/local/review.json",
+      }),
+    ).rejects.toThrow("must not use a symbolic link or leave the repository");
+  });
+
+  it("blocks an approval when the repository changes during automated review", async () => {
+    const root = await repository();
+    await mkdir(path.join(root, "src", "auth"), { recursive: true });
+    await writeFile(path.join(root, "src/auth/session.ts"), "export const session = 1;\n");
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "add auth fixture"]);
+    const record = await startGuidedRun({
+      id: "review-race",
+      task: "change authentication behavior",
+      root,
+      context: { ...context, task: "change authentication behavior" },
+      effectiveAutonomy: effectiveAutonomy(undefined),
+      trustedVerificationPolicy: [
+        {
+          id: "node-check",
+          executable: process.execPath,
+          args: ["--version"],
+          cwd: ".",
+          timeoutMs: 10_000,
+          appliesTo: ["src/**"],
+        },
+      ],
+    });
+    await writeFile(path.join(root, "src/auth/session.ts"), "export const session = 2;\n");
+    const adapter: AgentAdapter = {
+      id: "mutating-reviewer",
+      mode: "command",
+      availability: async () => ({ available: true, reason: "fixture" }),
+      invoke: async (request: AgentRequest) => {
+        const taskPackage = request.package as { taskId: string; changeId: string };
+        await writeFile(path.join(root, "src/auth/session.ts"), "export const session = 3;\n");
+        const review = {
+          schemaVersion: 2 as const,
+          taskId: taskPackage.taskId,
+          changeId: taskPackage.changeId,
+          decision: "approved" as const,
+          summary: "The pre-mutation change was acceptable.",
+          findings: [],
+          learningCandidates: [],
+        };
+        return {
+          invoked: true,
+          status: "completed",
+          summary: review.summary,
+          output: JSON.stringify(review),
+          exitCode: 0,
+          reviewDecision: review.decision,
+          review,
+        };
+      },
+    };
+
+    const finished = await finishGuidedRun({
+      root,
+      record,
+      adapter,
+      reviewAuthorized: true,
+    });
+
+    expect(finished.status).toBe("blocked");
+    expect(finished.verificationGaps).toContain(
+      "The repository changed during review; verification and the reviewer decision are stale.",
+    );
   });
 
   it("does not require review for a bounded UI copy change", async () => {
@@ -711,6 +861,43 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(finished.handoff).toContain("node-check: passed");
     expect(finished.handoff).not.toContain("exit 0 | harmless warning");
     expect(finished.verification[0]?.[0]?.evidence.stderr).toContain("harmless warning");
+  });
+
+  it("refuses completion when a passing check changes the repository", async () => {
+    const root = await repository();
+    const record = await startGuidedRun({
+      id: "check-mutates-change",
+      task: "change value",
+      root,
+      context,
+      effectiveAutonomy: effectiveAutonomy(undefined),
+      trustedVerificationPolicy: [
+        {
+          id: "mutating-check",
+          executable: process.execPath,
+          args: [
+            "-e",
+            "require('node:fs').writeFileSync('src/generated.ts', 'export const generated = true;\\n')",
+          ],
+          cwd: ".",
+          timeoutMs: 10_000,
+          appliesTo: ["src/**"],
+        },
+      ],
+    });
+    await writeFile(path.join(root, "src/value.ts"), "export const value = 2;\n");
+
+    const finished = await finishGuidedRun({
+      root,
+      record,
+      adapter: new ManualAgentAdapter(),
+      reviewAuthorized: false,
+    });
+
+    expect(finished.status).toBe("incomplete");
+    expect(finished.verificationGaps).toContain(
+      "The repository changed while approved checks ran; their evidence is stale.",
+    );
   });
 
   it("keeps a timed-out task failed with bounded final output and safe recovery guidance", async () => {

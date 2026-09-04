@@ -242,4 +242,17 @@ commands:
     ).toEqual(["trusted-source"]);
     expect(selectVerification(trustedSnapshot, ["docs/readme.md"])).toEqual([]);
   });
+
+  it("matches verification directories on path boundaries", () => {
+    const command = {
+      id: "source",
+      executable: "node",
+      args: ["--test"],
+      cwd: ".",
+      timeoutMs: 1_000,
+      appliesTo: ["src/**"],
+    };
+    expect(selectVerification([command], ["src/index.ts"])).toEqual([command]);
+    expect(selectVerification([command], ["src-other/index.ts"])).toEqual([]);
+  });
 });

@@ -12,6 +12,7 @@ import { configuredAgent, ManualAgentAdapter } from "./adapters/agents.js";
 import {
   boundedDiff,
   captureRepositoryBaseline,
+  identifyChange,
   prepareIsolatedWorktree,
   revisionInCurrentHistory,
 } from "./adapters/vcs.js";
@@ -61,6 +62,7 @@ import {
   executeVerification,
   planVerification,
   selectVerification,
+  unmatchedVerificationPaths,
 } from "./verification/index.js";
 
 const DESCRIPTION =
@@ -1006,6 +1008,19 @@ export function createProgram(customIo?: Partial<Io>): Command {
                 });
               },
               diff: () => boundedDiff(worktree, config?.sensitivePaths ?? []),
+              changeId: async () => {
+                const actualChanged = await changedFiles(worktree.path, worktree.baseRevision, {
+                  strict: true,
+                });
+                return (await identifyChange(worktree.path, worktree.baseRevision, actualChanged))
+                  .changeId;
+              },
+              unmatchedPaths: async () => {
+                const actualChanged = await changedFiles(worktree.path, worktree.baseRevision, {
+                  strict: true,
+                });
+                return unmatchedVerificationPaths(checks, actualChanged);
+              },
             },
           );
           const recordPath = await writeRunRecord(root, id, record);
@@ -1138,9 +1153,24 @@ export function createProgram(customIo?: Partial<Io>): Command {
         io.stderr("Learning application cancelled; durable knowledge was not changed.\n");
         return;
       }
+      const refreshed = await proposeLearnings(common.root, record);
+      const refreshedBySignature = new Map(
+        refreshed.proposals
+          .filter(
+            (proposal) => proposal.duplication === "not-found" && proposal.conflict === "none",
+          )
+          .map((proposal) => [proposal.signature, proposal]),
+      );
+      if (applicable.some((proposal) => !refreshedBySignature.has(proposal.signature))) {
+        throw new Error(
+          "Learning stopped because the approved change or its eligible proposals changed; review it again.",
+        );
+      }
       const applied: string[] = [];
       for (const proposal of applicable) {
-        applied.push(...(await applyLearning(common.root, proposal)));
+        applied.push(
+          ...(await applyLearning(common.root, refreshedBySignature.get(proposal.signature)!)),
+        );
       }
       if (common.json) writeJson(io, { ...result, applied });
       else io.stdout(`Applied ${applicable.length} proposal(s).\n`);

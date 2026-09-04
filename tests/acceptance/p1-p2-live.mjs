@@ -160,6 +160,9 @@ if (mode === "prepare") {
     state.firstDiff = git(state.app, ["diff"]);
     // Scripted review input validates plumbing, not an independent model's discovery of the lesson.
     await save(path.join(state.app, ".noxroot/local/fixture-review.json"), {
+      schemaVersion: 2,
+      taskId: state.firstTask,
+      changeId: finished.record.changeIdentity.changeId,
       decision: "approved",
       summary:
         "Scripted acceptance review: exact millisecond delays and invalid-attempt regression passed.",

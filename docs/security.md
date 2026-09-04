@@ -31,8 +31,11 @@ Guided start requires a clean committed baseline. Finish validates repository id
 policy snapshot, derives actual changed paths, includes bounded tracked and new-file diff evidence,
 and treats zero matching checks or unavailable executables as blockers. Diff evidence records the
 path but omits contents for suspected secrets, configured sensitive paths, and symlinks; the same
-redaction applies to connected-agent reviewer packages. Reviewer files are resolved inside the
-repository and must satisfy the same strict JSON contract as command reviewers.
+redaction applies to connected-agent reviewer packages. Freshness uses a separate full-change hash;
+file contents are streamed into it, not retained in task state. Reviewer files are resolved inside
+the dedicated untracked `.noxroot/local/` directory without following links and must satisfy the
+same strict bound JSON contract as command reviewers. Invalid reviewer-file contents are discarded
+rather than persisted as diagnostics.
 
 Negative guarantees are release blockers. A newly discovered path to a preview write, child command,
 agent call, network attempt, secret disclosure, or path escape requires a regression test before

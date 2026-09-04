@@ -8,6 +8,9 @@ import type { ProcessEvidence } from "../src/model.js";
 
 function response(decision: ReviewerResponse["decision"]): ReviewerResponse {
   return {
+    schemaVersion: 2,
+    taskId: "task-fixture",
+    changeId: "a".repeat(64),
     decision,
     summary: `${decision} from deterministic fixture`,
     findings:
@@ -64,6 +67,22 @@ describe("strict reviewer protocol", () => {
     JSON.stringify({ ...response("approved"), findings: [{ severity: "high" }] }),
   ])("rejects ambiguous or incomplete output: %s", (output) => {
     expect(parseReviewerResponse(output)).toBeUndefined();
+  });
+
+  it("rejects a valid decision bound to another task or change", () => {
+    const approved = response("approved");
+    expect(
+      parseReviewerResponse(JSON.stringify(approved), {
+        taskId: "another-task",
+        changeId: approved.changeId,
+      }),
+    ).toBeUndefined();
+    expect(
+      parseReviewerResponse(JSON.stringify(approved), {
+        taskId: approved.taskId,
+        changeId: "b".repeat(64),
+      }),
+    ).toBeUndefined();
   });
 
   it("parses only stdout and blocks invalid output even when stderr says approved", async () => {

@@ -160,11 +160,17 @@ eligible task is active; multiple tasks require an explicit id. Finish validates
 and the policy snapshot, computes the actual diff, and runs matching approved checks. Routine
 checked changes become `completed` without a reviewer. User-facing, security-sensitive, and
 unusually broad diffs produce a review package and may become `review-pending`. Only a schema-valid
-reviewer can produce `approved`. No matching or available check becomes `incomplete`: local handoff
-can continue, but approval cannot. Finish also reports a deterministic documentation/learning
-assessment without a new model call. When no deterministic documentation signal exists,
-documentation is reported as `not-assessed`; an empty deterministic learning assessment is reported
-as `no-candidate`, not as proof that no documentation could help.
+reviewer response bound to the package's task and full-change ids can produce `approved`. A valid
+response for an older or unrelated change is rejected. No matching or available check becomes
+`incomplete`: local handoff can continue, but approval cannot. Finish also reports a deterministic
+documentation/learning assessment without a new model call. When no deterministic documentation
+signal exists, documentation is reported as `not-assessed`; an empty deterministic learning
+assessment is reported as `no-candidate`, not as proof that no documentation could help.
+
+External review evidence must be an untracked regular JSON file under `.noxroot/local/`. Linked,
+tracked, oversized, mismatched, and malformed evidence is rejected; rejected contents are not kept
+in task state. If a check or reviewer changes the repository, prior verification and review evidence
+becomes stale and `finish` must be run again.
 
 ## `learn`
 
@@ -173,7 +179,10 @@ as `no-candidate`, not as proof that no documentation could help.
 become project knowledge merely because it occurred once. Proposals show evidence, expected value,
 duplication/conflict results, content, and whether an executable guardrail is better. `--apply`
 requires confirmation; the first learnings file and index link are written in the same operation.
-Raw prose, task text, sessions, user data, secrets, and external human docs are not converted into
-knowledge. New entries carry a confirmation date and source task id. Noxroot refuses another entry
-when the destination would exceed `context.documentWarningBytes`; existing knowledge must then be
-consolidated or superseded deliberately.
+Candidates are eligible only after an approved review, and only while the complete change still
+matches that approval. Earlier reviewer calls and candidates from failed or superseded attempts are
+not reused. Freshness is checked again after application confirmation. Raw prose, task text,
+sessions, user data, secrets, and external human docs are not converted into knowledge. New entries
+carry a confirmation date and source task id. Noxroot refuses another entry when the destination
+would exceed `context.documentWarningBytes`; existing knowledge must then be consolidated or
+superseded deliberately.

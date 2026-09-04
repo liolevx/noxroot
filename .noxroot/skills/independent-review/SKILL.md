@@ -16,6 +16,9 @@ For automated mode, emit exactly one JSON object and no prose:
 
 ```json
 {
+  "schemaVersion": 2,
+  "taskId": "copy from task package",
+  "changeId": "copy from task package",
   "decision": "approved|changes-requested|blocked",
   "summary": "factual summary",
   "findings": [

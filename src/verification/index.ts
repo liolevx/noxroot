@@ -5,10 +5,13 @@ import { scanRepository } from "../detection/scan.js";
 import type { VerificationCommand, VerificationResult } from "../model.js";
 import { runProcess, type ProcessRequest } from "../adapters/process.js";
 
-function matches(pattern: string, changedPath: string): boolean {
+export function matchesVerificationPath(pattern: string, changedPath: string): boolean {
   const normalized = changedPath.replaceAll("\\", "/");
   if (pattern === "**/*" || pattern === "**") return true;
-  if (pattern.endsWith("/**")) return normalized.startsWith(pattern.slice(0, -3));
+  if (pattern.endsWith("/**")) {
+    const directory = pattern.slice(0, -3).replace(/\/$/, "");
+    return normalized === directory || normalized.startsWith(`${directory}/`);
+  }
   if (pattern.startsWith("**/*.")) return normalized.endsWith(pattern.slice(4));
   if (!pattern.includes("*")) return normalized === pattern;
   const escaped = pattern
@@ -26,8 +29,20 @@ export function selectVerification(
   if (changedPaths.length === 0) return [];
   return commands.filter((command) =>
     command.appliesTo.some((pattern) =>
-      changedPaths.some((changedPath) => matches(pattern, changedPath)),
+      changedPaths.some((changedPath) => matchesVerificationPath(pattern, changedPath)),
     ),
+  );
+}
+
+export function unmatchedVerificationPaths(
+  commands: VerificationCommand[],
+  changedPaths: string[],
+): string[] {
+  return changedPaths.filter(
+    (changedPath) =>
+      !commands.some((command) =>
+        command.appliesTo.some((pattern) => matchesVerificationPath(pattern, changedPath)),
+      ),
   );
 }
 
@@ -113,7 +128,11 @@ export async function executeVerification(
   return results;
 }
 
-export async function changedFiles(root: string, baseRevision?: string): Promise<string[]> {
+export async function changedFiles(
+  root: string,
+  baseRevision?: string,
+  options: { strict?: boolean } = {},
+): Promise<string[]> {
   try {
     const result = await runProcess({
       executable: "git",
@@ -123,7 +142,10 @@ export async function changedFiles(root: string, baseRevision?: string): Promise
       timeoutMs: 10_000,
       outputLimitBytes: 1_000_000,
     });
-    if (result.exitCode !== 0) return [];
+    if (result.exitCode !== 0 || result.outputTruncated) {
+      if (options.strict) throw new Error("Complete changed-path metadata could not be captured.");
+      return [];
+    }
     const parts = result.stdout.split("\0").filter(Boolean);
     const files: string[] = [];
     for (let index = 0; index < parts.length; index += 1) {
@@ -131,7 +153,10 @@ export async function changedFiles(root: string, baseRevision?: string): Promise
       if (!entry || entry.length < 4) continue;
       const status = entry.slice(0, 2);
       files.push(entry.slice(3).replaceAll("\\", "/"));
-      if ((status.includes("R") || status.includes("C")) && parts[index + 1]) index += 1;
+      if ((status.includes("R") || status.includes("C")) && parts[index + 1]) {
+        files.push(parts[index + 1]!.replaceAll("\\", "/"));
+        index += 1;
+      }
     }
     if (baseRevision) {
       const committed = await runProcess({
@@ -142,12 +167,15 @@ export async function changedFiles(root: string, baseRevision?: string): Promise
         timeoutMs: 10_000,
         outputLimitBytes: 1_000_000,
       });
-      if (committed.exitCode === 0) {
+      if (committed.exitCode === 0 && !committed.outputTruncated) {
         files.push(...committed.stdout.split("\0").filter(Boolean));
+      } else if (options.strict) {
+        throw new Error("Complete committed-path metadata could not be captured.");
       }
     }
     return [...new Set(files.map((file) => file.replaceAll("\\", "/")))].sort();
-  } catch {
+  } catch (error) {
+    if (options.strict) throw error;
     return [];
   }
 }

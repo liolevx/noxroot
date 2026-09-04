@@ -49,8 +49,15 @@ evidence belongs in `.noxroot/knowledge/`.
 
 Guided orchestration is a two-command lifecycle. Start persists repository identity, clean revision,
 bounded context, effective autonomy, and a hash of the approved verification policy. Finish derives
-the real diff and affected checks from that snapshot, then emits a portable reviewer package or a
-strict decision. Local state is never treated as application runtime state.
+the real changed paths and approved checks from that snapshot. A full-content change id establishes
+freshness without retaining file contents; separately bounded and redacted diff evidence supports
+display and review. Reviewer decisions must repeat the package's task and change ids. Local state is
+never treated as application runtime state.
+
+Changed-path and Git metadata capture fails closed when bounded process output cannot represent the
+complete change. Unsupported changed directory or submodule surfaces cannot complete. Identity is
+checked again after approved commands and after review so a concurrently changing repository cannot
+inherit earlier evidence. The same task/change binding applies to guided and delegated reviewers.
 
 Completed and approved local records are pruned by age and count after a run finishes. Running,
 incomplete, failed, blocked, review-pending, and malformed recovery evidence is never removed by
@@ -72,15 +79,16 @@ state, memory, and user data are not Noxroot project knowledge. The MVP uses gen
 detection, approved native tests/evals, and the command-adapter protocol; framework-specific
 semantic modules are deferred.
 
-Controlled learning consumes deterministic verification evidence or already parsed structured
-reviewer candidates. Deterministic signatures deduplicate Noxroot-owned knowledge; first creation
-also updates the index. Every proposed entry names its confirmation date and source task. Per-file
-and total corpus bounds prevent accumulated Markdown from silently consuming future context.
-Learning writes are capped at 1,000,000 bytes across Markdown files, including nested files and
-index growth. The limit is rechecked when a proposal is applied. Symbolic-link destinations are
-refused. A full destination requires deliberate consolidation before another write. Canonical
-`.noxroot/skills/*/SKILL.md` files are short, standards-compatible procedures selected through
-ordinary routing, not a new skill runtime or vendor-specific tree.
+Controlled learning consumes the current approved review's structured candidates. It rejects legacy,
+failed, superseded, or subsequently edited task evidence. Deterministic signatures deduplicate
+Noxroot-owned knowledge; first creation also updates the index. Every proposed entry names its
+confirmation date and source task. Per-file and total corpus bounds prevent accumulated Markdown
+from silently consuming future context. Learning writes are capped at 1,000,000 bytes across
+Markdown files, including nested files and index growth. The limit is rechecked when a proposal is
+applied. Symbolic-link destinations are refused. A full destination requires deliberate
+consolidation before another write. Canonical `.noxroot/skills/*/SKILL.md` files are short,
+standards-compatible procedures selected through ordinary routing, not a new skill runtime or
+vendor-specific tree.
 
 Trust boundaries are described in [security.md](security.md). Public behavior belongs in tests
 before it is claimed in the README.

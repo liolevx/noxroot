@@ -43,9 +43,21 @@ it("preserves legacy storage and refuses a second store", async () => {
   await mkdir(legacy);
   await writeRunRecord(root, "existing", { status: "running" });
   expect(await localStateRoot(root)).toBe(legacy);
-  await mkdir(path.join(root, ".noxroot/local"), { recursive: true });
+  await mkdir(path.join(root, ".noxroot/local/runs"), { recursive: true });
   await expect(localStateRoot(root)).rejects.toThrow("Two task-state directories");
   expect(await readFile(path.join(legacy, "runs/existing.json"), "utf8")).toContain("running");
+});
+
+it("allows local review evidence beside legacy task state", async () => {
+  const root = await repository();
+  const legacy = path.join(root, ".git/noxroot");
+  await mkdir(legacy);
+  await writeRunRecord(root, "existing", { status: "running" });
+  await mkdir(path.join(root, ".noxroot/local"), { recursive: true });
+  await writeFile(path.join(root, ".noxroot/local/review.json"), "{}\n");
+
+  expect(await localStateRoot(root)).toBe(legacy);
+  expect(await readRunRecord(root, "existing")).toEqual({ status: "running" });
 });
 
 it("rejects linked local state without modifying the target", async () => {

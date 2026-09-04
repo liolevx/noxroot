@@ -329,7 +329,7 @@ describe("CLI contracts", () => {
     expect(JSON.parse(machine.stdout)).toMatchObject({
       taskId: "completed-task",
       proposals: [],
-      message: "No durable learning identified",
+      message: "Learning requires an approved review of the current unchanged diff",
     });
   });
 });

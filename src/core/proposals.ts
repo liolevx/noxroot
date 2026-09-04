@@ -75,7 +75,7 @@ Inspect the diff independently of worker rationale. Check acceptance criteria, c
 For automated mode, emit exactly one JSON object and no prose:
 
 \`\`\`json
-{"decision":"approved|changes-requested|blocked","summary":"factual summary","findings":[{"severity":"critical|high|medium|low","path":"optional/path","evidence":"specific evidence","requiredOutcome":"required result"}],"learningCandidates":[]}
+{"schemaVersion":2,"taskId":"copy from task package","changeId":"copy from task package","decision":"approved|changes-requested|blocked","summary":"factual summary","findings":[{"severity":"critical|high|medium|low","path":"optional/path","evidence":"specific evidence","requiredOutcome":"required result"}],"learningCandidates":[]}
 \`\`\`
 `;
 
