@@ -14,6 +14,38 @@ const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => Promise.all(cleanup.splice(0).map((operation) => operation())));
 
 describe("initialization, sync safety, context, and doctor", () => {
+  it("routes relevant knowledge added after initialization without widening custom routes", async () => {
+    const fixture = await fixtureCopy("typescript");
+    cleanup.push(fixture.cleanup);
+    await applyProposals(await previewRepository(fixture.root));
+    const lesson = ".noxroot/knowledge/retry-diagnostics.md";
+    await writeFile(
+      path.join(fixture.root, lesson),
+      "# Retry diagnostics\nRetry scheduling messages preserve exact milliseconds for queue metrics.\n",
+    );
+    await writeFile(
+      path.join(fixture.root, ".noxroot/knowledge/INDEX.md"),
+      "# Knowledge\n- [Retry diagnostics](retry-diagnostics.md)\n",
+    );
+    const task = "describe retry scheduling in diagnostic messages";
+    expect((await buildContext(task, fixture.root)).selected.map((item) => item.path)).toContain(
+      lesson,
+    );
+    expect(
+      (await buildContext("format invoice currency", fixture.root)).selected.map(
+        (item) => item.path,
+      ),
+    ).not.toContain(lesson);
+    const custom =
+      "version: 1\nroutes:\n  - id: restricted\n    match: ['**/*']\n    include: ['src/**']\n    exclude: []\n";
+    await writeFile(path.join(fixture.root, ".noxroot/routes.yml"), custom);
+    await applyProposals(await previewRepository(fixture.root));
+    expect(await readFile(path.join(fixture.root, ".noxroot/routes.yml"), "utf8")).toBe(custom);
+    expect(
+      (await buildContext(task, fixture.root)).selected.map((item) => item.path),
+    ).not.toContain(lesson);
+  });
+
   it("reuses local agent instructions even when Git ignores them", async () => {
     const fixture = await fixtureCopy("typescript");
     cleanup.push(fixture.cleanup);

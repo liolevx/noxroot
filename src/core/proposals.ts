@@ -340,7 +340,7 @@ function routesContent(
         include: [
           ...new Set([
             "AGENTS.md",
-            ".noxroot/knowledge/INDEX.md",
+            ".noxroot/knowledge/**",
             ...usefulDocuments(profile, adoption).map((document) => document.path),
             ...skillPaths,
             ...projectRoots,
