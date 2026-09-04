@@ -24,7 +24,7 @@ function record(status: GuidedRunRecord["status"]): GuidedRunRecord {
     ],
     reviewAssessment: {
       required: status === "review-pending",
-      kinds: ["product-ux"],
+      kinds: ["ux"],
       reasons: ["changed navigation"],
     },
     handoff: "Full handoff evidence",
@@ -55,7 +55,7 @@ it("retains failure evidence and retry instructions in default output", () => {
 it("does not turn passing checks into review approval", () => {
   const output = renderGuidedFinish(record("review-pending"), 0, "record.json", {});
   expect(output).toContain("task review-pending");
-  expect(output).toContain("Pending product-ux review");
+  expect(output).toContain("Pending ux review");
   expect(output).toContain("--review-file");
   expect(output).not.toContain("task completed");
 });
@@ -65,4 +65,24 @@ it("keeps detailed handoff evidence available and adds no repeated banner", () =
   expect(output).toContain("Full handoff evidence");
   expect(output).toContain("Local record: record.json");
   expect(output).not.toContain("█");
+});
+
+it("shows why an invalid reviewer response blocked completion", () => {
+  const blocked = record("blocked");
+  blocked.calls = [
+    {
+      role: "reviewer",
+      result: {
+        invoked: false,
+        status: "failed",
+        summary: "Review response was not schema-valid JSON.",
+        output: "",
+        exitCode: null,
+        reviewDecision: "blocked",
+      },
+    },
+  ];
+  const output = renderGuidedFinish(blocked, 0, "record.json", {});
+  expect(output).toContain("Review   blocked: Review response was not schema-valid JSON.");
+  expect(output).not.toContain("Not required");
 });

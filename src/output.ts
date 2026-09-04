@@ -17,9 +17,7 @@ export function renderGuidedFinish(
   if (options.verbose)
     return `${record.handoff}\n\nDocumentation: not assessed automatically.\nLearning: ${proposals} reusable proposal(s).\nLocal record: ${recordPath}\n`;
   const checks = record.verification.at(-1) ?? [];
-  const review = record.calls
-    .flatMap((call) => (call.result.review ? [call.result.review] : []))
-    .at(-1);
+  const reviewResult = record.calls.filter((call) => call.role === "reviewer").at(-1)?.result;
   let next = "Resolve the reported gap or review finding, then retry finish.";
   if (record.status === "failed")
     next = `Fix the failing check, then rerun ${cliCommand("finish")}.`;
@@ -38,7 +36,7 @@ export function renderGuidedFinish(
         `Checks   ${commandText(check.command)} · cwd ${check.command.cwd} · ${check.status}${check.status === "passed" ? "" : `: ${(check.evidence.stderr || check.evidence.stdout).replace(/\s+/g, " ").trim().slice(0, 240)}`}`,
     ),
     ...record.verificationGaps.map((gap) => `Gap      ${gap}`),
-    `Review   ${review ? `${review.decision}: ${review.summary}` : record.reviewAssessment?.required ? `Pending ${record.reviewAssessment.kinds.join("/")} review` : "Not required for this change"}`,
+    `Review   ${reviewResult ? `${reviewResult.review?.decision ?? reviewResult.reviewDecision ?? reviewResult.status}: ${reviewResult.summary}` : record.reviewAssessment?.required ? `Pending ${record.reviewAssessment.kinds.join("/")} review` : "Not required for this change"}`,
     "Docs     Not assessed automatically",
     `Learning ${proposals ? `${proposals} proposal(s); inspect with ${cliCommand(`learn --task ${record.id}`)}` : "No reusable update proposed"}`,
     `Next     ${next}`,
