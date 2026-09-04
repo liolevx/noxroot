@@ -72,9 +72,14 @@ The handoff should name the changed files, commands that ran, failures, and anyt
 Passing checks do not satisfy a required review. A task with incomplete verification is not
 approved.
 
-Useful lessons can be proposed for documentation after the task. Review those proposals before
-applying them. No learning candidate is a valid outcome; every change does not need another
-document.
+If finish reports `review-pending`, run `noxroot review --task ID`. Give its JSON package to a fresh
+coding-agent reviewer, save the strict response under `.noxroot/local/`, and pass that file back to
+`finish --review-file`. Noxroot checks that the response belongs to the current unchanged diff.
+
+Useful lessons can be proposed for documentation only after an approved review of the current
+unchanged diff. Review those proposals before applying them. `Not assessed` means that review did
+not happen; `no candidate` means it did and found nothing reusable. Every change does not need
+another document.
 
 An accepted lesson must also be eligible for the task's context route. Fresh setups include
 `.noxroot/knowledge/**`; relevance and size limits still apply. If an older setup includes only

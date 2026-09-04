@@ -20,7 +20,7 @@ describe("documentation examples", () => {
     expect(readme).toContain(
       "A CLI for project memory, focused task briefs, approved checks, and reusable documentation.",
     );
-    expect(readme).toContain("Then keep talking to your coding agent normally.");
+    expect(readme).toContain("Then keep talking to your coding agent normally;");
     expect(readme).toContain("actions/workflows/ci.yml/badge.svg?branch=main");
     expect(readme).toContain("license-Apache--2.0-blue.svg");
     const output = renderPreview(await previewRepository(path.join(fixtures, "typescript")));

@@ -172,6 +172,18 @@ tracked, oversized, mismatched, and malformed evidence is rejected; rejected con
 in task state. If a check or reviewer changes the repository, prior verification and review evidence
 becomes stale and `finish` must be run again.
 
+## `review`
+
+`review [--task ID]` exposes the reviewer package already prepared by `finish` for a
+`review-pending` task. Human output explains what review is required, why, and how to continue.
+`--json` emits the complete bounded package for a fresh coding-agent reviewer, including the task,
+change ID, changed paths, diff, verification evidence, review reasons, and strict response contract.
+The command is read-only and does not invoke a reviewer.
+
+Save the reviewer's one-object JSON response as an untracked file under `.noxroot/local/`, then pass
+that relative path to `finish --review-file`. Noxroot validates the task and full-change IDs before
+accepting the decision. Editing the repository makes the earlier package and response stale.
+
 ## `learn`
 
 `learn --task ID` accepts structured reviewer candidates of kind `knowledge`, `decision`,
@@ -186,3 +198,7 @@ sessions, user data, secrets, and external human docs are not converted into kno
 carry a confirmation date and source task id. Noxroot refuses another entry when the destination
 would exceed `context.documentWarningBytes`; existing knowledge must then be consolidated or
 superseded deliberately.
+
+Human output distinguishes `not-assessed` from `no-candidate`. The former means there is no approved
+review of the current unchanged diff; the latter means that review ran and identified no reusable
+project knowledge. Neither state changes project memory.
