@@ -1,6 +1,23 @@
 import { expect, it } from "vitest";
-import { renderGuidedFinish } from "../src/output.js";
+import path from "node:path";
+import { buildContext } from "../src/core/context.js";
+import { renderContext, renderGuidedFinish } from "../src/output.js";
 import type { GuidedRunRecord } from "../src/orchestration/guided.js";
+
+it.each([false, true])("uses plain task-brief labels (verbose: %s)", async (verbose) => {
+  const context = await buildContext(
+    "save favourite restaurants",
+    path.resolve("tests/fixtures/nextjs"),
+  );
+  const before = JSON.stringify(context);
+  const output = renderContext(context, { verbose });
+  expect(output).toContain("Relevant files\n");
+  expect(output).toContain("Related tests\n");
+  expect(output).toContain("Checks to run\n");
+  expect(output).not.toMatch(/Likely owner|Likely tests/);
+  expect(output).not.toContain("passed");
+  expect(JSON.stringify(context)).toBe(before);
+});
 
 function record(status: GuidedRunRecord["status"]): GuidedRunRecord {
   return {
