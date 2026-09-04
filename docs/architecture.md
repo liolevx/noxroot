@@ -74,15 +74,16 @@ state, memory, and user data are not Noxroot project knowledge. The MVP uses gen
 detection, approved native tests/evals, and the command-adapter protocol; framework-specific
 semantic modules are deferred.
 
-Controlled learning consumes deterministic verification evidence or already parsed structured
-reviewer candidates. Deterministic signatures deduplicate Noxroot-owned knowledge; first creation
-also updates the index. Every proposed entry names its confirmation date and source task. Per-file
-and total corpus bounds prevent accumulated Markdown from silently consuming future context.
-Learning writes are capped at 1,000,000 bytes across Markdown files, including nested files and
-index growth. The limit is rechecked when a proposal is applied. Symbolic-link destinations are
-refused. A full destination requires deliberate consolidation before another write. Canonical
-`.noxroot/skills/*/SKILL.md` files are short, standards-compatible procedures selected through
-ordinary routing, not a new skill runtime or vendor-specific tree.
+Controlled learning consumes the current approved review's structured candidates. It rejects legacy,
+failed, superseded, or subsequently edited task evidence. Deterministic signatures deduplicate
+Noxroot-owned knowledge; first creation also updates the index. Every proposed entry names its
+confirmation date and source task. Per-file and total corpus bounds prevent accumulated Markdown
+from silently consuming future context. Learning writes are capped at 1,000,000 bytes across
+Markdown files, including nested files and index growth. The limit is rechecked when a proposal is
+applied. Symbolic-link destinations are refused. A full destination requires deliberate
+consolidation before another write. Canonical `.noxroot/skills/*/SKILL.md` files are short,
+standards-compatible procedures selected through ordinary routing, not a new skill runtime or
+vendor-specific tree.
 
 Trust boundaries are described in [security.md](security.md). Public behavior belongs in tests
 before it is claimed in the README.

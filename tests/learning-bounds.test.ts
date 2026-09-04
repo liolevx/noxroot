@@ -1,11 +1,15 @@
+import { execFile } from "node:child_process";
 import { mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
+import { identifyChange } from "../src/adapters/vcs.js";
 import { applyLearning, proposeLearnings, type LearningProposal } from "../src/knowledge/learn.js";
 import type { RunRecord } from "../src/orchestration/run.js";
 import { temporaryDirectory } from "./helpers.js";
 
 const roots: string[] = [];
+const exec = promisify(execFile);
 afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
@@ -17,6 +21,25 @@ async function fullCorpus() {
   // Oversized and nested documents still consume real corpus space.
   await writeFile(path.join(root, ".noxroot/knowledge/archive/existing.md"), "x".repeat(1_000_000));
   return root;
+}
+
+async function approvedCurrentChange<T extends RunRecord>(root: string, run: T) {
+  await exec("git", ["init"], { cwd: root });
+  await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+  await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+  await writeFile(path.join(root, ".learning-evidence"), "baseline\n");
+  await exec("git", ["add", "."], { cwd: root });
+  await exec("git", ["commit", "-m", "learning baseline"], { cwd: root });
+  const revision = (await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+  await writeFile(path.join(root, ".learning-evidence"), "validated change\n");
+  const changedPaths = [".learning-evidence"];
+  return {
+    ...run,
+    mode: "guided" as const,
+    baseline: { revision, status: "" },
+    changedPaths,
+    changeIdentity: await identifyChange(root, revision, changedPaths),
+  };
 }
 
 const proposal: LearningProposal = {
@@ -82,7 +105,7 @@ describe("durable knowledge corpus bounds", () => {
         },
       ],
     };
-    const result = await proposeLearnings(root, run);
+    const result = await proposeLearnings(root, await approvedCurrentChange(root, run));
     expect(result.proposals).toEqual([]);
     expect(result.rejected[0]?.reason).toContain("corpus");
   });

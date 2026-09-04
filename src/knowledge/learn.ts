@@ -2,9 +2,11 @@ import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ReviewerResponse } from "../adapters/agents.js";
+import { identifyChange, type ChangeIdentity } from "../adapters/vcs.js";
 import { loadConfig } from "../config/load.js";
 import type { RunRecord } from "../orchestration/run.js";
 import { resolveWithin } from "../security/paths.js";
+import { changedFiles } from "../verification/index.js";
 
 export type LearningKind = "knowledge" | "decision" | "procedure" | "verification";
 
@@ -146,10 +148,29 @@ function structuredCandidates(run: RunRecord): ReviewerResponse["learningCandida
       learningCandidates?: ReviewerResponse["learningCandidates"];
     }
   ).learningCandidates;
-  return [
-    ...(direct ?? []),
-    ...run.calls.flatMap((call) => call.result.review?.learningCandidates ?? []),
-  ];
+  return direct ?? [];
+}
+
+async function currentApprovedChange(root: string, run: RunRecord): Promise<boolean> {
+  const guided = run as RunRecord & {
+    mode?: unknown;
+    baseline?: { revision?: unknown };
+    changeIdentity?: ChangeIdentity;
+    reviewEvidencePath?: string;
+  };
+  if (
+    run.status !== "approved" ||
+    guided.mode !== "guided" ||
+    typeof guided.baseline?.revision !== "string" ||
+    !guided.changeIdentity
+  ) {
+    return false;
+  }
+  const changedPaths = (await changedFiles(root, guided.baseline.revision)).filter(
+    (changedPath) => changedPath !== guided.reviewEvidencePath,
+  );
+  const current = await identifyChange(root, guided.baseline.revision, changedPaths);
+  return current.changeId === guided.changeIdentity.changeId;
 }
 
 function fromReviewer(
@@ -190,6 +211,14 @@ ${candidate.content.trim()}
 }
 
 export async function proposeLearnings(root: string, run: RunRecord): Promise<LearnResult> {
+  if (!(await currentApprovedChange(root, run))) {
+    return {
+      taskId: run.id,
+      proposals: [],
+      rejected: [],
+      message: "Learning requires an approved review of the current unchanged diff",
+    };
+  }
   const candidates = structuredCandidates(run)
     .map(fromReviewer)
     .filter((candidate): candidate is Candidate => candidate !== undefined);

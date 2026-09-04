@@ -174,7 +174,9 @@ assessment is reported as `no-candidate`, not as proof that no documentation cou
 become project knowledge merely because it occurred once. Proposals show evidence, expected value,
 duplication/conflict results, content, and whether an executable guardrail is better. `--apply`
 requires confirmation; the first learnings file and index link are written in the same operation.
-Raw prose, task text, sessions, user data, secrets, and external human docs are not converted into
-knowledge. New entries carry a confirmation date and source task id. Noxroot refuses another entry
-when the destination would exceed `context.documentWarningBytes`; existing knowledge must then be
-consolidated or superseded deliberately.
+Candidates are eligible only after an approved review, and only while the complete change still
+matches that approval. Earlier reviewer calls and candidates from failed or superseded attempts are
+not reused. Raw prose, task text, sessions, user data, secrets, and external human docs are not
+converted into knowledge. New entries carry a confirmation date and source task id. Noxroot refuses
+another entry when the destination would exceed `context.documentWarningBytes`; existing knowledge
+must then be consolidated or superseded deliberately.

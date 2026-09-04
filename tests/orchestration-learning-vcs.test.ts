@@ -14,6 +14,26 @@ const exec = promisify(execFile);
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => Promise.all(cleanup.splice(0).map((operation) => operation())));
 
+async function approvedCurrentChange<T extends RunRecord>(root: string, run: T) {
+  await exec("git", ["init"], { cwd: root });
+  await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+  await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+  const evidencePath = path.join(root, ".learning-evidence");
+  await writeFile(evidencePath, "baseline\n");
+  await exec("git", ["add", "."], { cwd: root });
+  await exec("git", ["commit", "-m", "learning baseline"], { cwd: root });
+  const revision = (await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+  await writeFile(evidencePath, "validated change\n");
+  const changedPaths = [".learning-evidence"];
+  return {
+    ...run,
+    mode: "guided" as const,
+    baseline: { revision, status: "" },
+    changedPaths,
+    changeIdentity: await identifyChange(root, revision, changedPaths),
+  };
+}
+
 const context: ContextPackage = {
   task: "change greeting",
   interpretation: "bounded greeting change",
@@ -317,7 +337,9 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
     };
     const result = await proposeLearnings(root, run);
     expect(result.proposals).toEqual([]);
-    expect(result.message).toBe("No durable learning identified");
+    expect(result.message).toBe(
+      "Learning requires an approved review of the current unchanged diff",
+    );
     await expect(readFile(path.join(root, ".noxroot", "knowledge"))).rejects.toThrow();
   });
 
@@ -379,7 +401,13 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
         },
       ],
     };
-    const result = await proposeLearnings(root, run);
+    const result = await proposeLearnings(
+      root,
+      await approvedCurrentChange(root, {
+        ...run,
+        learningCandidates: run.calls[0]!.result.review!.learningCandidates,
+      }),
+    );
     expect(result.proposals).toHaveLength(1);
     expect(result.proposals[0]).toMatchObject({
       kind: "decision",
@@ -395,6 +423,36 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
         reason: "Learning may update only a Noxroot-owned Markdown file under .noxroot/knowledge/.",
       },
     ]);
+  });
+
+  it("rejects learning candidates after the approved change is edited", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const run = await approvedCurrentChange(root, {
+      id: "task-stale-learning",
+      task: "validated task",
+      status: "approved" as const,
+      calls: [],
+      verification: [],
+      verificationGaps: [],
+      handoff: "",
+      learningCandidates: [
+        {
+          kind: "knowledge" as const,
+          destination: ".noxroot/knowledge/learnings.md",
+          evidence: ["validated evidence"],
+          expectedValue: "Preserve a stable rule.",
+          content: "This candidate belongs only to the reviewed change.",
+          whyNotExecutable: "It records rationale.",
+        },
+      ],
+    });
+    await writeFile(path.join(root, ".learning-evidence"), "edited after approval\n");
+
+    const result = await proposeLearnings(root, run);
+
+    expect(result.proposals).toEqual([]);
+    expect(result.message).toContain("current unchanged diff");
   });
 
   it("stops learning growth when the destination needs consolidation", async () => {
@@ -430,7 +488,7 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
       ],
     };
 
-    const result = await proposeLearnings(root, run);
+    const result = await proposeLearnings(root, await approvedCurrentChange(root, run));
 
     expect(result.proposals).toEqual([]);
     expect(result.rejected).toEqual([

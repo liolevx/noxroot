@@ -269,8 +269,13 @@ export async function finishGuidedRun(input: {
   const checks = await executeVerification(input.root, commands, {
     ...(input.signal === undefined ? {} : { signal: input.signal }),
   });
+  const freshRecord = { ...record };
+  delete freshRecord.learningCandidates;
+  delete freshRecord.reviewerPackage;
+  delete freshRecord.reviewDecision;
+  delete freshRecord.finishedAt;
   const next: GuidedRunRecord = {
-    ...record,
+    ...freshRecord,
     changedPaths,
     unmatchedChangedPaths,
     ...(reviewEvidencePath === undefined ? {} : { reviewEvidencePath }),
