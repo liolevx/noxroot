@@ -37,6 +37,7 @@ import {
 import { orchestrateRun, type RunRecord } from "./orchestration/run.js";
 import {
   renderContext,
+  renderGuidedFinish,
   renderInitMark,
   renderLearning,
   renderPreview,
@@ -313,6 +314,7 @@ function renderContinuation(
   record: GuidedRunRecord,
   recordPath: string,
   continuation: GuidedContinuationState,
+  verbose = false,
 ): string {
   const changed = continuation.changedPaths.length;
   const changedSummary = changed
@@ -321,13 +323,13 @@ function renderContinuation(
   return `${[
     "Continuing active task",
     `  Outcome: ${record.context.intent.requiredOutcomes[0] ?? record.context.interpretation}`,
-    `  Task: ${record.id}`,
-    `  Baseline: ${record.baseline.revision.slice(0, 12)}`,
+    ...(verbose
+      ? [`  Task: ${record.id}`, `  Baseline: ${record.baseline.revision.slice(0, 12)}`]
+      : []),
     `  Changed: ${changedSummary}`,
     `  Verification: ${continuation.verification.summary}`,
-    "  No duplicate task was created.",
     `Next: ${continuation.nextAction}`,
-    `Local record: ${recordPath}`,
+    ...(verbose ? [`Local record: ${recordPath}`] : ["Details: use --verbose or --json."]),
   ].join("\n")}\n`;
 }
 
@@ -336,20 +338,20 @@ function renderStart(
   context: Awaited<ReturnType<typeof buildContext>>,
   checks: Awaited<ReturnType<typeof planVerification>>,
   recordPath: string,
+  verbose = false,
 ): string {
   return `${[
-    "Preparing",
+    "NOXROOT  task started",
     `  Outcome: ${context.intent.requiredOutcomes[0] ?? context.interpretation}`,
-    `  Exclusions: ${context.intent.explicitExclusions.join("; ") || "none"}`,
+    ...(context.intent.explicitExclusions.length
+      ? [`  Exclusions: ${context.intent.explicitExclusions.join("; ")}`]
+      : []),
     `  Context: ${context.selected.length} relevant files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
     `  Likely area: ${context.applicableAreas.join(", ") || "not yet established"}`,
     `  Checks: ${checks.map((check) => check.id).join(", ") || "none approved yet"}`,
-    "  Coding agent: not invoked (manual mode)",
-    "",
-    "Ready for your coding agent.",
-    `Task: ${id}`,
+    ...(verbose ? ["  Coding agent: not invoked (manual mode)", `Task: ${id}`] : []),
     `Next: make the change, then run ${cliCommand("finish")}.`,
-    `Local record: ${recordPath}`,
+    ...(verbose ? [`Local record: ${recordPath}`] : ["Details: use --verbose or --json."]),
   ].join("\n")}\n`;
 }
 
@@ -534,7 +536,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             renderPreview(preview, {
               ...renderOptions(io, common),
               diff: !options.dryRun,
-              verbose: common.verbose || !options.dryRun,
+              verbose: common.verbose === true,
             }),
           );
         }
@@ -598,7 +600,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             `${renderSyncSummary(summary)}${renderPreview(preview, {
               ...renderOptions(io, common),
               diff: options.diff || !options.dryRun,
-              verbose: common.verbose || options.diff || !options.dryRun,
+              verbose: common.verbose === true,
               next: options.dryRun
                 ? options.diff
                   ? cliCommand("sync --yes")
@@ -753,7 +755,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             continued: true,
             continuation: continuationState,
           },
-          renderContinuation(continuation, recordPath, continuationState),
+          renderContinuation(continuation, recordPath, continuationState, common.verbose),
         );
         return;
       }
@@ -779,7 +781,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
         io,
         common.json,
         { context, record, recordPath, agentInvoked: false },
-        renderStart(id, context, checks, recordPath),
+        renderStart(id, context, checks, recordPath, common.verbose),
       );
     });
 
@@ -851,13 +853,32 @@ export function createProgram(customIo?: Partial<Io>): Command {
             autonomy.worker.authorized,
         };
 
+        const humanPlan = common.verbose
+          ? `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context, renderOptions(io, common))}`
+          : [
+              "NOXROOT  run plan",
+              "",
+              `Task     ${task}`,
+              `Agent    ${plan.adapter}`,
+              `Calls    ${Object.entries(plan.calls)
+                .map(([role, count]) => `${role}: ${count}`)
+                .join(" · ")}`,
+              `Context  ${context.selected.length} files · ~${context.budget.estimatedTokens} tokens`,
+              `Scope    ${plan.writableScope}`,
+              ...checks.map(
+                (check) =>
+                  `Check    ${[check.executable, ...check.args].join(" ")} · cwd ${check.cwd}`,
+              ),
+              `Effects  ${plan.sideEffects.join("; ") || "none"}`,
+              `Prohibited  ${plan.prohibited.join(", ")}`,
+              ...context.intent.explicitExclusions.map((exclusion) => `Do not   ${exclusion}`),
+              ...context.conflicts.map((conflict) => `Conflict ${conflict}`),
+              "Details  Use --verbose for the full plan; --json for structured output.",
+              "",
+            ].join("\n");
+
         if (options.dryRun) {
-          emit(
-            io,
-            common.json,
-            { plan, context },
-            `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context)}`,
-          );
+          emit(io, common.json, { plan, context }, humanPlan);
           return;
         }
         if (options.guided) {
@@ -884,7 +905,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             io,
             common.json,
             { plan, context, record, recordPath },
-            `NOXROOT GUIDED TASK\nTask id: ${id}\nSelected context: ${context.selected.length} files (~${context.budget.estimatedTokens} tokens)\nApproved checks captured: ${checks.length}\nNo agent was invoked.\nNext: ${cliCommand(`finish --task ${id}`)}\nEvidence: ${recordPath}\n`,
+            renderStart(id, context, checks, recordPath, common.verbose),
           );
           return;
         }
@@ -893,7 +914,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
             io,
             common.json,
             { plan, context },
-            `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context)}Next: rerun with --guided to record a completable task.\n`,
+            `${humanPlan}Next: rerun with --guided to record a completable task.\n`,
           );
           return;
         }
@@ -908,11 +929,9 @@ export function createProgram(customIo?: Partial<Io>): Command {
           );
         }
         if (!common.json) {
-          io.stdout(
-            `NOXROOT RUN PLAN\n${JSON.stringify(plan, null, 2)}\n\n${renderContext(context)}`,
-          );
+          io.stdout(humanPlan);
         } else {
-          io.stderr(`NOXROOT RUN PLAN ${JSON.stringify(plan)}\n`);
+          io.stderr("Starting the confirmed delegated run.\n");
         }
         if (!(await confirm(io, "Start this delegated run?", options.yes))) {
           process.exitCode = EXIT.refused;
@@ -1062,7 +1081,12 @@ export function createProgram(customIo?: Partial<Io>): Command {
           io,
           common.json,
           { record: finished, recordPath, completion, learning, retention },
-          `${finished.handoff}\n\nDocumentation\n  Not assessed automatically; no deterministic documentation signal was produced.\n\nLearning\n  ${learning.proposals.length ? `${learning.proposals.length} reusable proposal(s) available; inspect with ${cliCommand(`learn --task ${taskId}`)}.` : "No reusable project-knowledge candidate identified."}\n\nLocal record: ${recordPath}\n`,
+          renderGuidedFinish(
+            finished,
+            learning.proposals.length,
+            recordPath,
+            renderOptions(io, common),
+          ),
         );
         if (controller.signal.aborted) process.exitCode = EXIT.interrupted;
         else if (finished.status === "incomplete") process.exitCode = EXIT.verification;

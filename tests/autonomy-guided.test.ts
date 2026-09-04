@@ -656,10 +656,10 @@ commands:
 
     const result = await cli(["finish", "--root", root]);
     expect(result.stdout).toContain(
-      "missing-check: unavailable | definitely-not-installed-noxroot-check --verify | cwd . | exit not started",
+      "definitely-not-installed-noxroot-check --verify · cwd . · unavailable",
     );
     expect(result.stdout).toContain("Make the approved check runnable");
-    expect(result.stdout).toContain("rerun npx --yes noxroot@0.1.0 finish --task");
+    expect(result.stdout).toContain("rerun npx --yes noxroot@0.1.0 finish.");
     expect(result.stderr).toContain("Inspecting changed files and running affected checks");
     expect(result.stderr).toContain("Assessing reusable learning");
     expect(result.stderr).toContain("Preparing handoff");
