@@ -176,7 +176,7 @@ Not assessed
 No files changed. No project commands or agents ran. No network requests were made.
 
 Next
-  npx --yes noxroot@0.1.1 preview --diff
+  npx --yes noxroot@0.1.2 preview --diff
 ```
 
 </details>

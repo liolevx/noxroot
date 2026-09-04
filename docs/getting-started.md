@@ -106,8 +106,8 @@ for ordinary questions. Local task state is not chat restoration or cross-machin
 Use the pinned version from your repository instructions. For the current release:
 
 ```bash
-npx --yes noxroot@0.1.1 doctor
-npx --yes noxroot@0.1.1 status
+npx --yes noxroot@0.1.2 doctor
+npx --yes noxroot@0.1.2 status
 ```
 
 `doctor` checks configuration; it does not prove your agent follows instructions. `status` shows
