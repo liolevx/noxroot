@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.2 — 2026-09-04
+
+This patch release improves task-context relevance and makes setup, learning, and review state
+clearer without widening Noxroot's execution authority.
+
 ### Improved
 
 - Rank focused implementation and test files ahead of broad historical acceptance harnesses for
@@ -10,6 +15,14 @@
   action.
 - Distinguish learning that was not assessed from an approved assessment with no reusable result.
 - Expose prepared independent-review packages through the read-only `review` command.
+
+### Validated
+
+- Focused owners and related tests stay selected across the 30-case cross-stack context benchmark.
+- The packed CLI lifecycle passes on Windows, macOS, Linux, and supported Node.js versions in CI.
+
+No configuration migration, background service, telemetry, or new agent framework is introduced by
+`0.1.2`.
 
 ## 0.1.1 — 2026-09-04
 
