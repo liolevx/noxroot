@@ -355,18 +355,18 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
           options,
         ),
         ...section(
-          "Likely owner",
+          "Relevant files",
           owners.length ? owners.map(candidatePath) : ["Not established"],
           options,
         ),
         ...section(
-          "Likely tests",
+          "Related tests",
           tests.length ? tests.map(candidatePath) : ["Not established"],
           options,
         ),
         ...section("Also selected", guidance.map(candidatePath), options),
         ...section(
-          "Checks",
+          "Checks to run",
           context.requiredVerification.length
             ? context.requiredVerification.map(
                 (check) => `${commandText(check)} · cwd ${check.cwd}`,
@@ -414,19 +414,19 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
       ANSI.green,
     ),
     ...section(
-      "Likely owner",
+      "Relevant files",
       context.likelyOwningSource.length
         ? context.likelyOwningSource.map(candidatePath)
         : ["Not established"],
       options,
     ),
     ...section(
-      "Likely tests",
+      "Related tests",
       context.likelyTests.length ? context.likelyTests.map(candidatePath) : ["Not established"],
       options,
     ),
     ...section(
-      "Checks",
+      "Checks to run",
       context.requiredVerification.length
         ? context.requiredVerification.map(commandText)
         : ["No approved command is available."],
