@@ -54,15 +54,15 @@ documentation current. If no reusable lesson exists, nothing is added. Completed
 expires after the configured retention window and is capped by count. Active and incomplete work is
 preserved.
 
-Because project knowledge is plain Markdown, you can inspect it in GitHub, your editor, or
-optionally Obsidian. Raw prompts, application sessions, credentials, and user data do not become
-project memory.
+Read project knowledge in GitHub, your editor, or Obsidian. It excludes raw prompts, application
+sessions, credentials, and user data.
 
 ## Checks that match the change
 
-During setup, Noxroot finds existing lint, type-check, test, build, and native eval commands. You
-approve which may run. `finish` applies the relevant checks to the changed paths. Wider or sensitive
-changes can require independent review.
+During setup, Noxroot looks for existing lint, type-check, test, build, and native eval commands.
+Legacy or custom commands may need explicit configuration. You approve which may run. `finish`
+applies the relevant checks to the changed paths. Wider or sensitive changes can require independent
+review.
 
 Noxroot shows which files changed, which commands ran, what passed or failed, and anything it could
 not verify. A missing relevant check produces `incomplete`, never `approved`. Inspect the exact plan
@@ -130,13 +130,15 @@ agent how to check a change; the independent-review and optional product/UX skil
 reviews. Context loading comes from `AGENTS.md`, the knowledge index, and context routes, not a
 generated context skill. Learning comes from `finish` and `learn`, not a generated learning skill.
 
-Skills do not prove that code works. The actual tests, type checks, builds, evals, and review
-results do. An incomplete result can be handed off locally, but it cannot become approved or qualify
-for a future automatic merge. Noxroot does not push, merge, publish, or deploy.
+Skills are instructions, not test evidence. Incomplete work cannot become approved. Noxroot does not
+push, merge, publish, or deploy.
 
 `context "<task>"` is read-only. It does not start a task or run checks. Selection is advisory, not
 permission to edit. "Do not deploy" remains an exclusion; it never activates deployment work. Use
 `start` to record the task baseline and `finish` to check the resulting change.
+
+Large source files can fall outside the brief's budget. Use `--verbose` to inspect selection and
+read relevant source directly.
 
 ## Try the read-only diagnosis
 
