@@ -13,6 +13,7 @@ import { runProcess } from "../src/adapters/process.js";
 import { temporaryDirectory } from "./helpers.js";
 import { createProgram } from "../src/cli.js";
 import { renderGuidedFinish, renderVerification } from "../src/output.js";
+import { VERSION } from "../src/invocation.js";
 
 const cleanup: string[] = [];
 afterEach(async () => {
@@ -340,13 +341,13 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
       current: false,
     });
     expect(second.continuation.nextAction).toBe(
-      "Run npx --yes noxroot@0.1.0 finish when the change is ready to check.",
+      `Run npx --yes noxroot@${VERSION} finish when the change is ready to check.`,
     );
     const brief = await cli(["start", "change the value safely", "--root", root]);
     expect(brief.stdout).toContain("Changed: 1 file since baseline (src/value.ts)");
     expect(brief.stdout).toContain("Verification: Not run for the current diff.");
     expect(brief.stdout).toContain(
-      "Next: Run npx --yes noxroot@0.1.0 finish when the change is ready to check.",
+      `Next: Run npx --yes noxroot@${VERSION} finish when the change is ready to check.`,
     );
     const records = await (
       await import("node:fs/promises")
@@ -471,7 +472,7 @@ commands:
     };
     expect(stale.continuation.verification).toMatchObject({ status: "stale", current: false });
     expect(stale.continuation.nextAction).toBe(
-      "Run npx --yes noxroot@0.1.0 finish when the change is ready to check.",
+      `Run npx --yes noxroot@${VERSION} finish when the change is ready to check.`,
     );
   });
 
@@ -978,7 +979,7 @@ commands:
       "definitely-not-installed-noxroot-check --verify · cwd . · unavailable",
     );
     expect(result.stdout).toContain("Make the approved check runnable");
-    expect(result.stdout).toContain("rerun npx --yes noxroot@0.1.0 finish.");
+    expect(result.stdout).toContain(`rerun npx --yes noxroot@${VERSION} finish.`);
     expect(result.stderr).toContain("Inspecting changed files and running affected checks");
     expect(result.stderr).toContain("Assessing reusable learning");
     expect(result.stderr).toContain("Preparing handoff");

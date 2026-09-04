@@ -3,6 +3,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CommanderError } from "commander";
 import { createProgram } from "../src/cli.js";
+import { VERSION } from "../src/invocation.js";
 import { writeRunRecord } from "../src/state/local.js";
 import { fixtureCopy, hashTree, temporaryDirectory } from "./helpers.js";
 
@@ -38,7 +39,7 @@ describe("CLI contracts", () => {
     const interactive = await run(["--no-color"], { isTTY: true });
     expect(interactive.stdout).toContain("█▄ █  █▀█  ▀▄▀  █▀█  █▀█  █▀█  ▀█▀");
     expect(interactive.stdout).toContain("█ ▀█  █▄█  █ █  █▀▄  █▄█  █▄█   █");
-    expect(interactive.stdout).toContain("◆ 0.1.0");
+    expect(interactive.stdout).toContain(`◆ ${VERSION}`);
     expect(interactive.stdout).toContain("Project memory and verification for coding agents.");
     expect(interactive.stdout).toContain(
       "A CLI for task context, project checks, and reusable documentation.",
@@ -50,7 +51,7 @@ describe("CLI contracts", () => {
     expect(piped.stdout).not.toContain("◆");
 
     const narrow = await run(["--no-color"], { isTTY: true, columns: 44 });
-    expect(narrow.stdout).toContain("NOXROOT ◆ 0.1.0");
+    expect(narrow.stdout).toContain(`NOXROOT ◆ ${VERSION}`);
     expect(narrow.stdout).not.toContain("█▄ █");
   });
 
@@ -150,7 +151,7 @@ describe("CLI contracts", () => {
     expect(concise.stdout).toContain(
       "No files changed. No project commands or agents ran. No network requests were made.",
     );
-    expect(concise.stdout).toContain("Next\n  npx --yes noxroot@0.1.0 preview --diff");
+    expect(concise.stdout).toContain(`Next\n  npx --yes noxroot@${VERSION} preview --diff`);
     expect(concise.stdout).not.toContain("Applicable modules");
     expect(concise.stdout).not.toContain("Files\n  create AGENTS.md");
     expect(concise.stdout).not.toContain("--- /dev/null");
@@ -163,7 +164,7 @@ describe("CLI contracts", () => {
     const exact = await run(["preview", "--diff", "--root", fixture.root]);
     expect(exact.stdout).toContain("Exact proposed changes");
     expect(exact.stdout).toContain("--- /dev/null");
-    expect(exact.stdout).toContain("Next\n  npx --yes noxroot@0.1.0 init");
+    expect(exact.stdout).toContain(`Next\n  npx --yes noxroot@${VERSION} init`);
   });
 
   it("shows the repository pin and running CLI before a read-only sync proposal", async () => {
@@ -182,7 +183,7 @@ describe("CLI contracts", () => {
 
     expect(result.stdout).toContain("NOXROOT  sync");
     expect(result.stdout).toContain("Repository pin  0.0.9");
-    expect(result.stdout).toContain("Running CLI     0.1.0");
+    expect(result.stdout).toContain(`Running CLI     ${VERSION}`);
     expect(result.stdout).toMatch(/Managed changes [1-9]/);
     expect(result.stdout).toContain("Exact proposed changes");
 
@@ -222,7 +223,7 @@ describe("CLI contracts", () => {
     expect(stdout).toContain("Scope\n  Entire repository");
     expect(stdout).toContain("Planned");
     expect(stdout).toContain("npm run typecheck · cwd .");
-    expect(stdout).toContain("Next\n  npx --yes noxroot@0.1.0 verify");
+    expect(stdout).toContain(`Next\n  npx --yes noxroot@${VERSION} verify`);
     expect(stdout).not.toContain("NOXROOT VERIFY PLAN");
   });
 

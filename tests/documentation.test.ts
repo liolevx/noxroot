@@ -6,6 +6,7 @@ import { renderPreview } from "../src/output.js";
 import { fixtures } from "./helpers.js";
 import { parse } from "yaml";
 import { noxrootConfigSchema, verificationConfigSchema } from "../src/config/schema.js";
+import { VERSION } from "../src/invocation.js";
 
 describe("documentation examples", () => {
   it("keeps the README opening and preview excerpt synchronized with a real fixture", async () => {
@@ -30,7 +31,7 @@ describe("documentation examples", () => {
       "Project knowledge",
       "Product and UX guidance",
       "No files changed. No project commands or agents ran. No network requests were made.",
-      "npx --yes noxroot@0.1.0 preview --diff",
+      `npx --yes noxroot@${VERSION} preview --diff`,
     ]) {
       expect(output).toContain(line);
       expect(readme).toContain(line);
@@ -80,7 +81,7 @@ describe("documentation examples", () => {
       }
     }
     const commands = await readFile(path.resolve("docs/commands.md"), "utf8");
-    expect(commands).toContain("npx --yes noxroot@0.1.0");
+    expect(commands).toContain(`npx --yes noxroot@${VERSION}`);
     expect(commands).toContain("`Relevant files`, `Related tests`, and `Checks to run`");
     const security = await readFile(path.resolve("docs/security.md"), "utf8");
     expect(security).toContain("the full `npx` invocation is not guaranteed offline");
