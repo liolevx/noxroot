@@ -136,6 +136,16 @@ independent [alias-root review](alias-root-review-2026-09-04.json) approved the 
 on the latest PR commit determine whether the Windows/macOS correction is confirmed; successful
 local runs alone are not evidence of a passing CI result.
 
+The next CI run passed macOS and all Windows unit tests, but the Windows installed-package smoke
+still failed on a `RUNNER~1` temporary path. Independent local probes confirmed that `realpathSync`
+preserves Windows short names while `realpathSync.native` and the asynchronous destination validator
+expand them. CLI root selection now uses the native resolver. The packed smoke keeps its raw
+temporary path and asserts canonical repository and record-path identity. Destination guards remain
+unchanged. Full local Windows validation passed again, including package smoke. The
+[short-path review](short-path-review-2026-09-04.json) approved the correction; the latest PR checks
+remain the cross-platform release gate. Package size after this correction is 124,395 bytes, up 346
+bytes from the preceding candidate; unpacked size is 400,098 bytes.
+
 `legacy-workflows.mjs` takes an explicitly prepared `/tmp/noxroot-legacy-acceptance-*` directory
 containing inspected pinned `underscore/`, `bottle/`, and built `old-source/` directories. It
 installs the packed CLIs and runs the three workflows. `live-legacy-denial.mjs` takes that directory
