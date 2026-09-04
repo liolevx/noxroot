@@ -1,0 +1,6 @@
+{
+  "decision": "approved",
+  "summary": "Re-reviewed the docs-only corrections. README and Getting started now require reviewed setup changes to be committed before the first task, explicitly preserving unrelated edits. Adapter documentation correctly includes automated review during finish while keeping manual mode the normal default. The generic onboarding, npm-download versus runtime-preview boundary, uncertainty disclosures, and safety limits remain accurate. All 8 focused documentation tests and git diff --check passed. Both previous findings are resolved. No reviewer edits or publication actions were performed.",
+  "findings": [],
+  "learningCandidates": []
+}

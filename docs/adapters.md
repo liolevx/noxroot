@@ -1,5 +1,10 @@
 # Agent and verification adapters
 
+You do not need to configure an adapter to use Noxroot with your existing coding agent. After setup,
+compatible agents follow the repository instructions and call the CLI themselves. Command adapters
+let Noxroot launch optional delegated workers through `run` or automated reviewers through `run` and
+`finish`.
+
 ## Manual
 
 The default adapter emits the complete task package for use in any agent or chat. It reports zero
@@ -13,6 +18,10 @@ receives one JSON line on standard input:
 ```json
 { "role": "worker", "taskPackage": { "task": "..." } }
 ```
+
+The executable must understand this protocol. A vendor CLI name alone does not make it compatible;
+use documented arguments or a wrapper that translates the task package. Install and authenticate
+that tool separately. Noxroot does not supply provider accounts, credentials, or model access.
 
 Roles are `worker`, `repair`, and `reviewer`. An automated reviewer must write exactly one JSON
 object to standard output with `decision`, `summary`, `findings`, and `learningCandidates`. Findings

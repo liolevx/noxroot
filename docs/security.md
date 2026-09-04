@@ -1,7 +1,7 @@
 # Security and privacy model
 
-Repository contents and agent output are untrusted. Detection follows neither symlinks nor
-repository instructions, skips built-in generated/vendor directories, applies common `.gitignore`
+Repository contents and agent output are untrusted. Detection does not follow symlinks or execute
+repository instructions. It skips built-in generated/vendor directories, applies common `.gitignore`
 rules, and never reads suspected secret files. Paths proposed for reads, writes, and process working
 directories are resolved against the selected repository. Ordinary source and documentation remain
 data; only designated Noxroot configuration and repository instruction files receive semantics.
@@ -9,8 +9,10 @@ data; only designated Noxroot configuration and repository instruction files rec
 Preview has no injected write, process, agent, network, telemetry, or local-state capability. Its
 implementation uses canonical path resolution and bounded filesystem inspection only. Tests hash the
 full fixture tree before and after preview, use scripts that would leave a marker if executed, block
-symlink escapes, and assert secret values never reach output. Package-manager retrieval, when a user
-chooses it after publication, occurs outside the runtime preview boundary.
+symlink escapes, and assert secret values never reach output. `npx` may contact npm to download the
+CLI and its dependencies before Noxroot starts. That retrieval is outside the runtime preview
+boundary; the full `npx` invocation is not guaranteed offline. Generated lifecycle instructions pin
+the package version. Review `sync --dry-run --diff` before changing that pin.
 
 Mutating setup shows complete patches, rechecks target absence or the reviewed content hash, and
 refuses symbolic links and junctions at write destinations or their ancestors. It checks all

@@ -3,8 +3,13 @@
 Noxroot is one Node.js/TypeScript package. The CLI layer parses input and keeps machine output
 separate from diagnostics. Core functions return typed values and do not write implicitly. Detection
 uses bounded filesystem APIs, groups repeated monorepo evidence, and never runs project code or an
-LLM. Proposal generation produces complete file contents and unified creation patches.
-Initialization is the only component that applies those proposals.
+LLM. Proposal generation produces complete file contents and unified creation patches. The shared
+setup writer applies those proposals for `init` and `sync`.
+
+The npm package runs locally; distribution does not add a hosted service or a second agent. In the
+normal workflow, an existing coding agent invokes `start` and `finish` through repository
+instructions. The optional `run` adapter is a separate delegated workflow, not an onboarding
+requirement. New CLI versions do not silently migrate task state or replace repository-owned rules.
 
 Root `AGENTS.md` and `CLAUDE.md` remain instruction evidence when Git ignores them. Explicit
 sensitive-path exclusions and symlink protections still apply. Ordinary ignored files stay excluded.

@@ -1,5 +1,14 @@
 # Command reference
 
+## Run from npm
+
+From your repository directory, run `npx noxroot@latest preview` to inspect setup without writing
+files, then `npx noxroot@latest init` when ready. Requires Node.js `>=22.12 <27` and npm.
+
+Commands below use `noxroot` as shorthand. Without a global installation, use
+`npx --yes noxroot@0.1.0` in its place, or the version pinned in your repository instructions.
+Compatible agents handle `start` and `finish`; you do not need to type them for each conversation.
+
 ## Global behavior
 
 `noxroot --help`, `noxroot <command> --help`, and `noxroot --version` are stable discovery surfaces.
@@ -38,9 +47,10 @@ to one contained project with `--root` before initialization.
 
 ## `init` and `sync`
 
-`init` creates only files in the reviewed proposal. It checks every target again before writing,
-writes each file through a same-directory temporary file, and rolls back files it created if the
-operation fails. Existing files are never overwritten.
+`init` applies only reviewed file creations and managed patches. It checks every target before
+writing, guards patches with the reviewed content hash, and writes through same-directory temporary
+files. On failure it attempts to restore patched files and remove newly created files. Unmanaged
+content is preserved; setup is not a transaction against concurrent filesystem changes.
 
 Explicitly referenced project knowledge, task routes, Agent Skills, and documented verification
 wrappers are reused rather than copied. Noxroot does not integrate with or replace an existing
@@ -70,10 +80,14 @@ does not broadly rewrite the repository.
 
 ## `context`
 
-`context "task"` shows the outcome, a bounded selection of paths, likely source and tests, approved
-checks with their working directories, an exclusion count, and estimated tokens. Exclusions and
-conflicts remain visible. `--verbose` adds every selected path, selection reasons, individual
+`context "task"` shows the outcome, a bounded selection of paths, relevant files and related tests,
+approved checks with their working directories, an exclusion count, and estimated tokens. Exclusions
+and conflicts remain visible. `--verbose` adds every selected path, selection reasons, individual
 exclusions, unknowns, and byte counts. JSON retains the complete bounded context package.
+
+The human headings are `Relevant files`, `Related tests`, and `Checks to run`. Selection is
+advisory; listed checks have not run. JSON keeps the existing `likelyOwningSource`, `likelyTests`,
+and `requiredVerification` fields.
 
 Large source and test files can be selected as up to three line ranges rather than whole files.
 Human output labels these as partial. JSON adds `lineRanges` (one-based, inclusive) and
