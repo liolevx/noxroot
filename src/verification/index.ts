@@ -128,7 +128,11 @@ export async function executeVerification(
   return results;
 }
 
-export async function changedFiles(root: string, baseRevision?: string): Promise<string[]> {
+export async function changedFiles(
+  root: string,
+  baseRevision?: string,
+  options: { strict?: boolean } = {},
+): Promise<string[]> {
   try {
     const result = await runProcess({
       executable: "git",
@@ -138,7 +142,10 @@ export async function changedFiles(root: string, baseRevision?: string): Promise
       timeoutMs: 10_000,
       outputLimitBytes: 1_000_000,
     });
-    if (result.exitCode !== 0) return [];
+    if (result.exitCode !== 0 || result.outputTruncated) {
+      if (options.strict) throw new Error("Complete changed-path metadata could not be captured.");
+      return [];
+    }
     const parts = result.stdout.split("\0").filter(Boolean);
     const files: string[] = [];
     for (let index = 0; index < parts.length; index += 1) {
@@ -157,12 +164,15 @@ export async function changedFiles(root: string, baseRevision?: string): Promise
         timeoutMs: 10_000,
         outputLimitBytes: 1_000_000,
       });
-      if (committed.exitCode === 0) {
+      if (committed.exitCode === 0 && !committed.outputTruncated) {
         files.push(...committed.stdout.split("\0").filter(Boolean));
+      } else if (options.strict) {
+        throw new Error("Complete committed-path metadata could not be captured.");
       }
     }
     return [...new Set(files.map((file) => file.replaceAll("\\", "/")))].sort();
-  } catch {
+  } catch (error) {
+    if (options.strict) throw error;
     return [];
   }
 }

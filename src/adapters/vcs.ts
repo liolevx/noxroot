@@ -90,6 +90,16 @@ export async function identifyChange(
   const hash = createHash("sha256");
   hash.update("noxroot-change-identity-v1\0");
   hash.update(baselineRevision);
+  const trackedMetadata = await git(
+    root,
+    ["diff", "--raw", "--no-abbrev", "-z", baselineRevision, "--"],
+    1_000_000,
+  );
+  if (trackedMetadata.exitCode !== 0 || trackedMetadata.outputTruncated) {
+    throw new Error("Complete Git change metadata could not be captured safely.");
+  }
+  hash.update("\0git-raw\0");
+  hash.update(trackedMetadata.stdout);
 
   for (const relative of normalizedPaths) {
     const absolute = resolveWithin(root, relative);
@@ -106,12 +116,11 @@ export async function identifyChange(
       throw error;
     }
 
-    hash.update(`\0mode:${entry.mode.toString(8)}\0size:${entry.size}`);
     if (entry.isSymbolicLink()) {
       hash.update("\0symlink\0");
       hash.update(await readlink(absolute));
     } else if (entry.isFile()) {
-      hash.update("\0file\0");
+      hash.update(`\0file\0size:${entry.size}\0`);
       await new Promise<void>((resolve, reject) => {
         const stream = createReadStream(absolute);
         stream.on("data", (chunk) => hash.update(chunk));

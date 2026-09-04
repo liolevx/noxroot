@@ -101,9 +101,9 @@ export async function inspectGuidedContinuation(
   record: GuidedRunRecord,
   sensitivePaths: string[] = [],
 ): Promise<GuidedContinuationState> {
-  const changedPaths = (await changedFiles(root, record.baseline.revision)).filter(
-    (changedPath) => changedPath !== record.reviewEvidencePath,
-  );
+  const changedPaths = (
+    await changedFiles(root, record.baseline.revision, { strict: true })
+  ).filter((changedPath) => changedPath !== record.reviewEvidencePath);
   const currentIdentity = await identifyChange(root, record.baseline.revision, changedPaths);
   const latestChecks = record.verification.at(-1) ?? [];
   let status: ContinuationVerificationStatus;
@@ -249,9 +249,9 @@ export async function finishGuidedRun(input: {
   const reviewEvidencePath = input.reviewFile
     ? path.relative(input.root, resolveWithin(input.root, input.reviewFile)).replaceAll("\\", "/")
     : undefined;
-  const changedPaths = (await changedFiles(input.root, record.baseline.revision)).filter(
-    (changedPath) => changedPath !== reviewEvidencePath,
-  );
+  const changedPaths = (
+    await changedFiles(input.root, record.baseline.revision, { strict: true })
+  ).filter((changedPath) => changedPath !== reviewEvidencePath);
   for (const changedPath of changedPaths) resolveWithin(input.root, changedPath);
   const diff = await diffFromRevision(
     input.root,

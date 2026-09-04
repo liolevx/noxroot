@@ -166,9 +166,9 @@ async function currentApprovedChange(root: string, run: RunRecord): Promise<bool
   ) {
     return false;
   }
-  const changedPaths = (await changedFiles(root, guided.baseline.revision)).filter(
-    (changedPath) => changedPath !== guided.reviewEvidencePath,
-  );
+  const changedPaths = (
+    await changedFiles(root, guided.baseline.revision, { strict: true })
+  ).filter((changedPath) => changedPath !== guided.reviewEvidencePath);
   const current = await identifyChange(root, guided.baseline.revision, changedPaths);
   return current.changeId === guided.changeIdentity.changeId;
 }
