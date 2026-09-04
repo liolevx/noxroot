@@ -17,7 +17,13 @@ export function renderGuidedFinish(
   if (options.verbose)
     return `${record.handoff}\n\nDocumentation: not assessed automatically.\nLearning: ${proposals} reusable proposal(s).\nLocal record: ${recordPath}\n`;
   const checks = record.verification.at(-1) ?? [];
-  const reviewResult = record.calls.filter((call) => call.role === "reviewer").at(-1)?.result;
+  // Calls are historical. Only review-result states without a verification gap
+  // can use the latest call as the current completion attempt's decision.
+  const reviewResult =
+    ["approved", "changes-requested", "blocked"].includes(record.status) &&
+    record.verificationGaps.length === 0
+      ? record.calls.filter((call) => call.role === "reviewer").at(-1)?.result
+      : undefined;
   let next = "Resolve the reported gap or review finding, then retry finish.";
   if (record.status === "failed")
     next = `Fix the failing check, then rerun ${cliCommand("finish")}.`;

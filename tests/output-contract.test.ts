@@ -86,3 +86,74 @@ it("shows why an invalid reviewer response blocked completion", () => {
   expect(output).toContain("Review   blocked: Review response was not schema-valid JSON.");
   expect(output).not.toContain("Not required");
 });
+
+it.each(["review-pending", "failed", "incomplete", "completed"] as const)(
+  "does not present a historical review as current when %s",
+  (status) => {
+    const current = record(status);
+    current.calls = [
+      {
+        role: "reviewer",
+        result: {
+          invoked: false,
+          status: "completed",
+          summary: "Approved previous diff",
+          output: "",
+          exitCode: 0,
+          reviewDecision: "approved",
+        },
+      },
+    ];
+    const output = renderGuidedFinish(current, 0, "record.json", {});
+    expect(output).not.toContain("Approved previous diff");
+    expect(output).not.toContain("Review   approved");
+    if (status === "review-pending") expect(output).toContain("Pending ux review");
+  },
+);
+
+it("does not show an old blocked review after a new verification gap", () => {
+  const current = record("blocked");
+  current.verificationGaps = ["No repository change was detected from the recorded baseline."];
+  current.calls = [
+    {
+      role: "reviewer",
+      result: {
+        invoked: false,
+        status: "failed",
+        summary: "Old invalid review",
+        output: "",
+        exitCode: null,
+        reviewDecision: "blocked",
+      },
+    },
+  ];
+  expect(renderGuidedFinish(current, 0, "record.json", {})).not.toContain("Old invalid review");
+});
+
+it.each(["approved", "changes-requested", "blocked"] as const)(
+  "keeps a current %s decision, but not after another pending attempt",
+  (decision) => {
+    const current = record(decision);
+    current.calls = [
+      {
+        role: "reviewer",
+        result: {
+          invoked: false,
+          status: "completed",
+          summary: "Current review result",
+          output: "",
+          exitCode: 0,
+          reviewDecision: decision,
+        },
+      },
+    ];
+    expect(renderGuidedFinish(current, 0, "record.json", {})).toContain(
+      `Review   ${decision}: Current review result`,
+    );
+    current.status = "review-pending";
+    current.reviewAssessment!.required = true;
+    const pending = renderGuidedFinish(current, 0, "record.json", {});
+    expect(pending).toContain("Pending ux review");
+    expect(pending).not.toContain("Current review result");
+  },
+);
