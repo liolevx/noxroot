@@ -1,6 +1,16 @@
 import { spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -272,6 +282,12 @@ try {
   const guided = (...args) =>
     JSON.parse(invokeBinary(binary, [...args, "--root", guidedRoot, "--json"], installRoot));
   const started = guided("start", "change value");
+  // Keep the caller's raw temp path above: Windows CI may supply an 8.3 alias.
+  assert.equal(started.record.repository.root, await realpath(guidedRoot));
+  assert.equal(
+    path.dirname(path.dirname(path.dirname(started.recordPath))),
+    path.join(await realpath(guidedRoot), ".noxroot"),
+  );
   assert.ok(started.recordPath.includes(path.join(".noxroot", "local", "runs")));
   assert.equal(run("git", ["status", "--porcelain"], { cwd: guidedRoot }).trim(), "");
   await writeFile(path.join(guidedRoot, "src/value.mjs"), "export const value = ;\n");

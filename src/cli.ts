@@ -129,7 +129,7 @@ function globals(command: Command): GlobalOptions {
   const options = command.optsWithGlobals<GlobalOptions>();
   // Resolve the user-selected root once at the CLI boundary, as preview does.
   // Destination checks still reject later redirects and nested writable links.
-  return { ...options, root: realpathSync(options.root) };
+  return { ...options, root: realpathSync.native(options.root) };
 }
 
 function renderOptions(io: Io, options: GlobalOptions): RenderOptions {
