@@ -179,7 +179,12 @@ commands:
 
     const pending = await cli(["finish", "--json", "--root", root]);
     const pendingValue = JSON.parse(pending.stdout) as {
-      record: { status: string; calls: unknown[] };
+      record: {
+        id: string;
+        status: string;
+        calls: unknown[];
+        changeIdentity: { changeId: string };
+      };
       completion: { documentation: { status: string }; learning: { status: string } };
     };
     expect(pendingValue.record.status).toBe("completed");
@@ -191,6 +196,9 @@ commands:
     await writeFile(
       reviewPath,
       JSON.stringify({
+        schemaVersion: 2,
+        taskId: pendingValue.record.id,
+        changeId: pendingValue.record.changeIdentity.changeId,
         decision: "approved",
         summary: "The actual diff and affected check passed.",
         findings: [],
@@ -561,6 +569,30 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     await writeFile(
       path.join(root, reviewPath),
       JSON.stringify({
+        schemaVersion: 2,
+        taskId: pending.id,
+        changeId: "0".repeat(64),
+        decision: "approved",
+        summary: "This approval belongs to a different change.",
+        findings: [],
+        learningCandidates: [],
+      }),
+    );
+    const mismatched = await finishGuidedRun({
+      root,
+      record: pending,
+      adapter: new ManualAgentAdapter(),
+      reviewAuthorized: false,
+      reviewFile: reviewPath,
+    });
+    expect(mismatched.status).toBe("blocked");
+
+    await writeFile(
+      path.join(root, reviewPath),
+      JSON.stringify({
+        schemaVersion: 2,
+        taskId: pending.id,
+        changeId: pending.changeIdentity!.changeId,
         decision: "approved",
         summary: "The bounded change and check evidence are acceptable.",
         findings: [],

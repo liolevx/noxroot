@@ -28,6 +28,9 @@ export interface AgentResult {
 
 export const reviewerResponseSchema = z
   .object({
+    schemaVersion: z.literal(2),
+    taskId: z.string().trim().min(1).max(200),
+    changeId: z.string().regex(/^[a-f0-9]{64}$/),
     decision: z.enum(["approved", "changes-requested", "blocked"]),
     summary: z.string().trim().min(1).max(2_000),
     findings: z
@@ -95,11 +98,21 @@ export class ManualAgentAdapter implements AgentAdapter {
   }
 }
 
-export function parseReviewerResponse(output: string): ReviewerResponse | undefined {
+export function parseReviewerResponse(
+  output: string,
+  expected?: { taskId: string; changeId: string },
+): ReviewerResponse | undefined {
   try {
     const decoded: unknown = JSON.parse(output);
     const parsed = reviewerResponseSchema.safeParse(decoded);
-    return parsed.success ? parsed.data : undefined;
+    if (!parsed.success) return undefined;
+    if (
+      expected &&
+      (parsed.data.taskId !== expected.taskId || parsed.data.changeId !== expected.changeId)
+    ) {
+      return undefined;
+    }
+    return parsed.data;
   } catch {
     return undefined;
   }
@@ -171,9 +184,14 @@ export class CommandAgentAdapter implements AgentAdapter {
         exitCode: evidence.exitCode,
       };
       if (request.role === "reviewer") {
+        const candidate = request.package as { taskId?: unknown; changeId?: unknown };
+        const expected =
+          typeof candidate.taskId === "string" && typeof candidate.changeId === "string"
+            ? { taskId: candidate.taskId, changeId: candidate.changeId }
+            : undefined;
         const review =
           evidence.exitCode === 0 && !evidence.outputTruncated
-            ? parseReviewerResponse(evidence.stdout)
+            ? parseReviewerResponse(evidence.stdout, expected)
             : undefined;
         if (review) {
           result.review = review;

@@ -342,6 +342,9 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
             exitCode: 0,
             reviewDecision: "approved",
             review: {
+              schemaVersion: 2,
+              taskId: "task-structured",
+              changeId: "a".repeat(64),
               decision: "approved",
               summary: "review complete",
               findings: [],

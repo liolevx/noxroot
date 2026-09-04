@@ -325,6 +325,9 @@ export async function finishGuidedRun(input: {
   }
 
   const reviewerPackage = {
+    schemaVersion: 2,
+    taskId: record.id,
+    changeId: changeIdentity.changeId,
     task: record.task,
     context: record.context,
     changedPaths,
@@ -332,6 +335,9 @@ export async function finishGuidedRun(input: {
     verification: checks,
     reviewAssessment,
     responseContract: {
+      schemaVersion: 2,
+      taskId: record.id,
+      changeId: changeIdentity.changeId,
       decision: "approved | changes-requested | blocked",
       summary: "short factual summary",
       findings: ["severity, optional path, evidence, requiredOutcome"],
@@ -342,7 +348,10 @@ export async function finishGuidedRun(input: {
   let reviewResult: AgentResult | undefined;
   if (input.reviewFile) {
     const source = await readFile(resolveWithin(input.root, input.reviewFile), "utf8");
-    const review = parseReviewerResponse(source);
+    const review = parseReviewerResponse(source, {
+      taskId: record.id,
+      changeId: changeIdentity.changeId,
+    });
     reviewResult = review
       ? {
           invoked: false,

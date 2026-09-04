@@ -23,13 +23,15 @@ The executable must understand this protocol. A vendor CLI name alone does not m
 use documented arguments or a wrapper that translates the task package. Install and authenticate
 that tool separately. Noxroot does not supply provider accounts, credentials, or model access.
 
-Roles are `worker`, `repair`, and `reviewer`. An automated reviewer must write exactly one JSON
-object to standard output with `decision`, `summary`, `findings`, and `learningCandidates`. Findings
-require severity, evidence, and required outcome; optional paths are repository-relative. Prose,
-additional text, missing fields, unknown fields, truncated output, nonzero exit, and a decision
-printed only on standard error all block approval. Diagnostics remain separate on standard error.
-Every invocation is a fresh process. Noxroot does not use a shell, interpolate repository text into
-arguments, bypass permissions, or promise undocumented vendor flags.
+Roles are `worker`, `repair`, and `reviewer`. An automated reviewer must write exactly one version 2
+JSON object to standard output. It must copy `taskId` and `changeId` from the reviewer package, then
+provide `decision`, `summary`, `findings`, and `learningCandidates`. This binding prevents an older
+or unrelated review from approving the current change. Findings require severity, evidence, and
+required outcome; optional paths are repository-relative. Prose, additional text, missing fields,
+unknown fields, a mismatched id, truncated output, nonzero exit, and a decision printed only on
+standard error all block approval. Diagnostics remain separate on standard error. Every invocation
+is a fresh process. Noxroot does not use a shell, interpolate repository text into arguments, bypass
+permissions, or promise undocumented vendor flags.
 
 Before delegated implementation, preflight resolves the configured executable, validates literal
 arguments, checks repository write access and a committed Git baseline, and confirms executables for

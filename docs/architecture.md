@@ -49,8 +49,10 @@ evidence belongs in `.noxroot/knowledge/`.
 
 Guided orchestration is a two-command lifecycle. Start persists repository identity, clean revision,
 bounded context, effective autonomy, and a hash of the approved verification policy. Finish derives
-the real diff and affected checks from that snapshot, then emits a portable reviewer package or a
-strict decision. Local state is never treated as application runtime state.
+the real changed paths and approved checks from that snapshot. A full-content change id establishes
+freshness without retaining file contents; separately bounded and redacted diff evidence supports
+display and review. Reviewer decisions must repeat the package's task and change ids. Local state is
+never treated as application runtime state.
 
 Completed and approved local records are pruned by age and count after a run finishes. Running,
 incomplete, failed, blocked, review-pending, and malformed recovery evidence is never removed by
