@@ -54,6 +54,11 @@ freshness without retaining file contents; separately bounded and redacted diff 
 display and review. Reviewer decisions must repeat the package's task and change ids. Local state is
 never treated as application runtime state.
 
+Changed-path and Git metadata capture fails closed when bounded process output cannot represent the
+complete change. Unsupported changed directory or submodule surfaces cannot complete. Identity is
+checked again after approved commands and after review so a concurrently changing repository cannot
+inherit earlier evidence. The same task/change binding applies to guided and delegated reviewers.
+
 Completed and approved local records are pruned by age and count after a run finishes. Running,
 incomplete, failed, blocked, review-pending, and malformed recovery evidence is never removed by
 automatic retention.

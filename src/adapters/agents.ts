@@ -190,7 +190,7 @@ export class CommandAgentAdapter implements AgentAdapter {
             ? { taskId: candidate.taskId, changeId: candidate.changeId }
             : undefined;
         const review =
-          evidence.exitCode === 0 && !evidence.outputTruncated
+          evidence.exitCode === 0 && !evidence.outputTruncated && expected
             ? parseReviewerResponse(evidence.stdout, expected)
             : undefined;
         if (review) {

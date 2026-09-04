@@ -79,6 +79,11 @@ export async function revisionInCurrentHistory(root: string, revision: string): 
   return result.exitCode === 0;
 }
 
+export async function isTrackedPath(root: string, relativePath: string): Promise<boolean> {
+  const result = await git(root, ["ls-files", "--error-unmatch", "--", relativePath]);
+  return result.exitCode === 0;
+}
+
 export async function identifyChange(
   root: string,
   baselineRevision: string,
@@ -98,6 +103,15 @@ export async function identifyChange(
   if (trackedMetadata.exitCode !== 0 || trackedMetadata.outputTruncated) {
     throw new Error("Complete Git change metadata could not be captured safely.");
   }
+  const untrackedMetadata = await git(
+    root,
+    ["ls-files", "--others", "--exclude-standard", "-z"],
+    1_000_000,
+  );
+  if (untrackedMetadata.exitCode !== 0 || untrackedMetadata.outputTruncated) {
+    throw new Error("Complete untracked change metadata could not be captured safely.");
+  }
+  const untrackedPaths = new Set(untrackedMetadata.stdout.split("\0").filter(Boolean));
   hash.update("\0git-raw\0");
   hash.update(trackedMetadata.stdout);
 
@@ -121,6 +135,9 @@ export async function identifyChange(
       hash.update(await readlink(absolute));
     } else if (entry.isFile()) {
       hash.update(`\0file\0size:${entry.size}\0`);
+      if (untrackedPaths.has(relative)) {
+        hash.update(entry.mode & 0o111 ? "executable\0" : "not-executable\0");
+      }
       await new Promise<void>((resolve, reject) => {
         const stream = createReadStream(absolute);
         stream.on("data", (chunk) => hash.update(chunk));
@@ -128,7 +145,9 @@ export async function identifyChange(
         stream.on("end", resolve);
       });
     } else if (entry.isDirectory()) {
-      hash.update("\0directory");
+      throw new Error(
+        `Complete change identity does not support changed directory or submodule path: ${relative}`,
+      );
     } else {
       hash.update("\0other");
     }
@@ -208,7 +227,8 @@ export async function diffFromRevision(
     if (remaining <= 0) break;
     const absolute = resolveWithin(root, relative);
     const file = await lstat(absolute);
-    const header = `\ndiff --git a/${relative} b/${relative}\nnew file mode ${file.isSymbolicLink() ? "120000" : "100644"}\n--- /dev/null\n+++ b/${relative}\n`;
+    const mode = file.isSymbolicLink() ? "120000" : file.mode & 0o111 ? "100755" : "100644";
+    const header = `\ndiff --git a/${relative} b/${relative}\nnew file mode ${mode}\n--- /dev/null\n+++ b/${relative}\n`;
     let body: string;
     if (isSuspectedSecret(relative) || matchesSensitivePath(relative, sensitivePaths)) {
       body = `Content omitted for sensitive path ${relative}.\n`;

@@ -46,7 +46,10 @@ export async function localStateRoot(root: string): Promise<string> {
   if (!(await pathType(path.join(root, ".git")))) return legacy;
   const local = await setupDestination(root, ".noxroot/local");
   if (await pathType(legacy)) {
-    if (await pathType(local)) {
+    // Review evidence is intentionally placed under .noxroot/local, including in
+    // repositories whose older task records still live under .git/noxroot. Only
+    // a runs entry makes the local directory a competing task-state store.
+    if (await pathType(path.join(local, "runs"))) {
       throw new TaskStateError(
         "Two task-state directories exist. Stop and reconcile the existing records before retrying; neither directory was changed.",
       );

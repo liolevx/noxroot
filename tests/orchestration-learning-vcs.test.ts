@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AgentAdapter, AgentRequest, AgentResult } from "../src/adapters/agents.js";
@@ -8,6 +8,7 @@ import { boundedDiff, identifyChange, prepareIsolatedWorktree } from "../src/ada
 import { applyLearning, proposeLearnings } from "../src/knowledge/learn.js";
 import type { ContextPackage, VerificationResult } from "../src/model.js";
 import { orchestrateRun, type RunRecord } from "../src/orchestration/run.js";
+import { changedFiles } from "../src/verification/index.js";
 import { temporaryDirectory } from "./helpers.js";
 
 const exec = promisify(execFile);
@@ -90,6 +91,7 @@ class FakeAdapter implements AgentAdapter {
   readonly id = "fake";
   readonly mode = "command" as const;
   readonly roles: AgentRequest["role"][] = [];
+  readonly packages: unknown[] = [];
   private reviews = 0;
 
   constructor(private readonly requestRepair = false) {}
@@ -100,6 +102,7 @@ class FakeAdapter implements AgentAdapter {
 
   async invoke(request: AgentRequest): Promise<AgentResult> {
     this.roles.push(request.role);
+    this.packages.push(request.package);
     if (request.role === "reviewer") {
       this.reviews += 1;
       const decision = this.requestRepair && this.reviews === 1 ? "changes-requested" : "approved";
@@ -135,12 +138,46 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
         adapter,
         budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
       },
-      { verify: async () => [], diff: async () => "diff" },
+      {
+        verify: async () => [],
+        diff: async () => "diff",
+        changeId: async () => "a".repeat(64),
+        unmatchedPaths: async () => [],
+      },
     );
     expect(record.status).toBe("incomplete");
     expect(record.reviewDecision).not.toBe("approved");
     expect(adapter.roles).toEqual(["worker"]);
     expect(record.handoff).toContain("No approved deterministic checks matched");
+  });
+
+  it("stops delegated verification when any changed path has no approved trigger", async () => {
+    const adapter = new FakeAdapter();
+    let verified = false;
+    const record = await orchestrateRun(
+      {
+        id: "task-unmatched-path",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => {
+          verified = true;
+          return [check("passed")];
+        },
+        diff: async () => "diff",
+        changeId: async () => "a".repeat(64),
+        unmatchedPaths: async () => ["tools/uncovered.ts"],
+      },
+    );
+    expect(record.status).toBe("incomplete");
+    expect(record.verificationGaps).toEqual(["No approved check applies to: tools/uncovered.ts."]);
+    expect(verified).toBe(false);
+    expect(adapter.roles).toEqual(["worker"]);
   });
 
   it("runs worker, deterministic verification, and a separate reviewer", async () => {
@@ -162,11 +199,18 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
           return [check("passed")];
         },
         diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
+        changeId: async () => "a".repeat(64),
+        unmatchedPaths: async () => [],
       },
     );
     expect(adapter.roles).toEqual(["worker", "reviewer"]);
     expect(verifies).toBe(1);
     expect(record.status).toBe("approved");
+    expect(adapter.packages[1]).toMatchObject({
+      schemaVersion: 2,
+      taskId: "task-1",
+      changeId: "a".repeat(64),
+    });
     expect(record.handoff).toContain("Noxroot did not merge or push it");
   });
 
@@ -185,6 +229,8 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
       {
         verify: async () => [check("passed")],
         diff: async () => "diff --git a/src/greet.ts b/src/greet.ts",
+        changeId: async () => "a".repeat(64),
+        unmatchedPaths: async () => [],
       },
     );
     expect(record.status).toBe("completed");
@@ -211,11 +257,245 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
           return [check("passed")];
         },
         diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
+        changeId: async () => "b".repeat(64),
+        unmatchedPaths: async () => [],
       },
     );
     expect(adapter.roles).toEqual(["worker", "reviewer", "repair", "reviewer"]);
     expect(verifies).toBe(2);
     expect(record.status).toBe("approved");
+    expect(adapter.packages[1]).toMatchObject({ taskId: "task-2", changeId: "b".repeat(64) });
+    expect(adapter.packages[3]).toMatchObject({ taskId: "task-2", changeId: "b".repeat(64) });
+  });
+
+  it("blocks a delegated decision when the change identity moves during review", async () => {
+    const adapter = new FakeAdapter();
+    let identityReads = 0;
+    const record = await orchestrateRun(
+      {
+        id: "task-review-race",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => [check("passed")],
+        diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
+        changeId: async () => (++identityReads < 6 ? "a" : "b").repeat(64),
+        unmatchedPaths: async () => [],
+      },
+    );
+    expect(record.status).toBe("blocked");
+    expect(record.verificationGaps).toContain(
+      "The repository changed during review; verification and the reviewer decision are stale.",
+    );
+  });
+
+  it("refuses delegated completion when an approved check changes the change identity", async () => {
+    const adapter = new FakeAdapter();
+    let identityReads = 0;
+    const record = await orchestrateRun(
+      {
+        id: "task-check-race",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => [check("passed")],
+        diff: async () => "diff --git a/src/greet.ts b/src/greet.ts",
+        changeId: async () => (++identityReads < 3 ? "a" : "b").repeat(64),
+        unmatchedPaths: async () => [],
+      },
+    );
+    expect(record.status).toBe("incomplete");
+    expect(record.verificationGaps).toContain(
+      "The repository changed while approved checks ran; their evidence is stale.",
+    );
+    expect(adapter.roles).toEqual(["worker"]);
+  });
+
+  it("refuses delegated review when its diff and change id are captured from different states", async () => {
+    const adapter = new FakeAdapter();
+    let currentIdentity = "a";
+    const record = await orchestrateRun(
+      {
+        id: "task-diff-race",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => [check("passed")],
+        diff: async () => {
+          currentIdentity = "b";
+          return "diff --git a/src/auth/session.ts b/src/auth/session.ts";
+        },
+        changeId: async () => currentIdentity.repeat(64),
+        unmatchedPaths: async () => [],
+      },
+    );
+    expect(record.status).toBe("incomplete");
+    expect(record.verificationGaps).toContain(
+      "The repository changed while review evidence was captured.",
+    );
+    expect(adapter.roles).toEqual(["worker"]);
+  });
+
+  it("refuses delegated verification when coverage and identity come from different states", async () => {
+    const adapter = new FakeAdapter();
+    let currentIdentity = "a";
+    let verified = false;
+    const record = await orchestrateRun(
+      {
+        id: "task-coverage-race",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => {
+          verified = true;
+          return [check("passed")];
+        },
+        diff: async () => "diff",
+        changeId: async () => currentIdentity.repeat(64),
+        unmatchedPaths: async () => {
+          currentIdentity = "b";
+          return [];
+        },
+      },
+    );
+    expect(record.status).toBe("incomplete");
+    expect(record.verificationGaps).toContain(
+      "The repository changed while verification coverage was inspected.",
+    );
+    expect(verified).toBe(false);
+  });
+
+  it("requires review evidence to match the identity whose checks passed", async () => {
+    const adapter = new FakeAdapter();
+    let identityReads = 0;
+    const record = await orchestrateRun(
+      {
+        id: "task-between-check-and-review",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => [check("passed")],
+        diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
+        changeId: async () => (++identityReads <= 3 ? "a" : "b").repeat(64),
+        unmatchedPaths: async () => [],
+      },
+    );
+    expect(record.status).toBe("incomplete");
+    expect(record.verificationGaps).toContain(
+      "The repository changed while review evidence was captured.",
+    );
+    expect(adapter.roles).toEqual(["worker"]);
+  });
+
+  it("rechecks unmatched paths after a worker repair", async () => {
+    const adapter = new FakeAdapter();
+    let coverageReads = 0;
+    let verifies = 0;
+    const record = await orchestrateRun(
+      {
+        id: "task-worker-repair-unmatched",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => {
+          verifies += 1;
+          return [check(verifies === 1 ? "failed" : "passed")];
+        },
+        diff: async () => "diff",
+        changeId: async () => "a".repeat(64),
+        unmatchedPaths: async () => (++coverageReads === 1 ? [] : ["tools/uncovered.ts"]),
+      },
+    );
+    expect(record.status).toBe("incomplete");
+    expect(record.verificationGaps).toContain("No approved check applies to: tools/uncovered.ts.");
+    expect(adapter.roles).toEqual(["worker", "repair"]);
+  });
+
+  it("rechecks unmatched paths after a reviewer-requested repair", async () => {
+    const adapter = new FakeAdapter(true);
+    let coverageReads = 0;
+    const record = await orchestrateRun(
+      {
+        id: "task-reviewer-repair-unmatched",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => [check("passed")],
+        diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
+        changeId: async () => "a".repeat(64),
+        unmatchedPaths: async () => (++coverageReads === 1 ? [] : ["tools/uncovered.ts"]),
+      },
+    );
+    expect(record.status).toBe("incomplete");
+    expect(record.verificationGaps).toContain("No approved check applies to: tools/uncovered.ts.");
+    expect(adapter.roles).toEqual(["worker", "reviewer", "repair"]);
+  });
+
+  it("rechecks change identity around verification after reviewer-requested repair", async () => {
+    const adapter = new FakeAdapter(true);
+    let currentIdentity = "a";
+    let verifies = 0;
+    const record = await orchestrateRun(
+      {
+        id: "task-repair-check-race",
+        task: context.task,
+        context,
+        cwd: "/repo",
+        repositoryRoot: "/repo",
+        adapter,
+        budgets: { workerCalls: 2, reviewerCalls: 2, repairIterations: 1 },
+      },
+      {
+        verify: async () => {
+          verifies += 1;
+          if (verifies === 2) currentIdentity = "b";
+          return [check("passed")];
+        },
+        diff: async () => "diff --git a/src/auth/session.ts b/src/auth/session.ts",
+        changeId: async () => currentIdentity.repeat(64),
+        unmatchedPaths: async () => [],
+      },
+    );
+    expect(record.status).toBe("incomplete");
+    expect(record.verificationGaps).toContain(
+      "The repository changed while approved checks ran; their evidence is stale.",
+    );
+    expect(adapter.roles).toEqual(["worker", "reviewer", "repair"]);
   });
 
   it("preserves a dirty source checkout while creating isolation", async () => {
@@ -321,6 +601,58 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
     expect(first.changeId).not.toBe(second.changeId);
     expect(first.changedPaths).toEqual(["large.txt"]);
     expect(first).not.toHaveProperty("content");
+  });
+
+  it("fails closed when a changed path is a directory or submodule surface", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await exec("git", ["init"], { cwd: root });
+    await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+    await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+    await writeFile(path.join(root, "README.md"), "# Fixture\n");
+    await exec("git", ["add", "README.md"], { cwd: root });
+    await exec("git", ["commit", "-m", "initial"], { cwd: root });
+    await mkdir(path.join(root, "submodule-surface"));
+    const revision = (await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+
+    await expect(identifyChange(root, revision, ["submodule-surface"])).rejects.toThrow(
+      "does not support changed directory or submodule",
+    );
+  });
+
+  it.runIf(process.platform !== "win32")(
+    "includes the executable bit in untracked-file identity",
+    async () => {
+      const root = await temporaryDirectory();
+      cleanup.push(() => rm(root, { recursive: true, force: true }));
+      await exec("git", ["init"], { cwd: root });
+      await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+      await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+      await writeFile(path.join(root, "README.md"), "# Fixture\n");
+      await exec("git", ["add", "README.md"], { cwd: root });
+      await exec("git", ["commit", "-m", "initial"], { cwd: root });
+      const revision = (await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+      const script = path.join(root, "script.sh");
+      await writeFile(script, "#!/bin/sh\nexit 0\n", { mode: 0o644 });
+      const first = await identifyChange(root, revision, ["script.sh"]);
+      await chmod(script, 0o755);
+      const second = await identifyChange(root, revision, ["script.sh"]);
+      expect(first.changeId).not.toBe(second.changeId);
+    },
+  );
+
+  it("reports both sides of a staged rename", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await exec("git", ["init"], { cwd: root });
+    await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+    await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+    await writeFile(path.join(root, "old.txt"), "same content\n");
+    await exec("git", ["add", "old.txt"], { cwd: root });
+    await exec("git", ["commit", "-m", "initial"], { cwd: root });
+    const revision = (await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+    await exec("git", ["mv", "old.txt", "new.txt"], { cwd: root });
+    expect(await changedFiles(root, revision, { strict: true })).toEqual(["new.txt", "old.txt"]);
   });
 
   it("does not turn a one-off verification gap into project knowledge", async () => {

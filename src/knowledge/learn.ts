@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ReviewerResponse } from "../adapters/agents.js";
-import { identifyChange, type ChangeIdentity } from "../adapters/vcs.js";
+import { identifyChange, isTrackedPath, type ChangeIdentity } from "../adapters/vcs.js";
 import { loadConfig } from "../config/load.js";
 import type { RunRecord } from "../orchestration/run.js";
 import { resolveWithin } from "../security/paths.js";
@@ -164,6 +164,9 @@ async function currentApprovedChange(root: string, run: RunRecord): Promise<bool
     typeof guided.baseline?.revision !== "string" ||
     !guided.changeIdentity
   ) {
+    return false;
+  }
+  if (guided.reviewEvidencePath && (await isTrackedPath(root, guided.reviewEvidencePath))) {
     return false;
   }
   const changedPaths = (

@@ -47,6 +47,26 @@ export interface OrchestrationRequest {
 export interface OrchestrationDependencies {
   verify: () => Promise<VerificationResult[]>;
   diff: () => Promise<string>;
+  changeId: () => Promise<string>;
+  unmatchedPaths: () => Promise<string[]>;
+}
+
+async function stableReviewEvidence(
+  dependencies: OrchestrationDependencies,
+): Promise<{ diff: string; changeId: string } | undefined> {
+  const before = await dependencies.changeId();
+  const diff = await dependencies.diff();
+  return (await dependencies.changeId()) === before ? { diff, changeId: before } : undefined;
+}
+
+async function stableVerificationCoverage(
+  dependencies: OrchestrationDependencies,
+): Promise<{ changeId: string; unmatchedPaths: string[] } | undefined> {
+  const before = await dependencies.changeId();
+  const unmatchedPaths = await dependencies.unmatchedPaths();
+  return (await dependencies.changeId()) === before
+    ? { changeId: before, unmatchedPaths }
+    : undefined;
 }
 
 function passed(results: VerificationResult[]): boolean {
@@ -153,8 +173,48 @@ export async function orchestrateRun(
     return { ...partial, handoff: handoff(partial) };
   }
 
+  let coverage = await stableVerificationCoverage(dependencies);
+  if (!coverage) {
+    verificationGaps.push("The repository changed while verification coverage was inspected.");
+  } else if (coverage.unmatchedPaths.length > 0) {
+    verificationGaps.push(`No approved check applies to: ${coverage.unmatchedPaths.join(", ")}.`);
+  }
+  if (verificationGaps.length > 0) {
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "incomplete",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps,
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
+  let verificationChangeId = coverage!.changeId;
   let checkResults = await dependencies.verify();
+  let verificationStable =
+    verificationChangeId !== undefined && (await dependencies.changeId()) === verificationChangeId;
   verification.push(checkResults);
+  if (!verificationStable) {
+    verificationGaps.push(
+      verificationChangeId
+        ? "The repository changed while approved checks ran; their evidence is stale."
+        : "A complete change id was unavailable for verification.",
+    );
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "incomplete",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps,
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
   if (checkResults.length === 0) {
     verificationGaps.push("No approved deterministic checks matched the change.");
     const partial: Omit<RunRecord, "handoff"> = {
@@ -205,8 +265,44 @@ export async function orchestrateRun(
     });
     calls.push({ role: "repair", result: repair });
     if (repair.status !== "completed") break;
+    coverage = await stableVerificationCoverage(dependencies);
+    if (!coverage || coverage.unmatchedPaths.length > 0) {
+      verificationStable = false;
+      verificationGaps.push(
+        coverage
+          ? `No approved check applies to: ${coverage.unmatchedPaths.join(", ")}.`
+          : "The repository changed while verification coverage was inspected.",
+      );
+      break;
+    }
+    verificationChangeId = coverage.changeId;
     checkResults = await dependencies.verify();
+    verificationStable =
+      verificationChangeId !== undefined &&
+      (await dependencies.changeId()) === verificationChangeId;
     verification.push(checkResults);
+    if (!verificationStable) {
+      verificationGaps.push(
+        verificationChangeId
+          ? "The repository changed while approved checks ran; their evidence is stale."
+          : "A complete change id was unavailable for verification.",
+      );
+      break;
+    }
+  }
+
+  if (!verificationStable) {
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "incomplete",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps,
+    };
+    return { ...partial, handoff: handoff(partial) };
   }
 
   if (!passed(checkResults)) {
@@ -223,7 +319,24 @@ export async function orchestrateRun(
     return { ...partial, handoff: handoff(partial) };
   }
 
-  const reviewDiff = await dependencies.diff();
+  const initialReviewEvidence = await stableReviewEvidence(dependencies);
+  if (!initialReviewEvidence || initialReviewEvidence.changeId !== verificationChangeId) {
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "incomplete",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps: [
+        ...verificationGaps,
+        "The repository changed while review evidence was captured.",
+      ],
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
+  const reviewDiff = initialReviewEvidence.diff;
   const reviewAssessment = assessReviewNeed([], reviewDiff, request.task);
   if (!reviewAssessment.required) {
     const partial: Omit<RunRecord, "handoff"> = {
@@ -270,9 +383,13 @@ export async function orchestrateRun(
     return { ...partial, handoff: handoff(partial) };
   }
 
+  let reviewChangeId: string | undefined = initialReviewEvidence.changeId;
   let review = await request.adapter.invoke({
     role: "reviewer",
     package: {
+      schemaVersion: 2,
+      taskId: request.id,
+      changeId: reviewChangeId,
       original: request.context,
       diff: reviewDiff,
       reviewAssessment,
@@ -304,27 +421,100 @@ export async function orchestrateRun(
     });
     calls.push({ role: "repair", result: repair });
     if (repair.status === "completed") {
-      checkResults = await dependencies.verify();
-      verification.push(checkResults);
+      coverage = await stableVerificationCoverage(dependencies);
+      if (!coverage || coverage.unmatchedPaths.length > 0) {
+        verificationStable = false;
+        verificationGaps.push(
+          coverage
+            ? `No approved check applies to: ${coverage.unmatchedPaths.join(", ")}.`
+            : "The repository changed while verification coverage was inspected.",
+        );
+      } else {
+        verificationChangeId = coverage.changeId;
+        checkResults = await dependencies.verify();
+        verificationStable = (await dependencies.changeId()) === verificationChangeId;
+        verification.push(checkResults);
+      }
       if (
+        verificationStable &&
         passed(checkResults) &&
         calls.filter((call) => call.role === "reviewer").length < request.budgets.reviewerCalls
       ) {
-        review = await request.adapter.invoke({
-          role: "reviewer",
-          package: {
-            original: request.context,
-            diff: await dependencies.diff(),
-            verification: checkResults,
-            priorFindings: review.output,
-          },
-          cwd: request.cwd,
-          repositoryRoot: request.repositoryRoot,
-          ...(request.signal === undefined ? {} : { signal: request.signal }),
-        });
-        calls.push({ role: "reviewer", result: review });
+        const repairedReviewEvidence = await stableReviewEvidence(dependencies);
+        reviewChangeId =
+          repairedReviewEvidence?.changeId === verificationChangeId
+            ? repairedReviewEvidence.changeId
+            : undefined;
+        if (repairedReviewEvidence?.changeId === verificationChangeId) {
+          review = await request.adapter.invoke({
+            role: "reviewer",
+            package: {
+              schemaVersion: 2,
+              taskId: request.id,
+              changeId: reviewChangeId,
+              original: request.context,
+              diff: repairedReviewEvidence.diff,
+              verification: checkResults,
+              priorFindings: review.output,
+            },
+            cwd: request.cwd,
+            repositoryRoot: request.repositoryRoot,
+            ...(request.signal === undefined ? {} : { signal: request.signal }),
+          });
+          calls.push({ role: "reviewer", result: review });
+        }
       }
     }
+  }
+
+  if (!verificationStable) {
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "incomplete",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps: [
+        ...verificationGaps,
+        "The repository changed while approved checks ran; their evidence is stale.",
+      ],
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
+
+  if (!reviewChangeId) {
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "incomplete",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps: [
+        ...verificationGaps,
+        "The repository changed while review evidence was captured.",
+      ],
+    };
+    return { ...partial, handoff: handoff(partial) };
+  }
+  if ((await dependencies.changeId()) !== reviewChangeId) {
+    const partial: Omit<RunRecord, "handoff"> = {
+      id: request.id,
+      task: request.task,
+      status: "blocked",
+      ...(request.branch === undefined ? {} : { branch: request.branch }),
+      worktree: request.cwd,
+      calls,
+      verification,
+      verificationGaps: [
+        ...verificationGaps,
+        "The repository changed during review; verification and the reviewer decision are stale.",
+      ],
+    };
+    return { ...partial, handoff: handoff(partial) };
   }
 
   const status: RunRecord["status"] =

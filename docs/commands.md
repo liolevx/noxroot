@@ -167,6 +167,11 @@ documentation/learning assessment without a new model call. When no deterministi
 signal exists, documentation is reported as `not-assessed`; an empty deterministic learning
 assessment is reported as `no-candidate`, not as proof that no documentation could help.
 
+External review evidence must be an untracked regular JSON file under `.noxroot/local/`. Linked,
+tracked, oversized, mismatched, and malformed evidence is rejected; rejected contents are not kept
+in task state. If a check or reviewer changes the repository, prior verification and review evidence
+becomes stale and `finish` must be run again.
+
 ## `learn`
 
 `learn --task ID` accepts structured reviewer candidates of kind `knowledge`, `decision`,
@@ -176,7 +181,8 @@ duplication/conflict results, content, and whether an executable guardrail is be
 requires confirmation; the first learnings file and index link are written in the same operation.
 Candidates are eligible only after an approved review, and only while the complete change still
 matches that approval. Earlier reviewer calls and candidates from failed or superseded attempts are
-not reused. Raw prose, task text, sessions, user data, secrets, and external human docs are not
-converted into knowledge. New entries carry a confirmation date and source task id. Noxroot refuses
-another entry when the destination would exceed `context.documentWarningBytes`; existing knowledge
-must then be consolidated or superseded deliberately.
+not reused. Freshness is checked again after application confirmation. Raw prose, task text,
+sessions, user data, secrets, and external human docs are not converted into knowledge. New entries
+carry a confirmation date and source task id. Noxroot refuses another entry when the destination
+would exceed `context.documentWarningBytes`; existing knowledge must then be consolidated or
+superseded deliberately.

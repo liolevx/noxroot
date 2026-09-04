@@ -153,7 +153,10 @@ export async function changedFiles(
       if (!entry || entry.length < 4) continue;
       const status = entry.slice(0, 2);
       files.push(entry.slice(3).replaceAll("\\", "/"));
-      if ((status.includes("R") || status.includes("C")) && parts[index + 1]) index += 1;
+      if ((status.includes("R") || status.includes("C")) && parts[index + 1]) {
+        files.push(parts[index + 1]!.replaceAll("\\", "/"));
+        index += 1;
+      }
     }
     if (baseRevision) {
       const committed = await runProcess({

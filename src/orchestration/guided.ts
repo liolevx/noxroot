@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { open, realpath } from "node:fs/promises";
 import path from "node:path";
 import type { AgentAdapter, AgentResult, ReviewerResponse } from "../adapters/agents.js";
 import { parseReviewerResponse } from "../adapters/agents.js";
@@ -7,11 +8,12 @@ import {
   captureRepositoryBaseline,
   diffFromRevision,
   identifyChange,
+  isTrackedPath,
   type ChangeIdentity,
 } from "../adapters/vcs.js";
 import type { ContextPackage, VerificationCommand, VerificationResult } from "../model.js";
 import { cliCommand } from "../invocation.js";
-import { resolveWithin } from "../security/paths.js";
+import { isWithin, resolveWithin } from "../security/paths.js";
 import {
   changedFiles,
   executeVerification,
@@ -65,6 +67,26 @@ function samePath(left: string, right: string): boolean {
   const normalize = (value: string): string =>
     process.platform === "win32" ? path.resolve(value).toLowerCase() : path.resolve(value);
   return normalize(left) === normalize(right);
+}
+
+async function readReviewerEvidence(root: string, relativePath: string): Promise<string> {
+  const target = resolveWithin(root, relativePath);
+  const canonical = await realpath(target);
+  if (!isWithin(await realpath(root), canonical) || !samePath(target, canonical)) {
+    throw new Error("Reviewer evidence must not use a symbolic link or leave the repository.");
+  }
+  const handle = await open(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  try {
+    const metadata = await handle.stat();
+    if (!metadata.isFile() || metadata.size > 1_000_000) {
+      throw new Error(
+        "Reviewer evidence must be a regular JSON file no larger than 1000000 bytes.",
+      );
+    }
+    return await handle.readFile("utf8");
+  } finally {
+    await handle.close();
+  }
 }
 
 function continuationNextAction(
@@ -249,17 +271,48 @@ export async function finishGuidedRun(input: {
   const reviewEvidencePath = input.reviewFile
     ? path.relative(input.root, resolveWithin(input.root, input.reviewFile)).replaceAll("\\", "/")
     : undefined;
+  if (
+    reviewEvidencePath &&
+    (!reviewEvidencePath.toLowerCase().startsWith(".noxroot/local/") ||
+      !reviewEvidencePath.toLowerCase().endsWith(".json"))
+  ) {
+    throw new Error("Reviewer evidence must be an untracked JSON file under .noxroot/local/.");
+  }
+  if (reviewEvidencePath && (await isTrackedPath(input.root, reviewEvidencePath))) {
+    throw new Error("Reviewer evidence must not be a tracked repository file.");
+  }
   const changedPaths = (
     await changedFiles(input.root, record.baseline.revision, { strict: true })
   ).filter((changedPath) => changedPath !== reviewEvidencePath);
   for (const changedPath of changedPaths) resolveWithin(input.root, changedPath);
+  const changeIdentity = await identifyChange(input.root, record.baseline.revision, changedPaths);
   const diff = await diffFromRevision(
     input.root,
     record.baseline.revision,
     input.sensitivePaths ?? [],
     reviewEvidencePath ? [reviewEvidencePath] : [],
   );
-  const changeIdentity = await identifyChange(input.root, record.baseline.revision, changedPaths);
+  const changedAfterDiff = (
+    await changedFiles(input.root, record.baseline.revision, { strict: true })
+  ).filter((changedPath) => changedPath !== reviewEvidencePath);
+  const identityAfterDiff = await identifyChange(
+    input.root,
+    record.baseline.revision,
+    changedAfterDiff,
+  );
+  if (identityAfterDiff.changeId !== changeIdentity.changeId) {
+    const stale: GuidedRunRecord = {
+      ...record,
+      status: "incomplete",
+      changedPaths,
+      changeIdentity,
+      verification: [...record.verification, []],
+      verificationGaps: ["The repository changed while review evidence was captured."],
+      handoff: "",
+    };
+    stale.handoff = guidedHandoff(stale, []);
+    return stale;
+  }
   const reviewAssessment = assessReviewNeed(changedPaths, diff, record.task);
   const commands = selectVerification(record.trustedVerificationPolicy, changedPaths);
   const unmatchedChangedPaths = unmatchedVerificationPaths(
@@ -284,6 +337,23 @@ export async function finishGuidedRun(input: {
     verification: [...record.verification, checks],
     verificationGaps: [],
   };
+
+  const changedAfterChecks = (
+    await changedFiles(input.root, record.baseline.revision, { strict: true })
+  ).filter((changedPath) => changedPath !== reviewEvidencePath);
+  const identityAfterChecks = await identifyChange(
+    input.root,
+    record.baseline.revision,
+    changedAfterChecks,
+  );
+  if (identityAfterChecks.changeId !== changeIdentity.changeId) {
+    next.status = "incomplete";
+    next.verificationGaps = [
+      "The repository changed while approved checks ran; their evidence is stale.",
+    ];
+    next.handoff = guidedHandoff(next, checks);
+    return next;
+  }
 
   if (changedPaths.length === 0) {
     next.status = "blocked";
@@ -352,7 +422,7 @@ export async function finishGuidedRun(input: {
   next.reviewerPackage = reviewerPackage;
   let reviewResult: AgentResult | undefined;
   if (input.reviewFile) {
-    const source = await readFile(resolveWithin(input.root, input.reviewFile), "utf8");
+    const source = await readReviewerEvidence(input.root, input.reviewFile);
     const review = parseReviewerResponse(source, {
       taskId: record.id,
       changeId: changeIdentity.changeId,
@@ -371,7 +441,8 @@ export async function finishGuidedRun(input: {
           invoked: false,
           status: "failed",
           summary: "External reviewer file was not one schema-valid JSON response.",
-          output: source,
+          output: "",
+          diagnostics: "Rejected reviewer evidence was not retained.",
           exitCode: null,
           reviewDecision: "blocked",
         };
@@ -395,6 +466,23 @@ export async function finishGuidedRun(input: {
   }
   next.calls = [...record.calls, { role: "reviewer", result: reviewResult }];
   const review = reviewResult.review;
+  const changedAfterReview = (
+    await changedFiles(input.root, record.baseline.revision, { strict: true })
+  ).filter((changedPath) => changedPath !== reviewEvidencePath);
+  const identityAfterReview = await identifyChange(
+    input.root,
+    record.baseline.revision,
+    changedAfterReview,
+  );
+  if (identityAfterReview.changeId !== changeIdentity.changeId) {
+    next.status = "blocked";
+    next.verificationGaps = [
+      "The repository changed during review; verification and the reviewer decision are stale.",
+    ];
+    next.learningCandidates = [];
+    next.handoff = guidedHandoff(next, checks);
+    return next;
+  }
   next.reviewDecision = reviewResult.reviewDecision;
   next.learningCandidates = review?.learningCandidates ?? [];
   next.status =
