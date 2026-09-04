@@ -27,6 +27,7 @@ const STOP_WORDS = new Set([
   "do",
   "existing",
   "fix",
+  "first",
   "for",
   "from",
   "has",
@@ -43,6 +44,7 @@ const STOP_WORDS = new Set([
   "pattern",
   "patterns",
   "reuse",
+  "run",
   "safe",
   "safety",
   "that",
@@ -81,6 +83,7 @@ const TEST_PATH =
 const DOCUMENT_PATH = /(?:^|\/)(?:docs?|adr|adrs)(?:\/|$)|\.(?:md|mdx)$/;
 const NON_AUTHORITATIVE_PATH =
   /(?:^|\/)(?:expected|fixtures?|golden|snapshots?|examples?|generated|vendor|cassettes?|recordings?|testdata|canary|payloads?)(?:\/|$)|[.-]min\.(?:js|css)$/i;
+const ACCEPTANCE_HARNESS_PATH = /(?:^|\/)tests?\/acceptance(?:\/|$)/i;
 
 type Category = "entrypoint" | "manifest" | "source" | "test" | "document" | "other";
 
@@ -468,6 +471,9 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       "testdata",
     ].includes(term),
   );
+  const acceptanceHarnessRequested = taskTerms.some((term) =>
+    ["acceptance", "adoption", "corpus", "harness", "release", "workflow"].includes(term),
+  );
   const activeRoutes = (routes?.routes ?? []).filter((route) =>
     route.match.some((pattern) => routeMatches(pattern, taskTerms)),
   );
@@ -510,6 +516,10 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     }
     const candidate = baseScore(file, rankingTerms, activeRouteIds);
     candidate.bytes = profile.fileSizes[file] ?? 0;
+    if (ACCEPTANCE_HARNESS_PATH.test(file) && !acceptanceHarnessRequested) {
+      candidate.score -= 60;
+      candidate.reasons.push("acceptance-harness penalty outside an acceptance task");
+    }
     if (adoption.referencedPaths.includes(file)) {
       candidate.score += 26;
       candidate.reasons.push("explicitly referenced by repository instructions");
@@ -579,9 +589,9 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const priority = [
     topOwner,
     ...topPathOwners,
+    topTest,
     topProcedure,
     ...candidates.filter((item) => isAlwaysContext(item.file)),
-    topTest,
     topDocument,
   ]
     .filter((item): item is RankedCandidate => item !== undefined)
