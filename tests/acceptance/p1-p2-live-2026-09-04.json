@@ -1,0 +1,369 @@
+{
+  "date": "2026-09-04T17:17:19.783Z",
+  "scope": "Candidate build; synthetic application; real Director binary and two fresh Codex CLI sessions. Not a production deployment or productivity benchmark.",
+  "directorSource": {
+    "url": "https://github.com/colinsurprenant/director/releases/download/v1.14.0/director_v1.14.0_linux_amd64.tar.gz",
+    "sha256": "ffca024163f23a770ac99268a01226adf0621717ceb4236dd6d7e560f0c275cc"
+  },
+  "directorBefore": "# director render — path-tmp-noxroot-p1-p2-live-FfIoiB-application-.git\n\n## open-items\n(none)\n\n## handoffs\n(none)\n\n## decisions\n- 01M1PP54SD177P0S2ANCX3QRTZ [retry] Gateway retry diagnostics use milliseconds; preserve exact delays when correlating queue metrics.\n",
+  "directorAfter": "# director render — path-tmp-noxroot-p1-p2-live-FfIoiB-application-.git\n\n## open-items\n(none)\n\n## handoffs\n- 01M1PPQPZKY5QEX7Q6CKVNPJ7Z (2026-09-04) [application-main-6cddc80c] Retry summary checked. Next: operator review; no deployment.\n\n## decisions\n- 01M1PP54SD177P0S2ANCX3QRTZ [retry] Gateway retry diagnostics use milliseconds; preserve exact delays when correlating queue metrics.\n",
+  "firstTask": "20260904-c587600f",
+  "firstChecks": [
+    {
+      "command": {
+        "id": "retry-tests",
+        "executable": "/usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node",
+        "args": ["--test"],
+        "cwd": ".",
+        "timeoutMs": 10000,
+        "appliesTo": ["src/**", "tests/**"]
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "stdoutTail": "✔ retry backoff (1.075988ms)\n✔ reject invalid attempt (0.34381ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 55.867747\n",
+      "stderrTail": ""
+    },
+    {
+      "command": {
+        "id": "retry-tests",
+        "executable": "/usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node",
+        "args": ["--test"],
+        "cwd": ".",
+        "timeoutMs": 10000,
+        "appliesTo": ["src/**", "tests/**"]
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "stdoutTail": "✔ retry backoff (0.701286ms)\n✔ reject invalid attempt (0.339911ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 60.216688\n",
+      "stderrTail": ""
+    }
+  ],
+  "reviewInput": "Scripted acceptance review based on existing Director decision and passing tests; not independent model discovery.",
+  "acceptedLesson": "# Validated learnings\n\n<!-- noxroot-learning:8538db2d69cf7364e6ab -->\n## Decision candidate\n\nLast confirmed: 2026-09-04\nSource task: 20260904-c587600f\n- Evidence: Existing Director decision specifies queue-metric correlation; retry-tests verifies 100, 800 and 5000 millisecond delays\n- Expected future value: Keep retry diagnostic messages in the same units as queue metrics.\n- Executable destination: The numerical behavior is tested; this records the operational reason for diagnostic units.\n\nRetry diagnostic messages use milliseconds, not rounded seconds. Preserve the exact retryDelay value when describing retry scheduling so operators can correlate queue metrics.\n",
+  "recovery": {
+    "reason": "Setup assertion exposed the index-only default route. Preserve the failed evidence; explicitly review and commit the route migration in both copies.",
+    "before": {
+      "selected": [
+        "src/retry.js",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/knowledge/INDEX.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "tests/retry.test.mjs",
+        "package.json",
+        "docs/workflow.md",
+        ".noxroot/skills/independent-review/SKILL.md"
+      ],
+      "excluded": [
+        {
+          "path": ".noxroot/knowledge/retry-diagnostics.md",
+          "reason": "outside the active route candidate pool"
+        }
+      ],
+      "budget": {
+        "maximumBytes": 16000,
+        "selectedBytes": 4868,
+        "estimatedTokens": 1217
+      },
+      "unknowns": []
+    },
+    "commits": [
+      {
+        "root": "/tmp/noxroot-p1-p2-live-FfIoiB/application",
+        "commit": "a61b5f105373cb063465a8840f37967e4b5a9181"
+      },
+      {
+        "root": "/tmp/noxroot-p1-p2-live-FfIoiB/control",
+        "commit": "a52260914500b191b111f2a3b3c831fca226fbe1"
+      }
+    ]
+  },
+  "retrieval": {
+    "control": {
+      "selected": [
+        "src/retry.js",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/knowledge/INDEX.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "tests/retry.test.mjs",
+        "package.json",
+        "docs/workflow.md",
+        ".noxroot/skills/independent-review/SKILL.md"
+      ],
+      "excluded": [],
+      "budget": {
+        "maximumBytes": 16000,
+        "selectedBytes": 4776,
+        "estimatedTokens": 1194
+      },
+      "unknowns": []
+    },
+    "related": {
+      "selected": [
+        "src/retry.js",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/knowledge/INDEX.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "tests/retry.test.mjs",
+        ".noxroot/knowledge/retry-diagnostics.md",
+        "package.json",
+        "docs/workflow.md",
+        ".noxroot/skills/independent-review/SKILL.md"
+      ],
+      "excluded": [],
+      "budget": {
+        "maximumBytes": 16000,
+        "selectedBytes": 5539,
+        "estimatedTokens": 1385
+      },
+      "unknowns": []
+    },
+    "unrelated": {
+      "selected": [
+        ".noxroot/knowledge/INDEX.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "package.json",
+        "docs/workflow.md"
+      ],
+      "excluded": [
+        {
+          "path": ".noxroot/knowledge/retry-diagnostics.md",
+          "reason": "knowledge requires task relevance, not just an index reference"
+        }
+      ],
+      "budget": {
+        "maximumBytes": 16000,
+        "selectedBytes": 2718,
+        "estimatedTokens": 680
+      },
+      "unknowns": ["Owning source path", "Directly related test path"]
+    },
+    "duplicateProposals": 0
+  },
+  "sessions": [
+    {
+      "label": "without-accepted-lesson",
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"pwd && git rev-parse --show-toplevel && git branch --show-current && git status --short && sed -n '1,220p' docs/workflow.md && sed -n '1,220p' .noxroot/knowledge/INDEX.md && find .noxroot/skills -maxdepth 2 -name SKILL.md -print 2>/dev/null\"",
+          "exit": 0,
+          "output": "/tmp/noxroot-p1-p2-live-FfIoiB/control\n/tmp/noxroot-p1-p2-live-FfIoiB/control\nmain\n# Workflow\n\nDirector keeps work state; Noxroot supplies task context and approved checks. Do not import Director's log into documentation.\n# Noxroot knowledge index\n\nRead this index after the repository's nearest agent instructions. Follow links only when relevant to the task; executable source and tests remain authoritative.\n\n- [Ordinary](../../docs/workflow.md) — existing repository documentation; load only when relevant.\n- Verification policy is stored in `../verification.yml` when confirmed.\n- Task procedures live under `../skills/`; load only a relevant `SKILL.md`: .noxroot/skills/verify-change/SKILL.md, .noxroot/skills/independent-review/SKILL.md.\n\nActive run state, application runtime sessions, application memory, user data, and raw transcripts do not belong in this directory.\n.noxroot/skills/verify-change/SKILL.md\n.noxroot/skills/independent-review/SKILL.md\n"
+        },
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' .noxroot/skills/verify-change/SKILL.md && rg --files -g '\"'!node_modules'\"' -g '\"'!dist'\"' && node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js start \\\"Add a retrySummary(attempt) helper that describes retry scheduling for operators. Preserve retryDelay behavior and add regression tests.\\\"\"",
+          "exit": 0,
+          "output": "---\nname: verify-change\ndescription: Verify an actual repository change with approved evidence; use after implementation and before handoff or review.\n---\n\n# Verify a change\n\n1. Inspect the actual diff and the task acceptance criteria.\n2. Use Noxroot's approved verification plan. Do not invent commands, install tools, or change policy merely to pass.\n3. Exercise the real product surface only when a relevant repository adapter already exists and is approved.\n4. Record each exact command, status, and bounded evidence. Identify unavailable or unmatched checks as gaps.\n5. Never treat one passing check as proof of total correctness.\n\nReturn a concise structured result with changed surfaces, checks and statuses, evidence, gaps, residual risks, and the next required action.\nCLAUDE.md\nAGENTS.md\ndocs/workflow.md\ntests/retry.test.mjs\npackage.json\nsrc/retry.js\nNOXROOT  task started\n  Outcome: Add a retrySummary(attempt) helper that describes retry scheduling for operators\n  Context: 9 relevant files · ~1,194 tokens\n  Likely area: src, tests\n  Checks: retry-tests\nNext: make the change, then run npx --yes noxroot@0.1.0 finish.\nDetails: use --verbose or --json.\n"
+        },
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' AGENTS.md && sed -n '1,220p' CLAUDE.md && sed -n '1,240p' src/retry.js && sed -n '1,280p' tests/retry.test.mjs && sed -n '1,200p' package.json && sed -n '1,200p' .noxroot/verification.yml\"",
+          "exit": 0,
+          "output": "# Gateway worker\n\nRead [workflow guidance](docs/workflow.md). Director is a coordination ledger for decisions, open-items, handoffs and notes; it does not run coding workers. Keep its state separate from project knowledge.\n\n<!-- noxroot:start -->\n## Noxroot workflow\n\nStart with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant routes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge.\n\nFor a code-changing task, run `node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js start \"<task>\"` before editing and `node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js finish` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.\n\nIf start fails, stop before editing and report the error. If finish fails, do not report the task complete. Request only the access needed to retry; do not disable the sandbox or create a second task-state store.\n\nFor unfinished work, use `node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js status` before opening raw task records. Even when status lists an active task, repeat start with that task's text before resuming edits: status is read-only and does not check write access. Keep routine output brief; use `--verbose` or `--json` when supporting detail is needed.\n\nWhen `.noxroot/skills/` exists, load only the task-relevant `SKILL.md`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.\n<!-- noxroot:end -->\n@AGENTS.md\nexport function retryDelay(attempt) { if (!Number.isInteger(attempt) || attempt < 0) throw new RangeError('attempt must be a non-negative integer'); return Math.min(5000, 100 * 2 ** attempt); }\nimport {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\ntest('reject invalid attempt',()=>{assert.throws(()=>retryDelay(-1),RangeError);assert.throws(()=>retryDelay(0.5),RangeError);});\n{\"name\":\"gateway-worker-acceptance\",\"private\":true,\"type\":\"module\",\"packageManager\":\"npm@11.0.0\",\"scripts\":{\"test\":\"node --test\"}}version: 1\ncommands:\n  - id: retry-tests\n    executable: /usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node\n    args: ['--test']\n    cwd: .\n    timeoutMs: 10000\n    appliesTo: ['src/**', 'tests/**']\n"
+        },
+        {
+          "command": "/bin/bash -lc 'git log --oneline -5 --decorate && git show --stat --oneline HEAD'",
+          "exit": 0
+        },
+        {
+          "command": "/bin/bash -lc 'git diff --check && git diff -- src/retry.js tests/retry.test.mjs && /usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node --test'",
+          "exit": 0,
+          "output": "diff --git a/src/retry.js b/src/retry.js\nindex af00dbe..f0d5a07 100644\n--- a/src/retry.js\n+++ b/src/retry.js\n@@ -1 +1,11 @@\n-export function retryDelay(attempt) { if (!Number.isInteger(attempt) || attempt < 0) throw new RangeError('attempt must be a non-negative integer'); return Math.min(5000, 100 * 2 ** attempt); }\n+export function retryDelay(attempt) {\n+  if (!Number.isInteger(attempt) || attempt < 0) {\n+    throw new RangeError('attempt must be a non-negative integer');\n+  }\n+\n+  return Math.min(5000, 100 * 2 ** attempt);\n+}\n+\n+export function retrySummary(attempt) {\n+  return `Retry attempt ${attempt} scheduled in ${retryDelay(attempt)}ms`;\n+}\ndiff --git a/tests/retry.test.mjs b/tests/retry.test.mjs\nindex b46a32f..f10736f 100644\n--- a/tests/retry.test.mjs\n+++ b/tests/retry.test.mjs\n@@ -1,2 +1,26 @@\n-import {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\n-test('reject invalid attempt',()=>{assert.throws(()=>retryDelay(-1),RangeError);assert.throws(()=>retryDelay(0.5),RangeError);});\n+import { test } from 'node:test';\n+import assert from 'node:assert/strict';\n+\n+import { retryDelay, retrySummary } from '../src/retry.js';\n+\n+test('retry backoff', () => {\n+  assert.equal(retryDelay(0), 100);\n+  assert.equal(retryDelay(3), 800);\n+  assert.equal(retryDelay(9), 5000);\n+});\n+\n+test('reject invalid attempt', () => {\n+  assert.throws(() => retryDelay(-1), RangeError);\n+  assert.throws(() => retryDelay(0.5), RangeError);\n+});\n+\n+test('summarizes retry scheduling', () => {\n+  assert.equal(retrySummary(0), 'Retry attempt 0 scheduled in 100ms');\n+  assert.equal(retrySummary(3), 'Retry attempt 3 scheduled in 800ms');\n+  assert.equal(retrySummary(9), 'Retry attempt 9 scheduled in 5000ms');\n+});\n+\n+test('retry summary rejects invalid attempts', () => {\n+  assert.throws(() => retrySummary(-1), RangeError);\n+  assert.throws(() => retrySummary(0.5), RangeError);\n+});\n✔ tests/retry.test.mjs (45.209643ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 60.925519\n"
+        },
+        {
+          "command": "/bin/bash -lc 'node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js finish'",
+          "exit": 0,
+          "output": "Inspecting changed files and running affected checks\nAssessing reusable learning\nPreparing handoff\nNOXROOT  task completed\n\nChanged  2 files\nChecks   /usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node --test · cwd . · passed\nReview   Not required for this change\nDocs     Not assessed automatically\nLearning No reusable update proposed\nNext     Review the change before committing.\nEvidence /tmp/noxroot-p1-p2-live-FfIoiB/control/.noxroot/local/runs/20260904-506bf784.json\n"
+        },
+        {
+          "command": "/bin/bash -lc 'git branch --show-current && git status --short && git diff --check'",
+          "exit": 0
+        }
+      ],
+      "summary": "Implemented `retrySummary(attempt)`:\n\n- Reports the attempt and scheduled delay.\n- Reuses `retryDelay`, preserving its backoff, cap, and validation behavior.\n- Added regression tests for delays, summaries, capped scheduling, and invalid inputs.\n\nVerification: approved `node --test` check passed.  \nRepository: `/tmp/noxroot-p1-p2-live-FfIoiB/control`, branch `main`; two modified files, no commit or temporary artifacts.",
+      "exit": 0,
+      "invocation": [
+        "-a",
+        "never",
+        "exec",
+        "--ephemeral",
+        "--ignore-user-config",
+        "--sandbox",
+        "workspace-write",
+        "--json",
+        "-C",
+        "/tmp/noxroot-p1-p2-live-FfIoiB/control"
+      ],
+      "diff": "diff --git a/src/retry.js b/src/retry.js\nindex af00dbe..f0d5a07 100644\n--- a/src/retry.js\n+++ b/src/retry.js\n@@ -1 +1,11 @@\n-export function retryDelay(attempt) { if (!Number.isInteger(attempt) || attempt < 0) throw new RangeError('attempt must be a non-negative integer'); return Math.min(5000, 100 * 2 ** attempt); }\n+export function retryDelay(attempt) {\n+  if (!Number.isInteger(attempt) || attempt < 0) {\n+    throw new RangeError('attempt must be a non-negative integer');\n+  }\n+\n+  return Math.min(5000, 100 * 2 ** attempt);\n+}\n+\n+export function retrySummary(attempt) {\n+  return `Retry attempt ${attempt} scheduled in ${retryDelay(attempt)}ms`;\n+}\ndiff --git a/tests/retry.test.mjs b/tests/retry.test.mjs\nindex b46a32f..f10736f 100644\n--- a/tests/retry.test.mjs\n+++ b/tests/retry.test.mjs\n@@ -1,2 +1,26 @@\n-import {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\n-test('reject invalid attempt',()=>{assert.throws(()=>retryDelay(-1),RangeError);assert.throws(()=>retryDelay(0.5),RangeError);});\n+import { test } from 'node:test';\n+import assert from 'node:assert/strict';\n+\n+import { retryDelay, retrySummary } from '../src/retry.js';\n+\n+test('retry backoff', () => {\n+  assert.equal(retryDelay(0), 100);\n+  assert.equal(retryDelay(3), 800);\n+  assert.equal(retryDelay(9), 5000);\n+});\n+\n+test('reject invalid attempt', () => {\n+  assert.throws(() => retryDelay(-1), RangeError);\n+  assert.throws(() => retryDelay(0.5), RangeError);\n+});\n+\n+test('summarizes retry scheduling', () => {\n+  assert.equal(retrySummary(0), 'Retry attempt 0 scheduled in 100ms');\n+  assert.equal(retrySummary(3), 'Retry attempt 3 scheduled in 800ms');\n+  assert.equal(retrySummary(9), 'Retry attempt 9 scheduled in 5000ms');\n+});\n+\n+test('retry summary rejects invalid attempts', () => {\n+  assert.throws(() => retrySummary(-1), RangeError);\n+  assert.throws(() => retrySummary(0.5), RangeError);\n+});",
+      "task": "20260904-506bf784",
+      "status": "completed",
+      "checks": [
+        {
+          "command": {
+            "id": "retry-tests",
+            "executable": "/usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node",
+            "args": ["--test"],
+            "cwd": ".",
+            "timeoutMs": 10000,
+            "appliesTo": ["src/**", "tests/**"]
+          },
+          "status": "passed",
+          "exitCode": 0,
+          "stdoutTail": "",
+          "stderrTail": ""
+        }
+      ],
+      "contextPaths": [
+        "src/retry.js",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/knowledge/INDEX.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "tests/retry.test.mjs",
+        "package.json",
+        "docs/workflow.md",
+        ".noxroot/skills/independent-review/SKILL.md"
+      ]
+    },
+    {
+      "label": "with-accepted-lesson",
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"pwd && git rev-parse --show-toplevel && git branch --show-current && git status --short && sed -n '1,220p' docs/workflow.md && sed -n '1,240p' .noxroot/knowledge/INDEX.md && find .noxroot/skills -maxdepth 2 -name SKILL.md -print 2>/dev/null\"",
+          "exit": 0,
+          "output": "/tmp/noxroot-p1-p2-live-FfIoiB/application\n/tmp/noxroot-p1-p2-live-FfIoiB/application\nmain\n# Workflow\n\nDirector keeps work state; Noxroot supplies task context and approved checks. Do not import Director's log into documentation.\n# Noxroot knowledge index\n\nRead this index after the repository's nearest agent instructions. Follow links only when relevant to the task; executable source and tests remain authoritative.\n\n- [Ordinary](../../docs/workflow.md) — existing repository documentation; load only when relevant.\n- Verification policy is stored in `../verification.yml` when confirmed.\n- Task procedures live under `../skills/`; load only a relevant `SKILL.md`: .noxroot/skills/verify-change/SKILL.md, .noxroot/skills/independent-review/SKILL.md.\n\nActive run state, application runtime sessions, application memory, user data, and raw transcripts do not belong in this directory.\n\n- [Validated learnings](retry-diagnostics.md) — confirmed, deduplicated durable lessons.\n.noxroot/skills/verify-change/SKILL.md\n.noxroot/skills/independent-review/SKILL.md\n"
+        },
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' .noxroot/knowledge/retry-diagnostics.md && sed -n '1,260p' .noxroot/skills/verify-change/SKILL.md && sed -n '1,240p' .noxroot/verification.yml\"",
+          "exit": 0,
+          "output": ""
+        },
+        {
+          "command": "/bin/bash -lc 'node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js start \"Add a retrySummary(attempt) helper that describes retry scheduling for operators. Preserve retryDelay behavior and add regression tests.\"'",
+          "exit": 0,
+          "output": "NOXROOT  task started\n  Outcome: Add a retrySummary(attempt) helper that describes retry scheduling for operators\n  Context: 10 relevant files · ~1,385 tokens\n  Likely area: src, tests\n  Checks: retry-tests\nNext: make the change, then run npx --yes noxroot@0.1.0 finish.\nDetails: use --verbose or --json.\n"
+        },
+        {
+          "command": "/bin/bash -lc \"rg --files -g '\"'!node_modules'\"' && rg -n \\\"retryDelay|retry|module.exports|export\\\" src tests package.json\"",
+          "exit": 0
+        },
+        {
+          "command": "/bin/bash -lc \"node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js status --verbose && sed -n '1,120p' package.json && sed -n '1,120p' src/retry.js && sed -n '1,160p' tests/retry.test.mjs\"",
+          "exit": 0,
+          "output": "NOXROOT  status\n\nRepository  application · main\nWorking tree  clean\n\nActive tasks  1\nBefore editing  Repeat start with the active task text to check write access.\n\n20260904-ec1e8029  Add a retrySummary(attempt) helper that describes retry scheduling for operators. Preserve retryDelay behavior and add regression tests.\n  Changed  none\n  Verification  Not run for the current diff.\n  Next  Make the requested change, then run npx --yes noxroot@0.1.0 finish.\n{\"name\":\"gateway-worker-acceptance\",\"private\":true,\"type\":\"module\",\"packageManager\":\"npm@11.0.0\",\"scripts\":{\"test\":\"node --test\"}}export function retryDelay(attempt) { if (!Number.isInteger(attempt) || attempt < 0) throw new RangeError('attempt must be a non-negative integer'); return Math.min(5000, 100 * 2 ** attempt); }\nimport {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\ntest('reject invalid attempt',()=>{assert.throws(()=>retryDelay(-1),RangeError);assert.throws(()=>retryDelay(0.5),RangeError);});\n"
+        },
+        {
+          "command": "/bin/bash -lc 'git diff --check && git diff -- src/retry.js tests/retry.test.mjs && /usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node --test'",
+          "exit": 0,
+          "output": "diff --git a/src/retry.js b/src/retry.js\nindex af00dbe..35d4ceb 100644\n--- a/src/retry.js\n+++ b/src/retry.js\n@@ -1 +1,5 @@\n export function retryDelay(attempt) { if (!Number.isInteger(attempt) || attempt < 0) throw new RangeError('attempt must be a non-negative integer'); return Math.min(5000, 100 * 2 ** attempt); }\n+\n+export function retrySummary(attempt) {\n+  return `Retry scheduled in ${retryDelay(attempt)} ms`;\n+}\ndiff --git a/tests/retry.test.mjs b/tests/retry.test.mjs\nindex b46a32f..a609f2a 100644\n--- a/tests/retry.test.mjs\n+++ b/tests/retry.test.mjs\n@@ -1,2 +1,4 @@\n-import {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\n+import {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay, retrySummary} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\n test('reject invalid attempt',()=>{assert.throws(()=>retryDelay(-1),RangeError);assert.throws(()=>retryDelay(0.5),RangeError);});\n+test('retry summary reports the exact scheduled delay in milliseconds',()=>{assert.equal(retrySummary(0),'Retry scheduled in 100 ms');assert.equal(retrySummary(3),'Retry scheduled in 800 ms');assert.equal(retrySummary(9),'Retry scheduled in 5000 ms');});\n+test('retry summary rejects invalid attempts',()=>{assert.throws(()=>retrySummary(-1),RangeError);assert.throws(()=>retrySummary(0.5),RangeError);});\n✔ tests/retry.test.mjs (45.723697ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 61.921903\n"
+        },
+        {
+          "command": "/bin/bash -lc 'node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js finish'",
+          "exit": 0,
+          "output": "Inspecting changed files and running affected checks\nAssessing reusable learning\nPreparing handoff\nNOXROOT  task completed\n\nChanged  2 files\nChecks   /usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node --test · cwd . · passed\nReview   Not required for this change\nDocs     Not assessed automatically\nLearning No reusable update proposed\nNext     Review the change before committing.\nEvidence /tmp/noxroot-p1-p2-live-FfIoiB/application/.noxroot/local/runs/20260904-ec1e8029.json\n"
+        },
+        {
+          "command": "/bin/bash -lc 'git branch --show-current && git status --short && git diff --check && git diff --stat && find .. -maxdepth 1 -type f -newer .git/index -print'",
+          "exit": 0
+        }
+      ],
+      "summary": "Implemented on `main` in the disposable repository.\n\n- Added exported `retrySummary(attempt)` using exact millisecond delays.\n- Preserved `retryDelay` behavior and validation.\n- Added regression tests for normal, capped, and invalid attempts.\n- Approved `node --test` check passed.\n- Noxroot finish gate passed.\n- Working tree retains two modified files; no commit, temporary artifacts, or extra worktrees created.",
+      "exit": 0,
+      "invocation": [
+        "-a",
+        "never",
+        "exec",
+        "--ephemeral",
+        "--ignore-user-config",
+        "--sandbox",
+        "workspace-write",
+        "--json",
+        "-C",
+        "/tmp/noxroot-p1-p2-live-FfIoiB/application"
+      ],
+      "diff": "diff --git a/src/retry.js b/src/retry.js\nindex af00dbe..35d4ceb 100644\n--- a/src/retry.js\n+++ b/src/retry.js\n@@ -1 +1,5 @@\n export function retryDelay(attempt) { if (!Number.isInteger(attempt) || attempt < 0) throw new RangeError('attempt must be a non-negative integer'); return Math.min(5000, 100 * 2 ** attempt); }\n+\n+export function retrySummary(attempt) {\n+  return `Retry scheduled in ${retryDelay(attempt)} ms`;\n+}\ndiff --git a/tests/retry.test.mjs b/tests/retry.test.mjs\nindex b46a32f..a609f2a 100644\n--- a/tests/retry.test.mjs\n+++ b/tests/retry.test.mjs\n@@ -1,2 +1,4 @@\n-import {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\n+import {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay, retrySummary} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\n test('reject invalid attempt',()=>{assert.throws(()=>retryDelay(-1),RangeError);assert.throws(()=>retryDelay(0.5),RangeError);});\n+test('retry summary reports the exact scheduled delay in milliseconds',()=>{assert.equal(retrySummary(0),'Retry scheduled in 100 ms');assert.equal(retrySummary(3),'Retry scheduled in 800 ms');assert.equal(retrySummary(9),'Retry scheduled in 5000 ms');});\n+test('retry summary rejects invalid attempts',()=>{assert.throws(()=>retrySummary(-1),RangeError);assert.throws(()=>retrySummary(0.5),RangeError);});",
+      "task": "20260904-ec1e8029",
+      "status": "completed",
+      "checks": [
+        {
+          "command": {
+            "id": "retry-tests",
+            "executable": "/usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node",
+            "args": ["--test"],
+            "cwd": ".",
+            "timeoutMs": 10000,
+            "appliesTo": ["src/**", "tests/**"]
+          },
+          "status": "passed",
+          "exitCode": 0,
+          "stdoutTail": "",
+          "stderrTail": ""
+        }
+      ],
+      "contextPaths": [
+        "src/retry.js",
+        ".noxroot/skills/verify-change/SKILL.md",
+        ".noxroot/knowledge/INDEX.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "tests/retry.test.mjs",
+        ".noxroot/knowledge/retry-diagnostics.md",
+        "package.json",
+        "docs/workflow.md",
+        ".noxroot/skills/independent-review/SKILL.md"
+      ]
+    }
+  ],
+  "repositories": [
+    {
+      "root": "/tmp/noxroot-p1-p2-live-FfIoiB/application",
+      "head": "70be430ac350fcda653e74d020093ae06bd5359e",
+      "tree": {
+        ".director/repo-key": "04a209429e1789ecd8737207a61043650bf8c8988a8185f7acece1bf0f173054",
+        ".director/workstream-id": "64679a4299576f865f8bc48e09a3e8b9d4ed5dd06de00ac3ae7f1c7134c4f156",
+        ".noxroot/config.yml": "028abb4304bbef383582840b8c1a2b864df5b9f9ed25249ccf95e7c3e9cda3af",
+        ".noxroot/knowledge/INDEX.md": "8cd7bfc185590cbfdcfc056fb2ce146ddc0f74f0b9be1728aa4b6f70e009d493",
+        ".noxroot/knowledge/retry-diagnostics.md": "701111f1d5180f68b7647a8e2ab90cb9318ff5e32272885c20139c4a2f262c07",
+        ".noxroot/routes.yml": "2ac92c759a440a38a6650832017c05ecc831f6fe187a2ec2680118fc332ed043",
+        ".noxroot/skills/independent-review/SKILL.md": "aaedd19f456220ef82305606bd55d40bd4fbbfb2f347d85d99183e0f1cc4996d",
+        ".noxroot/skills/verify-change/SKILL.md": "6eb558c8b49e65b0a125ba41e83a42cf4a52170064e2e09db56c9316ff12b5ac",
+        ".noxroot/verification.yml": "14232e2c75eb2b0e179e58075ebc57f1a9e514406807e576a1438479269e0870",
+        "AGENTS.md": "f5d7477f3fe541e097a618128a696a5d28f80f9a2ddedf22edab7e01dd0ba75f",
+        "CLAUDE.md": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
+        "docs/workflow.md": "2782615df620e31bef2963308c6cdc4e4084c0322c6cef94821b0ad06482f030",
+        "package.json": "37c6ff8d2bad2a85e1c8c3b6c33589e10003e5ea3ce90d231d0bc2fafce07798",
+        "src/retry.js": "fffe5157b0b55780c27166e6bf5b849f793fd09d6fab5159c3faff4cc10efde9",
+        "tests/retry.test.mjs": "bc77725f8159cd13b861f41a49387872e5e38f5d384856fa1766e273540d0e25"
+      },
+      "commits": "70be430 fixture with-accepted-lesson retry summary\na61b5f1 fixture reviewed knowledge route migration\n4ed7372 fixture accepted retry diagnostic rationale\n8dfbe04 fixture invalid retry attempts\nb5e9152 reviewed local Director and Noxroot setup\n91ec1db fixture application",
+      "diff": "diff --git a/.noxroot/knowledge/INDEX.md b/.noxroot/knowledge/INDEX.md\nindex cbe21b2..4048494 100644\n--- a/.noxroot/knowledge/INDEX.md\n+++ b/.noxroot/knowledge/INDEX.md\n@@ -7,3 +7,5 @@ Read this index after the repository's nearest agent instructions. Follow links\n - Task procedures live under `../skills/`; load only a relevant `SKILL.md`: .noxroot/skills/verify-change/SKILL.md, .noxroot/skills/independent-review/SKILL.md.\n \n Active run state, application runtime sessions, application memory, user data, and raw transcripts do not belong in this directory.\n+\n+- [Validated learnings](retry-diagnostics.md) — confirmed, deduplicated durable lessons.\ndiff --git a/.noxroot/knowledge/retry-diagnostics.md b/.noxroot/knowledge/retry-diagnostics.md\nnew file mode 100644\nindex 0000000..b809c61\n--- /dev/null\n+++ b/.noxroot/knowledge/retry-diagnostics.md\n@@ -0,0 +1,12 @@\n+# Validated learnings\n+\n+<!-- noxroot-learning:8538db2d69cf7364e6ab -->\n+## Decision candidate\n+\n+Last confirmed: 2026-09-04\n+Source task: 20260904-c587600f\n+- Evidence: Existing Director decision specifies queue-metric correlation; retry-tests verifies 100, 800 and 5000 millisecond delays\n+- Expected future value: Keep retry diagnostic messages in the same units as queue metrics.\n+- Executable destination: The numerical behavior is tested; this records the operational reason for diagnostic units.\n+\n+Retry diagnostic messages use milliseconds, not rounded seconds. Preserve the exact retryDelay value when describing retry scheduling so operators can correlate queue metrics.\ndiff --git a/.noxroot/routes.yml b/.noxroot/routes.yml\nindex b639b6c..ff04e44 100644\n--- a/.noxroot/routes.yml\n+++ b/.noxroot/routes.yml\n@@ -5,7 +5,7 @@ routes:\n       - \"**/*\"\n     include:\n       - AGENTS.md\n-      - .noxroot/knowledge/INDEX.md\n+      - .noxroot/knowledge/**\n       - docs/workflow.md\n       - .noxroot/skills/verify-change/SKILL.md\n       - .noxroot/skills/independent-review/SKILL.md\ndiff --git a/src/retry.js b/src/retry.js\nindex 6c7f9db..35d4ceb 100644\n--- a/src/retry.js\n+++ b/src/retry.js\n@@ -1 +1,5 @@\n-export function retryDelay(attempt) { return Math.min(5000, 100 * 2 ** attempt); }\n+export function retryDelay(attempt) { if (!Number.isInteger(attempt) || attempt < 0) throw new RangeError('attempt must be a non-negative integer'); return Math.min(5000, 100 * 2 ** attempt); }\n+\n+export function retrySummary(attempt) {\n+  return `Retry scheduled in ${retryDelay(attempt)} ms`;\n+}\ndiff --git a/tests/retry.test.mjs b/tests/retry.test.mjs\nindex 65e3f5f..a609f2a 100644\n--- a/tests/retry.test.mjs\n+++ b/tests/retry.test.mjs\n@@ -1 +1,4 @@\n-import {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\n+import {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay, retrySummary} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\n+test('reject invalid attempt',()=>{assert.throws(()=>retryDelay(-1),RangeError);assert.throws(()=>retryDelay(0.5),RangeError);});\n+test('retry summary reports the exact scheduled delay in milliseconds',()=>{assert.equal(retrySummary(0),'Retry scheduled in 100 ms');assert.equal(retrySummary(3),'Retry scheduled in 800 ms');assert.equal(retrySummary(9),'Retry scheduled in 5000 ms');});\n+test('retry summary rejects invalid attempts',()=>{assert.throws(()=>retrySummary(-1),RangeError);assert.throws(()=>retrySummary(0.5),RangeError);});"
+    },
+    {
+      "root": "/tmp/noxroot-p1-p2-live-FfIoiB/control",
+      "head": "7dc02259db833d5660702e5614c1c236b5a80351",
+      "tree": {
+        ".director/repo-key": "04a209429e1789ecd8737207a61043650bf8c8988a8185f7acece1bf0f173054",
+        ".director/workstream-id": "64679a4299576f865f8bc48e09a3e8b9d4ed5dd06de00ac3ae7f1c7134c4f156",
+        ".noxroot/config.yml": "028abb4304bbef383582840b8c1a2b864df5b9f9ed25249ccf95e7c3e9cda3af",
+        ".noxroot/knowledge/INDEX.md": "fcbd45534e0866ddb452a3c24c14302ddb183885ef2867b28ec51be4159c12dc",
+        ".noxroot/routes.yml": "2ac92c759a440a38a6650832017c05ecc831f6fe187a2ec2680118fc332ed043",
+        ".noxroot/skills/independent-review/SKILL.md": "aaedd19f456220ef82305606bd55d40bd4fbbfb2f347d85d99183e0f1cc4996d",
+        ".noxroot/skills/verify-change/SKILL.md": "6eb558c8b49e65b0a125ba41e83a42cf4a52170064e2e09db56c9316ff12b5ac",
+        ".noxroot/verification.yml": "14232e2c75eb2b0e179e58075ebc57f1a9e514406807e576a1438479269e0870",
+        "AGENTS.md": "f5d7477f3fe541e097a618128a696a5d28f80f9a2ddedf22edab7e01dd0ba75f",
+        "CLAUDE.md": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
+        "docs/workflow.md": "2782615df620e31bef2963308c6cdc4e4084c0322c6cef94821b0ad06482f030",
+        "package.json": "37c6ff8d2bad2a85e1c8c3b6c33589e10003e5ea3ce90d231d0bc2fafce07798",
+        "src/retry.js": "1bce56d93b3966a3d8031ae3cb86101ec883dc24267af8f1ae75528c78d062a3",
+        "tests/retry.test.mjs": "63d8b1f29801bf215b9dd7baa2b0b5ea256b85d946fba3cafd770be934e9b5a0"
+      },
+      "commits": "7dc0225 fixture without-accepted-lesson retry summary\na522609 fixture reviewed knowledge route migration\n8dfbe04 fixture invalid retry attempts\nb5e9152 reviewed local Director and Noxroot setup\n91ec1db fixture application",
+      "diff": "diff --git a/.director/repo-key b/.director/repo-key\nnew file mode 100644\nindex 0000000..6dfa4ac\n--- /dev/null\n+++ b/.director/repo-key\n@@ -0,0 +1 @@\n+path-tmp-noxroot-p1-p2-live-FfIoiB-application-.git\ndiff --git a/.director/workstream-id b/.director/workstream-id\nnew file mode 100644\nindex 0000000..152852a\n--- /dev/null\n+++ b/.director/workstream-id\n@@ -0,0 +1 @@\n+application-main-6cddc80c\ndiff --git a/.noxroot/config.yml b/.noxroot/config.yml\nnew file mode 100644\nindex 0000000..08e2833\n--- /dev/null\n+++ b/.noxroot/config.yml\n@@ -0,0 +1,35 @@\n+version: 1\n+modules:\n+  - repository-profile\n+  - agent-routing\n+  - project-knowledge\n+  - verification\n+  - orchestration\n+  - learning\n+roots:\n+  - .\n+entrypoints:\n+  - AGENTS.md\n+context:\n+  budgetBytes: 16000\n+  documentWarningBytes: 24000\n+sensitivePaths: []\n+retention:\n+  evidenceDays: 30\n+  maximumRuns: 100\n+autonomy:\n+  default: 0\n+  implementation: 2\n+  review: 3\n+  merge: 0\n+  delivery: 0\n+agents:\n+  default: manual\n+  adapters:\n+    manual:\n+      type: manual\n+budgets:\n+  workerCalls: 2\n+  reviewerCalls: 2\n+  repairIterations: 1\n+  outputBytes: 65536\ndiff --git a/.noxroot/knowledge/INDEX.md b/.noxroot/knowledge/INDEX.md\nnew file mode 100644\nindex 0000000..cbe21b2\n--- /dev/null\n+++ b/.noxroot/knowledge/INDEX.md\n@@ -0,0 +1,9 @@\n+# Noxroot knowledge index\n+\n+Read this index after the repository's nearest agent instructions. Follow links only when relevant to the task; executable source and tests remain authoritative.\n+\n+- [Ordinary](../../docs/workflow.md) — existing repository documentation; load only when relevant.\n+- Verification policy is stored in `../verification.yml` when confirmed.\n+- Task procedures live under `../skills/`; load only a relevant `SKILL.md`: .noxroot/skills/verify-change/SKILL.md, .noxroot/skills/independent-review/SKILL.md.\n+\n+Active run state, application runtime sessions, application memory, user data, and raw transcripts do not belong in this directory.\ndiff --git a/.noxroot/routes.yml b/.noxroot/routes.yml\nnew file mode 100644\nindex 0000000..ff04e44\n--- /dev/null\n+++ b/.noxroot/routes.yml\n@@ -0,0 +1,17 @@\n+version: 1\n+routes:\n+  - id: default\n+    match:\n+      - \"**/*\"\n+    include:\n+      - AGENTS.md\n+      - .noxroot/knowledge/**\n+      - docs/workflow.md\n+      - .noxroot/skills/verify-change/SKILL.md\n+      - .noxroot/skills/independent-review/SKILL.md\n+      - src/**\n+      - tests/**\n+    exclude:\n+      - dist/**\n+      - coverage/**\n+      - node_modules/**\ndiff --git a/.noxroot/skills/independent-review/SKILL.md b/.noxroot/skills/independent-review/SKILL.md\nnew file mode 100644\nindex 0000000..afcb791\n--- /dev/null\n+++ b/.noxroot/skills/independent-review/SKILL.md\n@@ -0,0 +1,14 @@\n+---\n+name: independent-review\n+description: Independently review a verified repository diff; use for fresh-context approval, change requests, or a blocked decision.\n+---\n+\n+# Independent review\n+\n+Inspect the diff independently of worker rationale. Check acceptance criteria, correctness, security, regression risk, architecture boundaries, and test adequacy. Cite specific evidence and severity; block when evidence is insufficient. Propose learning candidates only for reusable lessons.\n+\n+For automated mode, emit exactly one JSON object and no prose:\n+\n+```json\n+{\"decision\":\"approved|changes-requested|blocked\",\"summary\":\"factual summary\",\"findings\":[{\"severity\":\"critical|high|medium|low\",\"path\":\"optional/path\",\"evidence\":\"specific evidence\",\"requiredOutcome\":\"required result\"}],\"learningCandidates\":[]}\n+```\ndiff --git a/.noxroot/skills/verify-change/SKILL.md b/.noxroot/skills/verify-change/SKILL.md\nnew file mode 100644\nindex 0000000..7c37327\n--- /dev/null\n+++ b/.noxroot/skills/verify-change/SKILL.md\n@@ -0,0 +1,14 @@\n+---\n+name: verify-change\n+description: Verify an actual repository change with approved evidence; use after implementation and before handoff or review.\n+---\n+\n+# Verify a change\n+\n+1. Inspect the actual diff and the task acceptance criteria.\n+2. Use Noxroot's approved verification plan. Do not invent commands, install tools, or change policy merely to pass.\n+3. Exercise the real product surface only when a relevant repository adapter already exists and is approved.\n+4. Record each exact command, status, and bounded evidence. Identify unavailable or unmatched checks as gaps.\n+5. Never treat one passing check as proof of total correctness.\n+\n+Return a concise structured result with changed surfaces, checks and statuses, evidence, gaps, residual risks, and the next required action.\ndiff --git a/.noxroot/verification.yml b/.noxroot/verification.yml\nnew file mode 100644\nindex 0000000..424d06e\n--- /dev/null\n+++ b/.noxroot/verification.yml\n@@ -0,0 +1,8 @@\n+version: 1\n+commands:\n+  - id: retry-tests\n+    executable: /usr/local/lib/nodejs/node-v24.19.0-linux-x64/bin/node\n+    args: ['--test']\n+    cwd: .\n+    timeoutMs: 10000\n+    appliesTo: ['src/**', 'tests/**']\ndiff --git a/AGENTS.md b/AGENTS.md\nindex 0dc904e..14dea08 100644\n--- a/AGENTS.md\n+++ b/AGENTS.md\n@@ -1,3 +1,17 @@\n # Gateway worker\n \n Read [workflow guidance](docs/workflow.md). Director is a coordination ledger for decisions, open-items, handoffs and notes; it does not run coding workers. Keep its state separate from project knowledge.\n+\n+<!-- noxroot:start -->\n+## Noxroot workflow\n+\n+Start with [the Noxroot knowledge index](.noxroot/knowledge/INDEX.md). Load only the relevant routes, source, tests, and procedures; keep runtime sessions, application memory, user data, and raw transcripts out of project knowledge.\n+\n+For a code-changing task, run `node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js start \"<task>\"` before editing and `node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js finish` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.\n+\n+If start fails, stop before editing and report the error. If finish fails, do not report the task complete. Request only the access needed to retry; do not disable the sandbox or create a second task-state store.\n+\n+For unfinished work, use `node /tmp/noxroot-p1-p2-live-FfIoiB/runtime/dist/cli.js status` before opening raw task records. Even when status lists an active task, repeat start with that task's text before resuming edits: status is read-only and does not check write access. Keep routine output brief; use `--verbose` or `--json` when supporting detail is needed.\n+\n+When `.noxroot/skills/` exists, load only the task-relevant `SKILL.md`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.\n+<!-- noxroot:end -->\ndiff --git a/src/retry.js b/src/retry.js\nindex 6c7f9db..f0d5a07 100644\n--- a/src/retry.js\n+++ b/src/retry.js\n@@ -1 +1,11 @@\n-export function retryDelay(attempt) { return Math.min(5000, 100 * 2 ** attempt); }\n+export function retryDelay(attempt) {\n+  if (!Number.isInteger(attempt) || attempt < 0) {\n+    throw new RangeError('attempt must be a non-negative integer');\n+  }\n+\n+  return Math.min(5000, 100 * 2 ** attempt);\n+}\n+\n+export function retrySummary(attempt) {\n+  return `Retry attempt ${attempt} scheduled in ${retryDelay(attempt)}ms`;\n+}\ndiff --git a/tests/retry.test.mjs b/tests/retry.test.mjs\nindex 65e3f5f..f10736f 100644\n--- a/tests/retry.test.mjs\n+++ b/tests/retry.test.mjs\n@@ -1 +1,26 @@\n-import {test} from 'node:test'; import assert from 'node:assert/strict'; import {retryDelay} from '../src/retry.js'; test('retry backoff',()=>{assert.equal(retryDelay(0),100);assert.equal(retryDelay(3),800);assert.equal(retryDelay(9),5000);});\n+import { test } from 'node:test';\n+import assert from 'node:assert/strict';\n+\n+import { retryDelay, retrySummary } from '../src/retry.js';\n+\n+test('retry backoff', () => {\n+  assert.equal(retryDelay(0), 100);\n+  assert.equal(retryDelay(3), 800);\n+  assert.equal(retryDelay(9), 5000);\n+});\n+\n+test('reject invalid attempt', () => {\n+  assert.throws(() => retryDelay(-1), RangeError);\n+  assert.throws(() => retryDelay(0.5), RangeError);\n+});\n+\n+test('summarizes retry scheduling', () => {\n+  assert.equal(retrySummary(0), 'Retry attempt 0 scheduled in 100ms');\n+  assert.equal(retrySummary(3), 'Retry attempt 3 scheduled in 800ms');\n+  assert.equal(retrySummary(9), 'Retry attempt 9 scheduled in 5000ms');\n+});\n+\n+test('retry summary rejects invalid attempts', () => {\n+  assert.throws(() => retrySummary(-1), RangeError);\n+  assert.throws(() => retrySummary(0.5), RangeError);\n+});"
+    }
+  ],
+  "cleanup": {
+    "root": "/tmp/noxroot-p1-p2-live-FfIoiB",
+    "complete": true
+  }
+}
