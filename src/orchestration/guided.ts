@@ -3,7 +3,12 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { AgentAdapter, AgentResult, ReviewerResponse } from "../adapters/agents.js";
 import { parseReviewerResponse } from "../adapters/agents.js";
-import { captureRepositoryBaseline, diffFromRevision } from "../adapters/vcs.js";
+import {
+  captureRepositoryBaseline,
+  diffFromRevision,
+  identifyChange,
+  type ChangeIdentity,
+} from "../adapters/vcs.js";
 import type { ContextPackage, VerificationCommand, VerificationResult } from "../model.js";
 import { cliCommand } from "../invocation.js";
 import { resolveWithin } from "../security/paths.js";
@@ -24,6 +29,8 @@ export interface GuidedRunRecord extends RunRecord {
   startedAt: string;
   finishedAt?: string;
   changedPaths?: string[];
+  changeIdentity?: ChangeIdentity;
+  /** @deprecated Read-only compatibility with 0.1 task records. */
   diffHash?: string;
   reviewerPackage?: unknown;
   learningCandidates?: ReviewerResponse["learningCandidates"];
@@ -88,15 +95,21 @@ export async function inspectGuidedContinuation(
   sensitivePaths: string[] = [],
 ): Promise<GuidedContinuationState> {
   const changedPaths = await changedFiles(root, record.baseline.revision);
-  const currentDiff = await diffFromRevision(root, record.baseline.revision, sensitivePaths);
-  const currentDiffHash = createHash("sha256").update(currentDiff).digest("hex");
+  const currentIdentity = await identifyChange(root, record.baseline.revision, changedPaths);
   const latestChecks = record.verification.at(-1) ?? [];
   let status: ContinuationVerificationStatus;
   let summary: string;
-  if (!record.diffHash) {
+  if (!record.changeIdentity && !record.diffHash) {
     status = "not-run";
     summary = "Not run for the current diff.";
-  } else if (record.diffHash !== currentDiffHash) {
+  } else if (
+    record.changeIdentity
+      ? record.changeIdentity.changeId !== currentIdentity.changeId
+      : record.diffHash !==
+        createHash("sha256")
+          .update(await diffFromRevision(root, record.baseline.revision, sensitivePaths))
+          .digest("hex")
+  ) {
     status = "stale";
     summary = "Stale because the diff changed afterward.";
   } else if (
@@ -231,7 +244,7 @@ export async function finishGuidedRun(input: {
     record.baseline.revision,
     input.sensitivePaths ?? [],
   );
-  const diffHash = createHash("sha256").update(diff).digest("hex");
+  const changeIdentity = await identifyChange(input.root, record.baseline.revision, changedPaths);
   const reviewAssessment = assessReviewNeed(changedPaths, diff, record.task);
   const commands = selectVerification(record.trustedVerificationPolicy, changedPaths);
   const checks = await executeVerification(input.root, commands, {
@@ -240,7 +253,8 @@ export async function finishGuidedRun(input: {
   const next: GuidedRunRecord = {
     ...record,
     changedPaths,
-    diffHash,
+    changeIdentity,
+    diffHash: undefined,
     reviewAssessment,
     verification: [...record.verification, checks],
     verificationGaps: [],

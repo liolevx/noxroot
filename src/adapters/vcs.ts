@@ -1,4 +1,6 @@
-import { lstat, mkdir, readFile, realpath } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
+import { lstat, mkdir, readFile, readlink, realpath } from "node:fs/promises";
 import path from "node:path";
 import { runProcess } from "./process.js";
 import { prepareStateRoot } from "../state/local.js";
@@ -16,6 +18,13 @@ export interface RepositoryBaseline {
   revision: string;
   status: string;
   branch: string;
+}
+
+export interface ChangeIdentity {
+  schemaVersion: 1;
+  baselineRevision: string;
+  changedPaths: string[];
+  changeId: string;
 }
 
 function taskSlug(task: string): string {
@@ -68,6 +77,58 @@ export async function revisionInCurrentHistory(root: string, revision: string): 
   if (!/^[a-f0-9]{40}$/i.test(revision)) return false;
   const result = await git(root, ["merge-base", "--is-ancestor", revision, "HEAD"]);
   return result.exitCode === 0;
+}
+
+export async function identifyChange(
+  root: string,
+  baselineRevision: string,
+  changedPaths: string[],
+): Promise<ChangeIdentity> {
+  const normalizedPaths = [...new Set(changedPaths.map((value) => value.replaceAll("\\", "/")))].sort();
+  const hash = createHash("sha256");
+  hash.update("noxroot-change-identity-v1\0");
+  hash.update(baselineRevision);
+
+  for (const relative of normalizedPaths) {
+    const absolute = resolveWithin(root, relative);
+    hash.update("\0path\0");
+    hash.update(relative);
+    let entry;
+    try {
+      entry = await lstat(absolute);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        hash.update("\0deleted");
+        continue;
+      }
+      throw error;
+    }
+
+    hash.update(`\0mode:${entry.mode.toString(8)}\0size:${entry.size}`);
+    if (entry.isSymbolicLink()) {
+      hash.update("\0symlink\0");
+      hash.update(await readlink(absolute));
+    } else if (entry.isFile()) {
+      hash.update("\0file\0");
+      await new Promise<void>((resolve, reject) => {
+        const stream = createReadStream(absolute);
+        stream.on("data", (chunk: Buffer) => hash.update(chunk));
+        stream.on("error", reject);
+        stream.on("end", resolve);
+      });
+    } else if (entry.isDirectory()) {
+      hash.update("\0directory");
+    } else {
+      hash.update("\0other");
+    }
+  }
+
+  return {
+    schemaVersion: 1,
+    baselineRevision,
+    changedPaths: normalizedPaths,
+    changeId: hash.digest("hex"),
+  };
 }
 
 function matchesSensitivePath(relative: string, patterns: string[]): boolean {

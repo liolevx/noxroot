@@ -4,7 +4,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AgentAdapter, AgentRequest, AgentResult } from "../src/adapters/agents.js";
-import { boundedDiff, prepareIsolatedWorktree } from "../src/adapters/vcs.js";
+import { boundedDiff, identifyChange, prepareIsolatedWorktree } from "../src/adapters/vcs.js";
 import { applyLearning, proposeLearnings } from "../src/knowledge/learn.js";
 import type { ContextPackage, VerificationResult } from "../src/model.js";
 import { orchestrateRun, type RunRecord } from "../src/orchestration/run.js";
@@ -280,6 +280,27 @@ describe("orchestration, worktree isolation, and controlled learning", () => {
     expect(diff).not.toContain("new-secret");
     expect(diff).not.toContain('"user":"old"');
     expect(diff).not.toContain('"user":"new"');
+  });
+
+  it("fingerprints the complete change even when bounded reviewer evidence keeps the same tail", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    await exec("git", ["init"], { cwd: root });
+    await exec("git", ["config", "user.email", "fixture@example.invalid"], { cwd: root });
+    await exec("git", ["config", "user.name", "Fixture"], { cwd: root });
+    await writeFile(path.join(root, "large.txt"), `${"baseline\n".repeat(20_000)}stable tail\n`);
+    await exec("git", ["add", "large.txt"], { cwd: root });
+    await exec("git", ["commit", "-m", "initial"], { cwd: root });
+    const revision = (await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+
+    await writeFile(path.join(root, "large.txt"), `${"first\n".repeat(20_000)}stable tail\n`);
+    const first = await identifyChange(root, revision, ["large.txt"]);
+    await writeFile(path.join(root, "large.txt"), `${"second\n".repeat(20_000)}stable tail\n`);
+    const second = await identifyChange(root, revision, ["large.txt"]);
+
+    expect(first.changeId).not.toBe(second.changeId);
+    expect(first.changedPaths).toEqual(["large.txt"]);
+    expect(first).not.toHaveProperty("content");
   });
 
   it("does not turn a one-off verification gap into project knowledge", async () => {
