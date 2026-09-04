@@ -26,6 +26,11 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
+      - name: Prepare pinned pnpm for the Windows adapter test
+        if: runner.os == 'Windows'
+        env:
+          COREPACK_DEFAULT_TO_LATEST: "0"
+        run: corepack prepare pnpm@10.0.0
       - run: npm test
       - run: npm run build
       - run: npm run test:built

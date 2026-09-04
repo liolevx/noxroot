@@ -1,0 +1,6 @@
+{
+  "decision": "approved",
+  "summary": "Final read-only review approves the native CLI canonicalization and both installed-package assertions. The smoke test retains the raw temporary path as input, checks canonical repository identity, and verifies that the record path resides beneath the canonical .noxroot directory. This preserves the Windows short-path reproducer rather than normalizing it away. No destination safety checks were weakened. node --check and git diff --check passed. Earlier independent focused tests passed; the full local check was reported passed by the implementing agent. Windows installed-package CI remains the final platform confirmation. No reviewer edits were made.",
+  "findings": [],
+  "learningCandidates": []
+}

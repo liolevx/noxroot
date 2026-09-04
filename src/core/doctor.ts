@@ -6,8 +6,8 @@ import { inspectRepositoryAdoption } from "../detection/adoption.js";
 import { scanRepository } from "../detection/scan.js";
 import { resolvePlatformCommand } from "../adapters/process.js";
 import { cliCommand } from "../invocation.js";
-import { isWithin } from "../security/paths.js";
-import { localStateRoot } from "../state/local.js";
+import { isWithin, setupDestination } from "../security/paths.js";
+import { localRunDirectory } from "../state/local.js";
 
 export interface DoctorFinding {
   severity: "error" | "warning" | "info";
@@ -307,7 +307,7 @@ export async function doctorRepository(root = process.cwd()): Promise<DoctorResu
   }
 
   try {
-    const runDirectory = path.join(await localStateRoot(root), "runs");
+    const runDirectory = await localRunDirectory(root);
     const runFiles = (await readdir(runDirectory)).filter((file) => file.endsWith(".json"));
     if (config && runFiles.length > config.retention.maximumRuns) {
       findings.push(
@@ -320,7 +320,7 @@ export async function doctorRepository(root = process.cwd()): Promise<DoctorResu
       );
     }
     for (const file of runFiles) {
-      const absolute = path.join(runDirectory, file);
+      const absolute = await setupDestination(runDirectory, file);
       const metadata = await stat(absolute);
       if (metadata.size > 256_000) continue;
       const record = JSON.parse(await readFile(absolute, "utf8")) as { status?: string };

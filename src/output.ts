@@ -6,6 +6,50 @@ import type {
 } from "./model.js";
 import type { LearnResult } from "./knowledge/learn.js";
 import { cliCommand, VERSION } from "./invocation.js";
+import type { GuidedRunRecord } from "./orchestration/guided.js";
+
+export function renderGuidedFinish(
+  record: GuidedRunRecord,
+  proposals: number,
+  recordPath: string,
+  options: RenderOptions,
+): string {
+  if (options.verbose)
+    return `${record.handoff}\n\nDocumentation: not assessed automatically.\nLearning: ${proposals} reusable proposal(s).\nLocal record: ${recordPath}\n`;
+  const checks = record.verification.at(-1) ?? [];
+  // Calls are historical. Only review-result states without a verification gap
+  // can use the latest call as the current completion attempt's decision.
+  const reviewResult =
+    ["approved", "changes-requested", "blocked"].includes(record.status) &&
+    record.verificationGaps.length === 0
+      ? record.calls.filter((call) => call.role === "reviewer").at(-1)?.result
+      : undefined;
+  let next = "Resolve the reported gap or review finding, then retry finish.";
+  if (record.status === "failed")
+    next = `Fix the failing check, then rerun ${cliCommand("finish")}.`;
+  if (record.status === "incomplete" && checks.some((check) => check.status === "unavailable"))
+    next = `Make the approved check runnable, then rerun ${cliCommand("finish")}.`;
+  if (record.status === "review-pending")
+    next = `Provide a fresh review with ${cliCommand("finish --review-file <path>")}.`;
+  if (record.status === "completed" || record.status === "approved")
+    next = "Review the change before committing.";
+  return [
+    title(`task ${record.status}`, options),
+    "",
+    `Changed  ${record.changedPaths?.length ?? 0} file${record.changedPaths?.length === 1 ? "" : "s"}`,
+    ...checks.map(
+      (check) =>
+        `Checks   ${commandText(check.command)} · cwd ${check.command.cwd} · ${check.status}${check.status === "passed" ? "" : `: ${(check.evidence.stderr || check.evidence.stdout).replace(/\s+/g, " ").trim().slice(0, 240)}`}`,
+    ),
+    ...record.verificationGaps.map((gap) => `Gap      ${gap}`),
+    `Review   ${reviewResult ? `${reviewResult.review?.decision ?? reviewResult.reviewDecision ?? reviewResult.status}: ${reviewResult.summary}` : record.reviewAssessment?.required ? `Pending ${record.reviewAssessment.kinds.join("/")} review` : "Not required for this change"}`,
+    "Docs     Not assessed automatically",
+    `Learning ${proposals ? `${proposals} proposal(s); inspect with ${cliCommand(`learn --task ${record.id}`)}` : "No reusable update proposed"}`,
+    `Next     ${next}`,
+    `Evidence ${recordPath}`,
+    "",
+  ].join("\n");
+}
 
 export interface RenderOptions {
   color?: boolean;
@@ -275,9 +319,75 @@ export function renderPreview(
 }
 
 export function renderContext(context: ContextPackage, options: RenderOptions = {}): string {
-  const selectedPaths = new Set(context.selected.map((item) => item.path));
-  const candidatePath = (pathname: string): string =>
-    selectedPaths.has(pathname) ? pathname : `${pathname} (path match; inspect selectively)`;
+  const selectedPaths = new Map(context.selected.map((item) => [item.path, item]));
+  const candidatePath = (pathname: string): string => {
+    const item = selectedPaths.get(pathname);
+    if (!item) return `${pathname} (not selected; inspect selectively)`;
+    return item.lineRanges
+      ? `${pathname} (lines ${item.lineRanges.map((range) => `${range.start}-${range.end}`).join(", ")}; partial)`
+      : pathname;
+  };
+  if (!options.verbose) {
+    const owners = context.likelyOwningSource.slice(0, 3);
+    const tests = context.likelyTests.filter((file) => !owners.includes(file)).slice(0, 2);
+    const guidance = context.selected
+      .map((item) => item.path)
+      .filter(
+        (file) => file !== ".noxroot/config.yml" && !owners.includes(file) && !tests.includes(file),
+      )
+      .slice(0, 3);
+    return (
+      [
+        title("task brief", options),
+        "",
+        ...section(
+          "Outcome",
+          context.intent.requiredOutcomes.length
+            ? context.intent.requiredOutcomes
+            : [context.interpretation],
+          options,
+        ),
+        ...section(
+          "Task context",
+          [
+            `${context.selected.length} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
+          ],
+          options,
+        ),
+        ...section(
+          "Likely owner",
+          owners.length ? owners.map(candidatePath) : ["Not established"],
+          options,
+        ),
+        ...section(
+          "Likely tests",
+          tests.length ? tests.map(candidatePath) : ["Not established"],
+          options,
+        ),
+        ...section("Also selected", guidance.map(candidatePath), options),
+        ...section(
+          "Checks",
+          context.requiredVerification.length
+            ? context.requiredVerification.map(
+                (check) => `${commandText(check)} · cwd ${check.cwd}`,
+              )
+            : ["No approved command is available."],
+          options,
+        ),
+        ...section("Do not", context.intent.explicitExclusions, options, ANSI.yellow),
+        ...section("Conflicts", context.conflicts, options, ANSI.yellow),
+        ...(context.confidence === "high"
+          ? []
+          : [`Confidence  ${sentenceCase(context.confidence)}`]),
+        ...section("Missing evidence", context.unknowns.slice(0, 2), options),
+        ...section("Excluded", [`${context.excluded.length} files left out`], options),
+        `Next  ${context.conflicts.length ? "Resolve the reported conflicts before editing." : "Inspect the relevant files, then build the requested change."}`,
+        "Details  Use --verbose for all selected paths and reasons; --json for structured context.",
+      ]
+        .filter((line, index) => line !== "" || index === 1)
+        .join("\n") + "\n"
+    );
+  }
   const selectedSummary = options.verbose
     ? `${context.selected.length} of ${context.repositoryFileCount} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`
     : `${context.selected.length} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`;
@@ -299,7 +409,7 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
       : []),
     ...section(
       "Task context",
-      [selectedSummary, ...context.selected.map((item) => item.path)],
+      [selectedSummary, ...context.selected.map((item) => candidatePath(item.path))],
       options,
       ANSI.green,
     ),
@@ -331,7 +441,7 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
       ...section(
         "Selection reasons",
         context.selected.flatMap((item) => [
-          `${item.path} (${item.bytes} bytes)`,
+          `${candidatePath(item.path)} (${item.bytes} selected bytes${item.sourceBytes === undefined ? "" : ` of ${item.sourceBytes}`})`,
           ...item.reasons.map((reason) => `  ${reason}`),
         ]),
         options,

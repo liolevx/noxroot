@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { open } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig, loadRoutes, loadVerification } from "../config/load.js";
 import { scanRepository } from "../detection/scan.js";
@@ -66,16 +66,19 @@ const TOKEN_ALIASES: Record<string, string> = {
   reviews: "review",
   tests: "test",
   testing: "test",
+  integer: "int",
+  minified: "min",
+  minify: "min",
   verified: "verify",
   verification: "verify",
 };
 
 const SOURCE_EXTENSION = /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php)$/;
 const TEST_PATH =
-  /(?:^|\/)(?:__tests__|tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\.|(?:^|\/)(?:test_[^/]+|[^/]+_(?:test|spec))\.(?:go|py|rb)$/;
+  /(?:^|\/)(?:__tests__|tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\.|(?:^|\/)(?:test_[^/]+|[^/]+_(?:test|spec))\.(?:go|py|rb)$|(?:^|\/)(?:test|spec)\.[^.]+$/;
 const DOCUMENT_PATH = /(?:^|\/)(?:docs?|adr|adrs)(?:\/|$)|\.(?:md|mdx)$/;
 const NON_AUTHORITATIVE_PATH =
-  /(?:^|\/)(?:expected|fixtures?|golden|snapshots?|examples?|generated|vendor|cassettes?|recordings?|testdata|canary|payloads?)(?:\/|$)/i;
+  /(?:^|\/)(?:expected|fixtures?|golden|snapshots?|examples?|generated|vendor|cassettes?|recordings?|testdata|canary|payloads?)(?:\/|$)|[.-]min\.(?:js|css)$/i;
 
 type Category = "entrypoint" | "manifest" | "source" | "test" | "document" | "other";
 
@@ -87,6 +90,7 @@ interface RankedCandidate {
   category: Category;
   matchedTerms: Set<string>;
   pathMatchedTerms: Set<string>;
+  excerpt?: Pick<ContextSelection, "bytes" | "lineRanges">;
 }
 
 function isAlwaysContext(file: string): boolean {
@@ -103,12 +107,15 @@ function normalizeToken(value: string): string {
 }
 
 function tokenList(value: string): string[] {
-  return (
-    value
+  // Preserve explicit camelCase symbols as well as their component words.
+  const symbols = value.match(/\b[a-z][a-z0-9]*(?:[A-Z][a-z0-9]+)+\b/g) ?? [];
+  return [
+    ...(value
       .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
       .toLowerCase()
-      .match(/[a-z0-9]+/g) ?? []
-  )
+      .match(/[a-z0-9]+/g) ?? []),
+    ...symbols,
+  ]
     .map(normalizeToken)
     .filter((token) => token.length >= 3 && !STOP_WORDS.has(token));
 }
@@ -173,7 +180,7 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
     reasons.push("authoritative project manifest");
   }
 
-  for (const term of isAlwaysContext(file) ? [] : taskTerms) {
+  for (const term of isAlwaysContext(file) ? [] : taskTerms.filter((term) => term !== "test")) {
     if (stemTerms.includes(term)) {
       score += 50;
       matchedTerms.add(term);
@@ -243,27 +250,94 @@ function baseScore(file: string, taskTerms: string[], activeRouteIds: string[]):
   };
 }
 
+// Navigation hints only: never persist source text or imply these windows are a full file.
+function excerpt(source: string, taskTerms: string[], budget: number): RankedCandidate["excerpt"] {
+  const lines = source.match(/[^\n]*\n|[^\n]+$/g) ?? [];
+  const sizes = lines.map((line) => Buffer.byteLength(line));
+  const lineTerms = lines.map(tokenList);
+  const hits = lineTerms
+    .flatMap((terms, index) => {
+      if (!taskTerms.some((term) => terms.includes(term))) return [];
+      const start = Math.max(0, index - 6);
+      const end = Math.min(lines.length - 1, index + 6);
+      const nearby = lineTerms.slice(start, end + 1).flat();
+      const matches = taskTerms.filter((term) => nearby.includes(term));
+      return [
+        {
+          index,
+          start,
+          end,
+          matches,
+          score: matches.reduce(
+            (sum, term) => sum + Math.min(3, nearby.filter((word) => word === term).length),
+            0,
+          ),
+        },
+      ];
+    })
+    .sort((left, right) => right.score - left.score || left.index - right.index);
+  const ranges: Array<{ start: number; end: number }> = [];
+  const covered = new Set<string>();
+  let bytes = 0;
+  for (const hit of hits) {
+    if (ranges.length === 3) break;
+    const { start, end } = hit;
+    if (hit.matches.every((term) => covered.has(term))) continue;
+    if (ranges.some((range) => start + 1 <= range.end && end + 1 >= range.start)) continue;
+    const size = sizes.slice(start, end + 1).reduce((sum, value) => sum + value, 0);
+    if (bytes + size > budget) continue;
+    ranges.push({ start: start + 1, end: end + 1 });
+    hit.matches.forEach((term) => covered.add(term));
+    bytes += size;
+  }
+  return ranges.length
+    ? { bytes, lineRanges: ranges.sort((a, b) => a.start - b.start) }
+    : undefined;
+}
+
 async function addContentRelevance(
   root: string,
   candidates: RankedCandidate[],
   taskTerms: string[],
-): Promise<void> {
+  selectionFileLimit: number,
+): Promise<boolean> {
   let inspected = 0;
   let inspectedBytes = 0;
+  let incomplete = false;
   const inspectable = candidates
     .filter((item) => ["source", "test", "document"].includes(item.category))
-    .filter((item) => item.bytes <= MAX_INSPECTED_FILE_BYTES)
     .sort((left, right) => right.score - left.score || left.file.localeCompare(right.file));
   for (const item of inspectable) {
-    if (inspected >= MAX_CONTENT_INSPECTIONS || inspectedBytes + item.bytes > MAX_CONTENT_BYTES)
-      break;
+    const limit = Math.min(item.bytes, MAX_INSPECTED_FILE_BYTES);
+    if (inspected >= MAX_CONTENT_INSPECTIONS || inspectedBytes + limit > MAX_CONTENT_BYTES) {
+      incomplete = true;
+      continue;
+    }
     inspected += 1;
-    inspectedBytes += item.bytes;
+    inspectedBytes += limit;
     let source: string;
     try {
-      source = await readFile(resolveWithin(root, item.file), "utf8");
+      const handle = await open(resolveWithin(root, item.file), "r");
+      try {
+        const buffer = Buffer.alloc(limit);
+        const { bytesRead } = await handle.read(buffer, 0, limit, 0);
+        source = buffer.subarray(0, bytesRead).toString("utf8");
+        if (item.bytes > bytesRead) {
+          incomplete = true;
+          // Discard a cut line (and any cut UTF-8 sequence), retaining exact line/byte ranges.
+          source = source.slice(0, source.lastIndexOf("\n") + 1);
+        }
+      } finally {
+        await handle.close();
+      }
     } catch {
+      incomplete = true;
       continue;
+    }
+    if (source.includes("\0")) continue;
+    if (item.bytes > selectionFileLimit && ["source", "test"].includes(item.category)) {
+      const ranges = excerpt(source, taskTerms, Math.min(3_000, selectionFileLimit));
+      if (ranges) item.excerpt = ranges;
     }
     const sourceTerms = tokenList(source);
     const matches = taskTerms.filter((term) => sourceTerms.includes(term));
@@ -299,6 +373,7 @@ async function addContentRelevance(
       item.reasons.push(`matches ${item.matchedTerms.size} distinct task terms`);
     }
   }
+  return incomplete;
 }
 
 function addAdjacency(candidates: RankedCandidate[]): void {
@@ -376,6 +451,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       "expected",
       "fixture",
       "golden",
+      "min",
       "payload",
       "recording",
       "sample",
@@ -393,6 +469,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       .map((route) => route.id);
 
   const outsidePool: Array<{ path: string; reason: string }> = [];
+  let sourceOutsideRoutes = false;
   const scopeExcluded: Array<{ path: string; reason: string }> = [];
   const candidates: RankedCandidate[] = [];
   for (const file of profile.files) {
@@ -416,6 +493,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     const activeRouteIds = routeIncludesFor(file);
     const fixed = isAlwaysContext(file) || MANIFESTS.has(path.posix.basename(file));
     if (activeRoutes.length > 0 && !fixed && activeRouteIds.length === 0) {
+      if (category(file) === "source") sourceOutsideRoutes = true;
       if (outsidePool.length < 10) {
         outsidePool.push({ path: file, reason: "outside the active route candidate pool" });
       }
@@ -430,22 +508,32 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     candidates.push(candidate);
   }
 
-  await addContentRelevance(canonicalRoot, candidates, contentTerms);
+  const selectionFileLimit = Math.min(8_000, Math.floor(budget * 0.55));
+  const inspectionIncomplete = await addContentRelevance(
+    canonicalRoot,
+    candidates,
+    contentTerms,
+    selectionFileLimit,
+  );
   addAdjacency(candidates);
   candidates.sort((left, right) => right.score - left.score || left.file.localeCompare(right.file));
 
-  const selectionFileLimit = Math.min(8_000, Math.floor(budget * 0.55));
+  const hasTaskEvidence = (item: RankedCandidate): boolean =>
+    item.pathMatchedTerms.size > 0 ||
+    (contentTerms.length > 0 && item.matchedTerms.size >= Math.min(2, contentTerms.length));
+  const selectedSize = (item: RankedCandidate): number => item.excerpt?.bytes ?? item.bytes;
   const directlyMatchedOwner = (item: RankedCandidate): boolean =>
     item.category === "source" &&
     item.reasons.some((reason) => reason.startsWith("basename matches task term"));
   const fitsSelection = (item: RankedCandidate): boolean =>
     item.category === "entrypoint"
       ? item.bytes <= Math.min(selectionFileLimit, Math.floor(budget * 0.4))
-      : item.bytes <= selectionFileLimit || (item.bytes <= budget && directlyMatchedOwner(item));
+      : selectedSize(item) <= selectionFileLimit ||
+        (item.bytes <= budget && directlyMatchedOwner(item));
   const topOwner = candidates.find(
     (item) =>
       item.category === "source" &&
-      item.matchedTerms.size > 0 &&
+      hasTaskEvidence(item) &&
       item.score >= 20 &&
       fitsSelection(item),
   );
@@ -466,10 +554,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     .slice(0, 3);
   const topTest = candidates.find(
     (item) =>
-      item.category === "test" &&
-      item.matchedTerms.size > 0 &&
-      item.score >= 20 &&
-      fitsSelection(item),
+      item.category === "test" && hasTaskEvidence(item) && item.score >= 20 && fitsSelection(item),
   );
   const topProcedure = candidates.find(
     (item) => item.file.startsWith(".noxroot/skills/") && item.score >= 20 && fitsSelection(item),
@@ -538,7 +623,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     }
     if (
       (item.category === "source" || item.category === "test") &&
-      item.matchedTerms.size === 0 &&
+      !hasTaskEvidence(item) &&
       !adjacentToPriority
     ) {
       if (excluded.length < 20)
@@ -549,7 +634,8 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       (item.category === "source" || item.category === "test") &&
       directPathMatch[item.category] &&
       item.pathMatchedTerms.size === 0 &&
-      !adjacentToPriority
+      !adjacentToPriority &&
+      !(item.excerpt && priorityPaths.has(item.file) && item.matchedTerms.size >= 2)
     ) {
       if (excluded.length < 20) {
         excluded.push({ path: item.file, reason: "weaker than a direct task-path match" });
@@ -571,24 +657,28 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
         excluded.push({ path: item.file, reason: `${item.category} category cap` });
       continue;
     }
-    if (selectedBytes + item.bytes > budget) {
+    if (selectedBytes + selectedSize(item) > budget) {
       if (excluded.length < 20) excluded.push({ path: item.file, reason: "context byte budget" });
       continue;
     }
-    if (!priorityPaths.has(item.file) && selectedBytes + item.bytes > curatedTargetBytes) {
+    if (!priorityPaths.has(item.file) && selectedBytes + selectedSize(item) > curatedTargetBytes) {
       if (excluded.length < 20)
         excluded.push({ path: item.file, reason: "curated context target" });
       continue;
     }
     selected.push({
       path: item.file,
-      bytes: item.bytes,
-      estimatedTokens: Math.ceil(item.bytes / 4),
+      bytes: selectedSize(item),
+      estimatedTokens: Math.ceil(selectedSize(item) / 4),
+      ...(item.excerpt ? { lineRanges: item.excerpt.lineRanges, sourceBytes: item.bytes } : {}),
       reasons: [
+        ...(item.excerpt
+          ? ["partial file; inspect the selected line ranges and surrounding implementation"]
+          : []),
         ...new Set(item.reasons.length ? item.reasons : ["selected by bounded relevance ranking"]),
       ],
     });
-    selectedBytes += item.bytes;
+    selectedBytes += selectedSize(item);
     categoryCounts[item.category] += 1;
   }
 
@@ -597,7 +687,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     .filter(
       (item) =>
         item.category === "source" &&
-        (selectedSet.has(item.file) || (item.pathMatchedTerms.size > 0 && item.score >= 20)),
+        (selectedSet.has(item.file) || (hasTaskEvidence(item) && item.score >= 20)),
     )
     .slice(0, 5)
     .map((item) => item.file);
@@ -617,6 +707,21 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     .filter((item) => item.status === "conflicting")
     .map((item) => item.claim);
   const unknowns = [
+    ...(!likelyOwningSource.length && sourceOutsideRoutes
+      ? [
+          "Active routes exclude source files; review .noxroot/routes.yml before expanding the task scope.",
+        ]
+      : []),
+    ...likelyOwningSource
+      .filter((file) => !selectedSet.has(file))
+      .map((file) => `Implementation not selected: ${file}`),
+    ...selected
+      .filter((item) => item.lineRanges && likelyOwningSource.includes(item.path))
+      .map((item) => `Partial implementation context: ${item.path}`),
+    ...(inspectionIncomplete
+      ? ["Content inspection was bounded; uninspected content may contain other owners or tests."]
+      : []),
+    ...profile.stats.incompleteReasons,
     ...(likelyOwningSource.length ? [] : ["Owning source path"]),
     ...(likelyTests.length ? [] : ["Directly related test path"]),
     ...(requiredVerification.length ? [] : ["Applicable approved verification command"]),
@@ -626,7 +731,16 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
     likelyOwningSource.length > 0 &&
     likelyTests.length > 0 &&
     requiredVerification.length > 0 &&
-    conflicts.length === 0
+    conflicts.length === 0 &&
+    unknowns.length === 0 &&
+    likelyTests.some((file) => selectedSet.has(file)) &&
+    !selected.some((item) => item.lineRanges) &&
+    candidates.some(
+      (item) =>
+        item.category === "source" &&
+        selectedSet.has(item.file) &&
+        (item.pathMatchedTerms.size > 0 || item.matchedTerms.size >= 2),
+    )
       ? "high"
       : likelyOwningSource.length > 0
         ? "partial"

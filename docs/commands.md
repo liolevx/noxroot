@@ -10,14 +10,14 @@ without changing JSON.
 
 Exit codes:
 
-| Code | Meaning                                           |
-| ---- | ------------------------------------------------- |
-| 0    | Requested operation completed                     |
-| 2    | Usage, configuration, or validation error         |
-| 3    | Required confirmation was refused or unavailable  |
-| 4    | Verification failed, timed out, or is incomplete  |
-| 5    | Connected agent or required review did not finish |
-| 130  | Interrupted                                       |
+| Code | Meaning                                                |
+| ---- | ------------------------------------------------------ |
+| 0    | Requested operation completed                          |
+| 2    | Usage, configuration, or validation error              |
+| 3    | Required confirmation or task-state access unavailable |
+| 4    | Verification failed, timed out, or is incomplete       |
+| 5    | Connected agent or required review did not finish      |
+| 130  | Interrupted                                            |
 
 ## `preview`
 
@@ -70,10 +70,38 @@ does not broadly rewrite the repository.
 
 ## `context`
 
-`context "task"` shows the outcome, selected paths, likely source and tests, approved checks, an
-exclusion count, and estimated tokens. `--verbose` adds selection reasons, individual exclusions,
-constraints, conflicts, unknowns, and byte counts. It stores paths and evidence, not copied source
-files.
+`context "task"` shows the outcome, a bounded selection of paths, likely source and tests, approved
+checks with their working directories, an exclusion count, and estimated tokens. Exclusions and
+conflicts remain visible. `--verbose` adds every selected path, selection reasons, individual
+exclusions, unknowns, and byte counts. JSON retains the complete bounded context package.
+
+Large source and test files can be selected as up to three line ranges rather than whole files.
+Human output labels these as partial. JSON adds `lineRanges` (one-based, inclusive) and
+`sourceBytes`; `bytes` counts only the selected ranges. These are reading hints, not embedded code
+or complete functions. Inspect surrounding code and refresh context after edits move the lines.
+Inspection remains capped at 96,000 bytes per file and 1,000,000 bytes across candidates. Missing
+owners, partial files, and inspection limits prevent high confidence.
+
+Fresh setup includes root-level source extensions in its routes. Existing route files are not
+rewritten by `init` or `sync`. If context reports excluded source files, review the includes in
+`.noxroot/routes.yml` before widening scope; updating the CLI alone does not change those
+boundaries.
+
+Routine `start`, continuation, and `finish` output separates the result from supporting evidence.
+The short finish view still shows failures, verification gaps, pending review, and a path to the
+full local record. Passing tests alone never turn a pending review into approval.
+
+### Local task-state access
+
+New Git repositories use `.noxroot/local/runs/`, inside the writable worktree rather than Git's
+metadata. Its managed `.gitignore` contains `*`; never force-add task records to Git. Inspection and
+read-only conversation create no state. Retention rules are unchanged.
+
+Existing `.git/noxroot` state remains authoritative. Noxroot does not move active tasks during an
+upgrade. If this legacy directory is sandbox-protected, approve access only to the reported state
+directory, or run the lifecycle command yourself in a trusted terminal. Do not disable the sandbox
+or create another store. A blocked start means stop before editing; a blocked finish means the task
+is not complete. Sync updates the managed instructions with these rules after you review its diff.
 
 ## `status`
 
@@ -81,6 +109,9 @@ files.
 working-tree state, active Noxroot tasks, changed paths since each baseline, whether verification
 matches the current diff, and the next applicable action. It does not invoke an agent or restore a
 chat session.
+
+Before resuming edits, repeat `start` with the active task's text. `status` does not check whether
+task state is writable and is not a substitute for `start`.
 
 ## `verify`
 

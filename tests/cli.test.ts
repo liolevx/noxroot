@@ -203,6 +203,9 @@ describe("CLI contracts", () => {
     expect(concise.stdout).toContain("Checks");
     expect(concise.stdout).toMatch(/Excluded\n {2}\d+ files left out/);
     expect(concise.stdout).not.toContain("outside the active route candidate pool");
+    expect(concise.stdout.trim().split("\n").length).toBeLessThanOrEqual(24);
+    expect(concise.stdout).toContain("--verbose");
+    expect(concise.stdout.match(/src\/index\.ts/g)?.length ?? 0).toBeLessThanOrEqual(1);
 
     const verbose = await run(["context", "change greeting", "--verbose", "--root", fixture.root]);
     expect(verbose.stdout).toMatch(/\d+ of \d+ files/);
@@ -265,7 +268,7 @@ describe("CLI contracts", () => {
     );
     const { stdout, stderr } = await run(["init", "--yes", "--root", root]);
 
-    expect(stdout).toContain("Initialization: allowed");
+    expect(stdout).toContain("Exact proposed changes");
     expect(stdout).toContain("Mode\n  Companion");
     expect(stderr).toBe("");
     const initialized = await hashTree(root);
@@ -294,8 +297,9 @@ describe("CLI contracts", () => {
     cleanup.push(fixture.cleanup);
     const before = await hashTree(fixture.root);
     const { stdout } = await run(["run", "change greeting", "--dry-run", "--root", fixture.root]);
-    expect(stdout).toContain("NOXROOT RUN PLAN");
-    expect(stdout).toContain('"executes": false');
+    expect(stdout).toContain("NOXROOT  run plan");
+    expect(stdout).not.toContain('"sideEffects"');
+    expect(stdout).toContain("Effects  none");
     expect(await hashTree(fixture.root)).toBe(before);
   });
 

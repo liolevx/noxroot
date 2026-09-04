@@ -23,6 +23,10 @@ function managedBlock(mode: WorkflowMode, hasKnowledgeIndex = true): string {
     mode === "full"
       ? `For a code-changing task, run \`${cliCommand('start "<task>"')}\` before editing and \`${cliCommand("finish")}\` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.
 
+If start fails, stop before editing and report the error. If finish fails, do not report the task complete. Request only the access needed to retry; do not disable the sandbox or create a second task-state store.
+
+For unfinished work, use \`${cliCommand("status")}\` before opening raw task records. Even when status lists an active task, repeat start with that task's text before resuming edits: status is read-only and does not check write access. Keep routine output brief; use \`--verbose\` or \`--json\` when supporting detail is needed.
+
 When \`.noxroot/skills/\` exists, load only the task-relevant \`SKILL.md\`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.`
       : mode === "companion"
         ? `The existing repository coordinator remains authoritative for code-changing work. Noxroot does not add a second task lifecycle, reviewer, or learning loop.
@@ -316,6 +320,17 @@ function routesContent(
   const testRoots = ["tests/**", "test/**", "e2e/**"].filter((glob) =>
     profile.files.some((file) => file.startsWith(glob.replace("/**", "/"))),
   );
+  const rootSourceGlobs = [
+    ...new Set(
+      profile.files
+        .filter(
+          (file) =>
+            !file.includes("/") &&
+            /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php)$/.test(file),
+        )
+        .map((file) => `*${path.posix.extname(file)}`),
+    ),
+  ];
   return stringify({
     version: 1,
     routes: [
@@ -331,6 +346,7 @@ function routesContent(
             ...projectRoots,
             ...sourceRoots,
             ...discoveredSourceRoots,
+            ...rootSourceGlobs,
             ...testRoots,
           ]),
         ],

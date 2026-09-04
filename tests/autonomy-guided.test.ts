@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CommanderError } from "commander";
 import { afterEach, describe, expect, it } from "vitest";
@@ -80,6 +80,53 @@ const context = {
 };
 
 describe("enforced autonomy and guided completion", () => {
+  it("uses one canonical repository through an aliased CLI root", async () => {
+    const root = await repository();
+    const holder = await temporaryDirectory("noxroot-alias-");
+    cleanup.push(holder);
+    const alias = path.join(holder, "repository");
+    await symlink(root, alias, process.platform === "win32" ? "junction" : "dir");
+    await cli(["init", "--yes", "--root", alias]);
+    await writeFile(path.join(root, "src/value.cjs"), "exports.value = 1;\n");
+    await writeFile(
+      path.join(root, ".noxroot/verification.yml"),
+      JSON.stringify({
+        version: 1,
+        commands: [
+          {
+            id: "syntax",
+            executable: process.execPath,
+            args: ["--check", "src/value.cjs"],
+            cwd: ".",
+            timeoutMs: 10000,
+            appliesTo: ["src/**"],
+          },
+        ],
+      }),
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "configured alias fixture"]);
+    const started = JSON.parse(
+      (await cli(["start", "change value", "--root", alias, "--json"])).stdout,
+    ) as { record: { id: string; repository: { root: string } } };
+    expect(started.record.repository.root).toBe(await realpath(root));
+    const status = JSON.parse((await cli(["status", "--root", alias, "--json"])).stdout) as {
+      active: Array<{ record: { id: string } }>;
+    };
+    expect(status.active.map((item) => item.record.id)).toEqual([started.record.id]);
+    await writeFile(path.join(root, "src/value.cjs"), "exports.value = 2;\n");
+    const continued = JSON.parse(
+      (await cli(["start", "change value", "--root", alias, "--json"])).stdout,
+    ) as { continued: boolean; record: { id: string } };
+    expect(continued.continued).toBe(true);
+    expect(continued.record.id).toBe(started.record.id);
+    const finished = JSON.parse((await cli(["finish", "--root", alias, "--json"])).stdout) as {
+      record: { id: string; status: string };
+    };
+    expect(finished.record.id).toBe(started.record.id);
+    expect(finished.record.status).toBe("completed");
+    expect(await readFile(path.join(root, ".noxroot/local/.gitignore"), "utf8")).toBe("*\n");
+  });
   it("caps effective authority and permanently disables merge and delivery", () => {
     const autonomy = effectiveAutonomy({
       autonomy: { default: 5, implementation: 5, review: 5, merge: 3, delivery: 3 },
@@ -135,7 +182,7 @@ commands:
     expect(pendingValue.completion.documentation.status).toBe("not-assessed");
     expect(pendingValue.completion.learning.status).toBe("no-candidate");
 
-    const reviewPath = path.join(root, ".git", "noxroot", "external-review.json");
+    const reviewPath = path.join(root, ".noxroot", "local", "external-review.json");
     await writeFile(
       reviewPath,
       JSON.stringify({
@@ -159,7 +206,7 @@ commands:
       "--task",
       startValue.record.id,
       "--review-file",
-      ".git/noxroot/external-review.json",
+      ".noxroot/local/external-review.json",
       "--json",
       "--root",
       root,
@@ -197,7 +244,7 @@ commands:
       (await cli(["context", "change another value under src", "--json", "--root", root])).stdout,
     ) as { selected: Array<{ path: string }> };
     expect(later.selected.map((item) => item.path)).toContain(".noxroot/knowledge/learnings.md");
-    expect(later.selected.some((item) => item.path.includes(".git/noxroot/runs"))).toBe(false);
+    expect(later.selected.some((item) => item.path.includes(".noxroot/local/"))).toBe(false);
   });
 
   it("requires an explicit id when multiple guided tasks are active", async () => {
@@ -268,7 +315,7 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     );
     const records = await (
       await import("node:fs/promises")
-    ).readdir(path.join(root, ".git", "noxroot", "runs"));
+    ).readdir(path.join(root, ".noxroot", "local", "runs"));
     expect(records.filter((name) => name.endsWith(".json"))).toHaveLength(1);
   });
 
@@ -289,9 +336,10 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     );
     await git(root, ["add", "."]);
     await git(root, ["commit", "-m", "noxroot fixture"]);
-    const started = JSON.parse(
-      (await cli(["start", "change the value", "--json", "--root", root])).stdout,
-    ) as { record: { id: string } };
+    const task = "change the value; do not deploy";
+    const started = JSON.parse((await cli(["start", task, "--json", "--root", root])).stdout) as {
+      record: { id: string };
+    };
     await writeFile(path.join(root, "src", "value.ts"), "export const value = 2;\n");
 
     const value = JSON.parse((await cli(["status", "--json", "--root", root])).stdout) as {
@@ -308,6 +356,22 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     const human = await cli(["status", "--root", root]);
     expect(human.stdout).toContain("Changed  src/value.ts");
     expect(human.stdout).toContain("Verification  Not run for the current diff.");
+    expect(human.stdout).toContain(
+      "Before editing  Repeat start with the active task text to check write access.",
+    );
+    expect(human.stdout).toContain(`${started.record.id}  ${task}\n`);
+    const displayed = human.stdout
+      .split("\n")
+      .find((line) => line.startsWith(`${started.record.id}  `))!
+      .slice(started.record.id.length + 2);
+    const resumed = JSON.parse(
+      (await cli(["start", displayed, "--json", "--root", root])).stdout,
+    ) as {
+      continued: boolean;
+      record: { id: string };
+    };
+    expect(resumed.continued).toBe(true);
+    expect(resumed.record.id).toBe(started.record.id);
   });
 
   it("reports current and stale verification deterministically when continuing", async () => {
@@ -423,7 +487,7 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     const started = JSON.parse(
       (await cli(["start", "change value", "--json", "--root", root])).stdout,
     ) as { record: { id: string } };
-    const recordPath = path.join(root, ".git", "noxroot", "runs", `${started.record.id}.json`);
+    const recordPath = path.join(root, ".noxroot", "local", "runs", `${started.record.id}.json`);
     const persisted = JSON.parse(await readFile(recordPath, "utf8")) as {
       baseline: { revision: string };
     };
@@ -656,10 +720,10 @@ commands:
 
     const result = await cli(["finish", "--root", root]);
     expect(result.stdout).toContain(
-      "missing-check: unavailable | definitely-not-installed-noxroot-check --verify | cwd . | exit not started",
+      "definitely-not-installed-noxroot-check --verify · cwd . · unavailable",
     );
     expect(result.stdout).toContain("Make the approved check runnable");
-    expect(result.stdout).toContain("rerun npx --yes noxroot@0.1.0 finish --task");
+    expect(result.stdout).toContain("rerun npx --yes noxroot@0.1.0 finish.");
     expect(result.stderr).toContain("Inspecting changed files and running affected checks");
     expect(result.stderr).toContain("Assessing reusable learning");
     expect(result.stderr).toContain("Preparing handoff");

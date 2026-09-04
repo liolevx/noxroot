@@ -1,6 +1,16 @@
 import { spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -229,8 +239,76 @@ try {
   );
   assert.deepEqual(await snapshot(linkedRoot), linkedBefore);
   assert.deepEqual(await snapshot(outside), {});
+
+  const guidedRoot = path.join(temporaryRoot, "guided-repository");
+  await mkdir(path.join(guidedRoot, "src"), { recursive: true });
+  await writeFile(path.join(guidedRoot, "src/value.mjs"), "export const value = 1;\n");
+  invokeBinary(binary, ["init", "--yes", "--root", guidedRoot], installRoot);
+  await writeFile(
+    path.join(guidedRoot, ".noxroot/config.yml"),
+    "version: 1\nmodules: [repository-profile, agent-routing, verification, orchestration]\nautonomy: {implementation: 1}\n",
+  );
+  await writeFile(
+    path.join(guidedRoot, ".noxroot/verification.yml"),
+    JSON.stringify({
+      version: 1,
+      commands: [
+        {
+          id: "syntax",
+          executable: process.execPath,
+          args: ["--check", "src/value.mjs"],
+          cwd: ".",
+          timeoutMs: 10000,
+          appliesTo: ["src/**"],
+        },
+      ],
+    }),
+  );
+  run("git", ["init"], { cwd: guidedRoot });
+  run("git", ["add", "."], { cwd: guidedRoot });
+  run(
+    "git",
+    [
+      "-c",
+      "user.name=Noxroot Test",
+      "-c",
+      "user.email=test@example.invalid",
+      "commit",
+      "-m",
+      "Synthetic baseline",
+    ],
+    { cwd: guidedRoot },
+  );
+  const guided = (...args) =>
+    JSON.parse(invokeBinary(binary, [...args, "--root", guidedRoot, "--json"], installRoot));
+  const started = guided("start", "change value");
+  // Keep the caller's raw temp path above: Windows CI may supply an 8.3 alias.
+  assert.equal(started.record.repository.root, await realpath(guidedRoot));
+  assert.equal(
+    path.dirname(path.dirname(path.dirname(started.recordPath))),
+    path.join(await realpath(guidedRoot), ".noxroot"),
+  );
+  assert.ok(started.recordPath.includes(path.join(".noxroot", "local", "runs")));
+  assert.equal(run("git", ["status", "--porcelain"], { cwd: guidedRoot }).trim(), "");
+  await writeFile(path.join(guidedRoot, "src/value.mjs"), "export const value = ;\n");
+  assert.throws(() => guided("finish"), /failed with 4/);
+  const failedRecord = JSON.parse(await readFile(started.recordPath, "utf8"));
+  assert.equal(failedRecord.status, "failed");
+  const continued = guided("start", "change value");
+  assert.equal(continued.record.id, started.record.id);
+  assert.equal(continued.continued, true);
+  await writeFile(path.join(guidedRoot, "src/value.mjs"), "export const value = 2;\n");
+  const finished = guided("finish");
+  assert.equal(finished.record.status, "completed");
+  assert.equal(finished.record.id, started.record.id);
+  assert.equal(finished.record.baseline.revision, started.record.baseline.revision);
+  assert.deepEqual(finished.record.changedPaths, ["src/value.mjs"]);
+  assert.deepEqual(
+    (await readdir(path.dirname(started.recordPath))).filter((name) => name.endsWith(".json")),
+    [path.basename(started.recordPath)],
+  );
   process.stdout.write(
-    `Packed CLI smoke passed on ${process.platform}: real tarball install, repeated init, managed-pin upgrade, user-content preservation, and linked-destination refusal.\n`,
+    `Packed CLI smoke passed on ${process.platform}: install, repeated init, managed-pin upgrade, preservation, linked-destination refusal, and start/fail/continue/finish.\n`,
   );
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });

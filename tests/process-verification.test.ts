@@ -54,20 +54,36 @@ describe("safe process execution and verification trust", () => {
       existsSync(
         path.join(path.dirname(process.execPath), "node_modules", "corepack", "dist", "pnpm.js"),
       ),
-  )("invokes Corepack package managers without a command shell on Windows", async () => {
-    const root = await temporaryDirectory();
-    cleanup.push(() => rm(root, { recursive: true, force: true }));
-    const result = await runProcess({
-      executable: "pnpm",
-      args: ["--version"],
-      cwd: root,
-      repositoryRoot: root,
-      timeoutMs: 15_000,
-    });
-    expect(result.exitCode).toBe(0);
-    expect(result.executable).toBe(process.execPath);
-    expect(result.args[0]).toMatch(/corepack[\\/]dist[\\/]pnpm\.js$/);
-  });
+  )(
+    "invokes pinned Corepack package managers offline without a command shell on Windows",
+    async () => {
+      const root = await temporaryDirectory();
+      cleanup.push(() => rm(root, { recursive: true, force: true }));
+      await writeFile(
+        path.join(root, "package.json"),
+        JSON.stringify({ packageManager: "pnpm@10.0.0" }),
+      );
+      const result = await runProcess({
+        executable: "pnpm",
+        args: ["--version"],
+        cwd: root,
+        repositoryRoot: root,
+        timeoutMs: 15_000,
+        env: {
+          COREPACK_ENABLE_NETWORK: "0",
+          COREPACK_DEFAULT_TO_LATEST: "0",
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
+          ...(process.env.COREPACK_HOME ? { COREPACK_HOME: process.env.COREPACK_HOME } : {}),
+        },
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.timedOut).toBe(false);
+      expect(result.stdout.trim()).toBe("10.0.0");
+      expect(result.executable).toBe(process.execPath);
+      expect(result.args[0]).toMatch(/corepack[\\/]dist[\\/]pnpm\.js$/);
+    },
+    30_000,
+  );
 
   it("rejects process working-directory escapes", async () => {
     const root = await temporaryDirectory();
