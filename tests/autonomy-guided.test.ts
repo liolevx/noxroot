@@ -317,7 +317,12 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
       .split("\n")
       .find((line) => line.startsWith(`${started.record.id}  `))!
       .slice(started.record.id.length + 2);
-    const resumed = JSON.parse((await cli(["start", displayed, "--json", "--root", root])).stdout);
+    const resumed = JSON.parse(
+      (await cli(["start", displayed, "--json", "--root", root])).stdout,
+    ) as {
+      continued: boolean;
+      record: { id: string };
+    };
     expect(resumed.continued).toBe(true);
     expect(resumed.record.id).toBe(started.record.id);
   });
