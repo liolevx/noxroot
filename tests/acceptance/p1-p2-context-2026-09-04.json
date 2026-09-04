@@ -1,0 +1,1066 @@
+[
+  {
+    "repo": "sveltejs/kit",
+    "revision": "a2ba146ae60f79cad8da5af750bbc06af47eeb82",
+    "task": "restore scroll position when navigating back",
+    "selected": [
+      {
+        "path": "packages/kit/src/runtime/client/client.js",
+        "bytes": 687,
+        "estimatedTokens": 172,
+        "lineRanges": [
+          {
+            "start": 579,
+            "end": 591
+          },
+          {
+            "start": 3155,
+            "end": 3167
+          }
+        ],
+        "sourceBytes": 120014,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "content contains task terms “restore”, “scroll”, “position”, “navigating”, “back”",
+          "content matches task phrases “restore scroll”, “scroll position”",
+          "matches 5 distinct task terms"
+        ]
+      },
+      {
+        "path": "AGENTS.md",
+        "bytes": 4259,
+        "estimatedTokens": 1065,
+        "reasons": ["authoritative repository instructions"]
+      },
+      {
+        "path": "packages/kit/test/apps/basics/src/routes/anchor-with-manual-scroll/+page.svelte",
+        "bytes": 266,
+        "estimatedTokens": 67,
+        "reasons": ["directory matches task term “scroll”"]
+      },
+      {
+        "path": "packages/kit/src/runtime/client/snapshots.js",
+        "bytes": 4880,
+        "estimatedTokens": 1220,
+        "reasons": [
+          "content contains task terms “restore”, “navigating”",
+          "matches 2 distinct task terms"
+        ]
+      },
+      {
+        "path": "packages/kit/test/apps/basics/src/routes/anchor-with-manual-scroll/anchor-afternavigate/+page.svelte",
+        "bytes": 589,
+        "estimatedTokens": 148,
+        "reasons": ["directory matches task term “scroll”"]
+      },
+      {
+        "path": "packages/kit/test/apps/basics/src/routes/anchor-with-manual-scroll/anchor-onmount/+page.svelte",
+        "bytes": 512,
+        "estimatedTokens": 128,
+        "reasons": ["directory matches task term “scroll”"]
+      },
+      {
+        "path": "packages/kit/test/apps/basics/src/routes/navigation-lifecycle/scroll-state/a/+page.svelte",
+        "bytes": 980,
+        "estimatedTokens": 245,
+        "reasons": ["directory matches task term “scroll”"]
+      },
+      {
+        "path": "packages/kit/test/apps/basics/src/routes/navigation-lifecycle/scroll-state/b/+page.svelte",
+        "bytes": 985,
+        "estimatedTokens": 247,
+        "reasons": ["directory matches task term “scroll”"]
+      },
+      {
+        "path": "packages/kit/test/apps/basics/src/routes/scroll/cross-document/a/+page.svelte",
+        "bytes": 128,
+        "estimatedTokens": 32,
+        "reasons": ["directory matches task term “scroll”"]
+      },
+      {
+        "path": "packages/adapter-cloudflare/test/apps/pages/server-side-dep/package.json",
+        "bytes": 157,
+        "estimatedTokens": 40,
+        "reasons": ["authoritative project manifest"]
+      },
+      {
+        "path": "packages/adapter-cloudflare/test/apps/workers/server-side-dep/package.json",
+        "bytes": 157,
+        "estimatedTokens": 40,
+        "reasons": ["authoritative project manifest"]
+      }
+    ],
+    "owners": [
+      "packages/kit/src/runtime/client/client.js",
+      "packages/kit/src/runtime/client/snapshots.js"
+    ],
+    "budget": {
+      "maximumBytes": 16000,
+      "selectedBytes": 13600,
+      "estimatedTokens": 3400
+    },
+    "unknowns": [
+      "Partial implementation context: packages/kit/src/runtime/client/client.js",
+      "Content inspection was bounded; uninspected content may contain other owners or tests.",
+      "Applicable approved verification command"
+    ],
+    "conflicts": [
+      "3 symbolic link(s) were not followed: .github/copilot-instructions.md, CLAUDE.md, packages/kit/src/core/sync/create_manifest_data/test/samples/symlinks/routes/foo"
+    ],
+    "allowed": true,
+    "evidence": [],
+    "capabilities": [
+      {
+        "id": "project-knowledge",
+        "label": "Project knowledge",
+        "decision": "reuse",
+        "evidence": ["CONTRIBUTING.md"],
+        "missingEvidence": []
+      },
+      {
+        "id": "task-routes",
+        "label": "Task routes",
+        "decision": "not-assessed",
+        "evidence": [],
+        "missingEvidence": [
+          "Referenced path was not available: packages/kit/src/routes",
+          "Referenced path was not available: packages/kit/$app/manifest",
+          "Referenced path was not available: packages/kit/$app/manifest",
+          "Referenced path was not available: packages/kit/$app/manifest",
+          "Referenced path was not available: packages/kit/$app/manifest",
+          "Referenced path was not available: packages/kit/$app/manifest",
+          "Referenced path was not available: packages/kit/$app/manifest",
+          "Referenced path was not available: packages/kit/src/routes"
+        ]
+      },
+      {
+        "id": "verification-policy",
+        "label": "Verification",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "verification-skill",
+        "label": "Verification skill",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "task-orchestration",
+        "label": "Task orchestration",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "product-ux-guidance",
+        "label": "Product and UX guidance",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      }
+    ]
+  },
+  {
+    "repo": "jqlang/jq",
+    "revision": "9d241e277204b83c4a7ddc7d733e5c72f99ef500",
+    "task": "report invalid JSON input with line and column information",
+    "selected": [
+      {
+        "path": "src/lexer.c",
+        "bytes": 1006,
+        "estimatedTokens": 252,
+        "lineRanges": [
+          {
+            "start": 463,
+            "end": 475
+          },
+          {
+            "start": 1462,
+            "end": 1474
+          },
+          {
+            "start": 2434,
+            "end": 2446
+          }
+        ],
+        "sourceBytes": 73825,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "content contains task terms “report”, “invalid”, “json”, “input”, “line”, “column”, “information”",
+          "content matches task phrase “input line”",
+          "matches 7 distinct task terms"
+        ]
+      },
+      {
+        "path": "tests/shtest",
+        "bytes": 1519,
+        "estimatedTokens": 380,
+        "lineRanges": [
+          {
+            "start": 54,
+            "end": 66
+          },
+          {
+            "start": 71,
+            "end": 83
+          },
+          {
+            "start": 127,
+            "end": 139
+          }
+        ],
+        "sourceBytes": 30264,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "content contains task terms “invalid”, “json”, “input”, “line”, “column”",
+          "content matches task phrases “invalid json”, “line column”",
+          "matches 5 distinct task terms"
+        ]
+      },
+      {
+        "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+        "bytes": 936,
+        "estimatedTokens": 234,
+        "reasons": [
+          "basename matches task term “report”",
+          "content contains task terms “report”, “input”, “information”",
+          "matches 3 distinct task terms"
+        ]
+      },
+      {
+        "path": "src/jv_parse.c",
+        "bytes": 1612,
+        "estimatedTokens": 403,
+        "lineRanges": [
+          {
+            "start": 190,
+            "end": 202
+          },
+          {
+            "start": 813,
+            "end": 825
+          },
+          {
+            "start": 847,
+            "end": 859
+          }
+        ],
+        "sourceBytes": 27794,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "content contains task terms “invalid”, “json”, “input”, “line”, “column”",
+          "content matches task phrase “line column”",
+          "matches 5 distinct task terms"
+        ]
+      },
+      {
+        "path": "src/main.c",
+        "bytes": 2042,
+        "estimatedTokens": 511,
+        "lineRanges": [
+          {
+            "start": 53,
+            "end": 65
+          },
+          {
+            "start": 85,
+            "end": 97
+          },
+          {
+            "start": 350,
+            "end": 362
+          }
+        ],
+        "sourceBytes": 27033,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "content contains task terms “report”, “invalid”, “json”, “input”, “line”",
+          "content matches task phrases “invalid json”, “json input”",
+          "matches 5 distinct task terms"
+        ]
+      },
+      {
+        "path": "src/util.c",
+        "bytes": 1680,
+        "estimatedTokens": 420,
+        "lineRanges": [
+          {
+            "start": 254,
+            "end": 266
+          },
+          {
+            "start": 353,
+            "end": 365
+          },
+          {
+            "start": 854,
+            "end": 866
+          }
+        ],
+        "sourceBytes": 37337,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "content contains task terms “report”, “invalid”, “json”, “input”, “line”, “information”",
+          "content matches task phrase “input line”",
+          "matches 6 distinct task terms"
+        ]
+      },
+      {
+        "path": "src/jq_test.c",
+        "bytes": 715,
+        "estimatedTokens": 179,
+        "lineRanges": [
+          {
+            "start": 178,
+            "end": 190
+          },
+          {
+            "start": 599,
+            "end": 611
+          }
+        ],
+        "sourceBytes": 22279,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "content contains task terms “invalid”, “json”, “input”, “line”, “column”",
+          "content matches task phrase “line column”",
+          "matches 5 distinct task terms"
+        ]
+      },
+      {
+        "path": "src/builtin.c",
+        "bytes": 1143,
+        "estimatedTokens": 286,
+        "lineRanges": [
+          {
+            "start": 443,
+            "end": 455
+          },
+          {
+            "start": 639,
+            "end": 651
+          },
+          {
+            "start": 830,
+            "end": 842
+          }
+        ],
+        "sourceBytes": 66652,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "content contains task terms “invalid”, “json”, “input”, “line”",
+          "content matches task phrase “input line”",
+          "matches 4 distinct task terms"
+        ]
+      },
+      {
+        "path": "src/parser.c",
+        "bytes": 2228,
+        "estimatedTokens": 557,
+        "lineRanges": [
+          {
+            "start": 138,
+            "end": 150
+          },
+          {
+            "start": 1474,
+            "end": 1486
+          },
+          {
+            "start": 1854,
+            "end": 1866
+          }
+        ],
+        "sourceBytes": 141640,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "content contains task terms “report”, “invalid”, “line”, “column”, “information”",
+          "matches 5 distinct task terms"
+        ]
+      },
+      {
+        "path": "tests/torture/input0.json",
+        "bytes": 151,
+        "estimatedTokens": 38,
+        "reasons": [
+          "path token matches task term “json”",
+          "path substring matches task term “input”",
+          "matches 2 distinct task terms"
+        ]
+      },
+      {
+        "path": "tests/modules/data.json",
+        "bytes": 46,
+        "estimatedTokens": 12,
+        "reasons": ["path token matches task term “json”"]
+      }
+    ],
+    "owners": ["src/lexer.c", "src/jv_parse.c", "src/main.c", "src/util.c", "src/jq_test.c"],
+    "budget": {
+      "maximumBytes": 16000,
+      "selectedBytes": 13078,
+      "estimatedTokens": 3270
+    },
+    "unknowns": [
+      "Partial implementation context: src/lexer.c",
+      "Partial implementation context: src/jv_parse.c",
+      "Partial implementation context: src/main.c",
+      "Partial implementation context: src/util.c",
+      "Partial implementation context: src/jq_test.c",
+      "Content inspection was bounded; uninspected content may contain other owners or tests.",
+      "Applicable approved verification command"
+    ],
+    "conflicts": ["1 symbolic link(s) were not followed: docs/content/manual/manual.yml"],
+    "allowed": true,
+    "evidence": [],
+    "capabilities": [
+      {
+        "id": "project-knowledge",
+        "label": "Project knowledge",
+        "decision": "reuse",
+        "evidence": ["SECURITY.md"],
+        "missingEvidence": []
+      },
+      {
+        "id": "task-routes",
+        "label": "Task routes",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "verification-policy",
+        "label": "Verification",
+        "decision": "not-assessed",
+        "evidence": [],
+        "missingEvidence": ["No authoritative verification wrapper or candidate checks were found."]
+      },
+      {
+        "id": "verification-skill",
+        "label": "Verification skill",
+        "decision": "not-assessed",
+        "evidence": [],
+        "missingEvidence": ["Verification behavior was not assessed."]
+      },
+      {
+        "id": "task-orchestration",
+        "label": "Task orchestration",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "product-ux-guidance",
+        "label": "Product and UX guidance",
+        "decision": "not-assessed",
+        "evidence": [],
+        "missingEvidence": ["No user-facing product surface was detected."]
+      }
+    ]
+  },
+  {
+    "repo": "jedisct1/libsodium",
+    "revision": "403efe612e1c232399878e8070ceeb6a8129983a",
+    "task": "report the library version through the public version API",
+    "selected": [
+      {
+        "path": "src/libsodium/sodium/version.c",
+        "bytes": 381,
+        "estimatedTokens": 96,
+        "reasons": [
+          "basename matches task term “version”",
+          "content contains task terms “library”, “version”",
+          "content matches task phrase “library version”",
+          "matches 2 distinct task terms",
+          "source/test counterpart of test/check-version-consistency.sh"
+        ]
+      },
+      {
+        "path": "test/check-version-consistency.sh",
+        "bytes": 653,
+        "estimatedTokens": 164,
+        "lineRanges": [
+          {
+            "start": 25,
+            "end": 37
+          }
+        ],
+        "sourceBytes": 8528,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "basename matches task term “version”",
+          "content contains task terms “library”, “version”",
+          "content matches task phrase “library version”",
+          "matches 2 distinct task terms",
+          "source/test counterpart of src/libsodium/sodium/version.c"
+        ]
+      },
+      {
+        "path": "builds/msvc/version.h",
+        "bytes": 509,
+        "estimatedTokens": 128,
+        "reasons": [
+          "basename matches task term “version”",
+          "content contains task terms “library”, “version”",
+          "content matches task phrase “library version”",
+          "matches 2 distinct task terms"
+        ]
+      },
+      {
+        "path": "test/default/sodium_version.c",
+        "bytes": 387,
+        "estimatedTokens": 97,
+        "reasons": [
+          "basename matches task term “version”",
+          "content contains task terms “library”, “version”",
+          "content matches task phrase “library version”",
+          "matches 2 distinct task terms",
+          "source/test counterpart of src/libsodium/sodium/version.c"
+        ]
+      },
+      {
+        "path": "test/default/sodium_version.exp",
+        "bytes": 6,
+        "estimatedTokens": 2,
+        "reasons": [
+          "basename matches task term “version”",
+          "source/test counterpart of src/libsodium/sodium/version.c"
+        ]
+      },
+      {
+        "path": "src/libsodium/include/sodium/version.h.in",
+        "bytes": 597,
+        "estimatedTokens": 150,
+        "reasons": ["basename matches task term “version”"]
+      }
+    ],
+    "owners": [
+      "src/libsodium/sodium/version.c",
+      "src/libsodium/randombytes/sysrandom/randombytes_sysrandom.c",
+      "src/libsodium/crypto_pwhash/argon2/argon2-encoding.c",
+      "src/libsodium/crypto_core/hsalsa20/ref2/core_hsalsa20_ref2.c",
+      "src/libsodium/crypto_pwhash/argon2/argon2-core.c"
+    ],
+    "budget": {
+      "maximumBytes": 16000,
+      "selectedBytes": 2533,
+      "estimatedTokens": 634
+    },
+    "unknowns": [
+      "Implementation not selected: src/libsodium/randombytes/sysrandom/randombytes_sysrandom.c",
+      "Implementation not selected: src/libsodium/crypto_pwhash/argon2/argon2-encoding.c",
+      "Implementation not selected: src/libsodium/crypto_core/hsalsa20/ref2/core_hsalsa20_ref2.c",
+      "Implementation not selected: src/libsodium/crypto_pwhash/argon2/argon2-core.c",
+      "Content inspection was bounded; uninspected content may contain other owners or tests.",
+      "Applicable approved verification command"
+    ],
+    "conflicts": [],
+    "allowed": true,
+    "evidence": [],
+    "capabilities": [
+      {
+        "id": "project-knowledge",
+        "label": "Project knowledge",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "task-routes",
+        "label": "Task routes",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "verification-policy",
+        "label": "Verification",
+        "decision": "not-assessed",
+        "evidence": [],
+        "missingEvidence": ["No authoritative verification wrapper or candidate checks were found."]
+      },
+      {
+        "id": "verification-skill",
+        "label": "Verification skill",
+        "decision": "not-assessed",
+        "evidence": [],
+        "missingEvidence": ["Verification behavior was not assessed."]
+      },
+      {
+        "id": "task-orchestration",
+        "label": "Task orchestration",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "product-ux-guidance",
+        "label": "Product and UX guidance",
+        "decision": "not-assessed",
+        "evidence": [],
+        "missingEvidence": ["No user-facing product surface was detected."]
+      }
+    ]
+  },
+  {
+    "repo": "withastro/astro",
+    "revision": "09d7772a2f272b93942126d51ade74c438c9a770",
+    "task": "preserve route parameters in server rendering",
+    "selected": [
+      {
+        "path": "packages/astro/src/types/public/config.ts",
+        "bytes": 2206,
+        "estimatedTokens": 552,
+        "lineRanges": [
+          {
+            "start": 259,
+            "end": 271
+          },
+          {
+            "start": 370,
+            "end": 382
+          }
+        ],
+        "sourceBytes": 128185,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "explicitly referenced by repository instructions",
+          "content contains task terms “preserve”, “route”, “server”, “rendering”",
+          "content matches task phrase “server rendering”",
+          "matches 4 distinct task terms",
+          "source/test counterpart of configs/tsconfig.test.json"
+        ]
+      },
+      {
+        "path": "packages/astro/src/vite-plugin-astro-server/route-guard.ts",
+        "bytes": 4744,
+        "estimatedTokens": 1186,
+        "reasons": [
+          "basename matches task term “route”",
+          "directory matches task term “server”",
+          "content contains task terms “route”, “server”",
+          "matches 2 distinct task terms",
+          "source/test counterpart of packages/integrations/mdx/test/units/server.test.ts"
+        ]
+      },
+      {
+        "path": "packages/astro/src/runtime/server/render/component.ts",
+        "bytes": 1021,
+        "estimatedTokens": 256,
+        "lineRanges": [
+          {
+            "start": 22,
+            "end": 34
+          },
+          {
+            "start": 531,
+            "end": 543
+          }
+        ],
+        "sourceBytes": 19154,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "directory matches task term “server”",
+          "content contains task terms “route”, “server”, “rendering”",
+          "matches 3 distinct task terms",
+          "source/test counterpart of packages/integrations/mdx/test/units/server.test.ts"
+        ]
+      },
+      {
+        "path": "benchmark/make-project/rendering-perf.js",
+        "bytes": 942,
+        "estimatedTokens": 236,
+        "lineRanges": [
+          {
+            "start": 92,
+            "end": 104
+          },
+          {
+            "start": 334,
+            "end": 346
+          }
+        ],
+        "sourceBytes": 9865,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "basename matches task term “rendering”",
+          "content contains task terms “route”, “server”, “rendering”",
+          "matches 3 distinct task terms",
+          "source/test counterpart of packages/astro/test/units/csp/rendering.test.ts"
+        ]
+      },
+      {
+        "path": "packages/integrations/vercel/test/serverless-with-dynamic-routes.test.ts",
+        "bytes": 637,
+        "estimatedTokens": 160,
+        "reasons": [
+          "basename matches task term “route”",
+          "path substring matches task term “server”",
+          "matches 2 distinct task terms",
+          "source/test counterpart of packages/astro/src/actions/integration.ts"
+        ]
+      },
+      {
+        "path": "packages/language-tools/language-server/README.md",
+        "bytes": 1296,
+        "estimatedTokens": 324,
+        "reasons": ["directory matches task term “server”"]
+      },
+      {
+        "path": "packages/astro/src/actions/runtime/server.ts",
+        "bytes": 1237,
+        "estimatedTokens": 310,
+        "lineRanges": [
+          {
+            "start": 305,
+            "end": 317
+          },
+          {
+            "start": 506,
+            "end": 518
+          }
+        ],
+        "sourceBytes": 17352,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "basename matches task term “server”",
+          "content contains task terms “route”, “parameter”, “server”",
+          "matches 3 distinct task terms",
+          "source/test counterpart of packages/astro/e2e/csp-server-islands.test.ts"
+        ]
+      },
+      {
+        "path": "packages/astro/src/runtime/server/render/astro/render.ts",
+        "bytes": 565,
+        "estimatedTokens": 142,
+        "lineRanges": [
+          {
+            "start": 139,
+            "end": 151
+          }
+        ],
+        "sourceBytes": 10605,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "directory matches task term “server”",
+          "content contains task terms “route”, “server”, “rendering”",
+          "matches 3 distinct task terms",
+          "source/test counterpart of packages/astro/test/units/render/rendering.test.ts"
+        ]
+      },
+      {
+        "path": "packages/astro/src/vite-plugin-routes/index.ts",
+        "bytes": 436,
+        "estimatedTokens": 109,
+        "lineRanges": [
+          {
+            "start": 164,
+            "end": 176
+          }
+        ],
+        "sourceBytes": 9730,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "directory matches task term “route”",
+          "content contains task terms “route”, “server”",
+          "matches 2 distinct task terms",
+          "source/test counterpart of packages/integrations/sitemap/test/routes.test.ts"
+        ]
+      },
+      {
+        "path": "benchmark/bench/build-server.bench.js",
+        "bytes": 422,
+        "estimatedTokens": 106,
+        "reasons": [
+          "basename matches task term “server”",
+          "content contains task term “server”",
+          "source/test counterpart of packages/integrations/mdx/test/units/server.test.ts"
+        ]
+      },
+      {
+        "path": "packages/language-tools/language-server/test/check/fixture-references/src/hasError.astro",
+        "bytes": 34,
+        "estimatedTokens": 9,
+        "reasons": [
+          "directory matches task term “server”",
+          "source/test counterpart of benchmark/packages/adapter/src/server.ts"
+        ]
+      },
+      {
+        "path": "packages/language-tools/language-server/test/check/fixture-references/tsconfig.app.json",
+        "bytes": 25,
+        "estimatedTokens": 7,
+        "reasons": [
+          "directory matches task term “server”",
+          "source/test counterpart of benchmark/packages/adapter/src/server.ts"
+        ]
+      }
+    ],
+    "owners": [
+      "packages/astro/src/types/public/config.ts",
+      "packages/astro/src/core/errors/errors-data.ts",
+      "packages/astro/src/runtime/server/render/component.ts",
+      "packages/astro/src/vite-plugin-astro-server/route-guard.ts",
+      "packages/astro/src/actions/runtime/server.ts"
+    ],
+    "budget": {
+      "maximumBytes": 16000,
+      "selectedBytes": 13565,
+      "estimatedTokens": 3392
+    },
+    "unknowns": [
+      "Implementation not selected: packages/astro/src/core/errors/errors-data.ts",
+      "Partial implementation context: packages/astro/src/types/public/config.ts",
+      "Partial implementation context: packages/astro/src/runtime/server/render/component.ts",
+      "Partial implementation context: packages/astro/src/actions/runtime/server.ts",
+      "Content inspection was bounded; uninspected content may contain other owners or tests.",
+      "Applicable approved verification command"
+    ],
+    "conflicts": [
+      "2 symbolic link(s) were not followed: packages/astro/test/fixtures/content-collections/src/content/with-symlinked-content, packages/astro/test/fixtures/content-collections/src/content/with-symlinked-data"
+    ],
+    "allowed": true,
+    "evidence": [],
+    "capabilities": [
+      {
+        "id": "project-knowledge",
+        "label": "Project knowledge",
+        "decision": "reuse",
+        "evidence": [
+          ".agents/skills/astro-developer/architecture.md",
+          ".agents/skills/astro-developer/testing.md",
+          "CONTRIBUTING.md",
+          "SECURITY.md",
+          "packages/language-tools/CONTRIBUTING.md",
+          "reference/unit-testing.md"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "id": "task-routes",
+        "label": "Task routes",
+        "decision": "not-assessed",
+        "evidence": [],
+        "missingEvidence": [
+          "Referenced path was not available: packages/astro/src/pages/en/enterprise.astro",
+          "Referenced path was not available: packages/astro/@astrojs/cloudflare"
+        ]
+      },
+      {
+        "id": "verification-policy",
+        "label": "Verification",
+        "decision": "reuse",
+        "evidence": [
+          "astro build (.agents/skills/astro-developer/SKILL.md)",
+          "astro check (packages/create-astro/CHANGELOG.md)",
+          "astro-scripts test (CONTRIBUTING.md)"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "id": "verification-skill",
+        "label": "Verification skill",
+        "decision": "reuse",
+        "evidence": [
+          ".agents/skills/astro-code-review/SKILL.md",
+          ".agents/skills/astro-developer/SKILL.md"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "id": "task-orchestration",
+        "label": "Task orchestration",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "product-ux-guidance",
+        "label": "Product and UX guidance",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      }
+    ]
+  },
+  {
+    "repo": "pytest-dev/pluggy",
+    "revision": "4821148db2f4c6daa62ad8bdcae2918ecf27a731",
+    "task": "preserve hook ordering when a plugin is unregistered",
+    "selected": [
+      {
+        "path": "src/pluggy/_hooks.py",
+        "bytes": 1164,
+        "estimatedTokens": 291,
+        "lineRanges": [
+          {
+            "start": 466,
+            "end": 478
+          },
+          {
+            "start": 516,
+            "end": 528
+          }
+        ],
+        "sourceBytes": 27253,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "basename matches task term “hook”",
+          "explicitly referenced by repository instructions",
+          "content contains task terms “preserve”, “hook”, “plugin”",
+          "matches 3 distinct task terms"
+        ]
+      },
+      {
+        "path": "AGENTS.md",
+        "bytes": 62,
+        "estimatedTokens": 16,
+        "reasons": [
+          "authoritative repository instructions",
+          "explicitly referenced by repository instructions"
+        ]
+      },
+      {
+        "path": "CLAUDE.md",
+        "bytes": 2043,
+        "estimatedTokens": 511,
+        "reasons": [
+          "authoritative repository instructions",
+          "explicitly referenced by repository instructions"
+        ]
+      },
+      {
+        "path": "testing/test_hookcaller.py",
+        "bytes": 1003,
+        "estimatedTokens": 251,
+        "lineRanges": [
+          {
+            "start": 152,
+            "end": 164
+          },
+          {
+            "start": 335,
+            "end": 347
+          },
+          {
+            "start": 348,
+            "end": 360
+          }
+        ],
+        "sourceBytes": 13004,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "path substring matches task term “hook”",
+          "content contains task terms “hook”, “ordering”, “plugin”, “unregistered”",
+          "matches 4 distinct task terms"
+        ]
+      },
+      {
+        "path": "docs/api_reference.rst",
+        "bytes": 1109,
+        "estimatedTokens": 278,
+        "reasons": ["content contains task terms “hook”, “plugin”", "matches 2 distinct task terms"]
+      },
+      {
+        "path": "testing/test_pluginmanager.py",
+        "bytes": 366,
+        "estimatedTokens": 92,
+        "lineRanges": [
+          {
+            "start": 521,
+            "end": 533
+          }
+        ],
+        "sourceBytes": 22091,
+        "reasons": [
+          "partial file; inspect the selected line ranges and surrounding implementation",
+          "path substring matches task term “plugin”",
+          "content contains task terms “hook”, “plugin”",
+          "matches 2 distinct task terms"
+        ]
+      },
+      {
+        "path": "pyproject.toml",
+        "bytes": 3975,
+        "estimatedTokens": 994,
+        "reasons": ["authoritative project manifest"]
+      },
+      {
+        "path": ".pre-commit-config.yaml",
+        "bytes": 1348,
+        "estimatedTokens": 337,
+        "reasons": ["explicitly referenced by repository instructions"]
+      }
+    ],
+    "owners": [
+      "src/pluggy/_hooks.py",
+      "src/pluggy/_manager.py",
+      "src/pluggy/_callers.py",
+      "src/pluggy/__init__.py",
+      "testing/benchmark.py"
+    ],
+    "budget": {
+      "maximumBytes": 16000,
+      "selectedBytes": 11070,
+      "estimatedTokens": 2768
+    },
+    "unknowns": [
+      "Implementation not selected: src/pluggy/_manager.py",
+      "Implementation not selected: src/pluggy/_callers.py",
+      "Implementation not selected: src/pluggy/__init__.py",
+      "Implementation not selected: testing/benchmark.py",
+      "Partial implementation context: src/pluggy/_hooks.py",
+      "Applicable approved verification command"
+    ],
+    "conflicts": [],
+    "allowed": true,
+    "evidence": [],
+    "capabilities": [
+      {
+        "id": "project-knowledge",
+        "label": "Project knowledge",
+        "decision": "reuse",
+        "evidence": [".pre-commit-config.yaml", "SECURITY.md"],
+        "missingEvidence": []
+      },
+      {
+        "id": "task-routes",
+        "label": "Task routes",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "verification-policy",
+        "label": "Verification",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "verification-skill",
+        "label": "Verification skill",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "task-orchestration",
+        "label": "Task orchestration",
+        "decision": "create",
+        "evidence": [],
+        "missingEvidence": []
+      },
+      {
+        "id": "product-ux-guidance",
+        "label": "Product and UX guidance",
+        "decision": "not-assessed",
+        "evidence": [],
+        "missingEvidence": ["No user-facing product surface was detected."]
+      }
+    ]
+  }
+]

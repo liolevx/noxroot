@@ -1,0 +1,34 @@
+[
+  {
+    "index": 4,
+    "tasks": [
+      "Add regression coverage for CaseInsensitiveDict updates: differently cased keys must refer to one entry, the most recently assigned key spelling must be preserved, and empty-string values must remain present. Do not change behavior unless a test reveals an actual bug. Use existing tests and conventions; do not add a new documentation file.",
+      "Add CaseInsensitiveDict.without(*keys), returning a new CaseInsensitiveDict that excludes the named keys case-insensitively. Keep the original mapping unchanged and preserve the spelling and insertion order of retained keys. Add failing tests first, then implement the small method and document its contract in the existing class or method documentation.",
+      "Add regression coverage for the new CaseInsensitiveDict.without method with duplicate exclusions, mixed-case exclusions, missing keys, and no exclusions. Verify that changing the returned dictionary does not change the original. Fix behavior if necessary, preserve the earlier tests, and avoid adding duplicate documentation."
+    ]
+  },
+  {
+    "index": 5,
+    "tasks": [
+      "Add regression coverage showing that QueryParams.remove removes every value for one key without mutating the original or losing other repeated parameters. Include empty values and an absent key. Keep existing behavior unless the tests expose a bug; use the current test conventions.",
+      "Add an immutable QueryParams.remove_many(keys) method accepting an iterable of string keys and returning a new QueryParams with every value for those keys removed. Preserve the remaining parameter values and their existing order. Add failing tests before implementing it and describe the contract in its docstring; do not add a separate documentation file.",
+      "Extend the regression coverage for QueryParams.remove_many to a one-shot generator, duplicate keys, case-sensitive keys, and an empty iterable. Ensure the original is unchanged and unrelated repeated values are preserved. Fix implementation only if needed and preserve the previous behavior."
+    ]
+  },
+  {
+    "index": 6,
+    "tasks": [
+      "Add regression coverage for immutable Headers: getlist must preserve repeated header values and perform case-insensitive lookup; missing and empty values must remain distinguishable. Use the existing data-structure tests and do not change behavior unless the tests expose a defect.",
+      "Add Headers.without(*keys), returning a new immutable Headers instance with all occurrences of the named headers removed case-insensitively. Preserve the raw order and duplicates of retained headers and leave the original unchanged. Add failing tests first, implement the small method, and describe its behavior in a concise docstring.",
+      "Add regression cases for Headers.without with duplicate and mixed-case exclusions, an absent key, no exclusions, and non-ASCII Latin-1 header values. Ensure retained raw bytes and ordering are unchanged. Fix only demonstrated failures and keep documentation in the existing location."
+    ]
+  },
+  {
+    "index": 7,
+    "tasks": [
+      "Add regression coverage for Config.get_namespace: combining lowercase=False and trim_namespace=False must preserve full original key names, unmatched keys must be excluded, and the Config must not be mutated. Use the existing configuration tests and preserve the current API.",
+      "Add an optional keyword-only exclude iterable to Config.get_namespace, defaulting to empty. It names exact original configuration keys to omit before namespace trimming or lowercasing. Keep all existing calls compatible. Add failing tests first, implement it, and document the parameter in the existing method docstring.",
+      "Add regression coverage for Config.get_namespace exclude with a one-shot generator, duplicate exclusions, absent keys, and both transformation flags. Exclusion must use original case-sensitive keys and leave Config unchanged. Fix only demonstrated failures and update the existing docstring only if clarification is needed."
+    ]
+  }
+]

@@ -104,6 +104,12 @@ then an unambiguous lockfile, then consistent CI evidence. npm, pnpm, Yarn, and 
 Missing or conflicting evidence produces no guessed command and preview never installs a manager or
 runs Corepack.
 
+Declared workspace members can inherit the root's confirmed manager when they have no local
+declaration or lockfile. Unrelated nested projects do not inherit repository-wide CI commands.
+Unsupported workspace patterns remain unconfirmed rather than guessed. Different root instruction
+files must agree or explicitly forward to a canonical entrypoint; circular references remain a setup
+conflict.
+
 For Python, explicit `pytest`, Ruff, or mypy tool configuration can produce a scoped candidate using
 the repository's `uv.lock` when present. Cargo and Go manifests produce their conventional native
 test/check candidates. These remain proposals until accepted into verification policy; discovery

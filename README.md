@@ -77,24 +77,26 @@ npx noxroot@latest init
 ```
 
 Commit the reviewed setup before your first code-changing task; `start` requires a clean Git
-baseline.
+baseline. This is a local commit; no push is needed. Still evaluating? `preview` and `context` work
+without initialization or a setup commit.
 
-Then keep talking to your coding agent normally. Ask for your own feature, fix, or refactor. For
-code-changing tasks, compatible agents are instructed to run `start` before editing and `finish`
-when the change is ready to check, using the version pinned in your repository.
+Then keep talking to your coding agent normally. For code changes, compatible agents are instructed
+to run the pinned `start` before editing and `finish` afterward.
 
-Run `init` once per repository. It previews a thin managed entrypoint, preserves existing
-documentation, and pins the Noxroot version. `npx` downloads the package into npm's cache; no global
-installation or clone of Noxroot is needed. The package is available on
-[npm](https://www.npmjs.com/package/noxroot).
+Finish all edits, run `finish`, address any failures or required review, then commit. Rerun `finish`
+if you edit again. Approve real project commands during setup; see the
+[first-task guide](docs/getting-started.md) for missing checks, timeouts, and package-age
+restrictions.
 
-Before setup, preview labels each capability `create`, `reuse`, `adjacent`, `conflict`, or
-`not-assessed`. Noxroot creates only a confirmed gap. Existing systems stay in place. Missing
-evidence means no change. If another tool already coordinates repository changes, Noxroot can add
-non-overlapping context and verification support while that tool keeps ownership of task lifecycle,
-review, and learning. A coordination ledger or session journal is reported as adjacent: it may
-preserve work across sessions, but Noxroot does not import its log or treat it as a development
-coordinator.
+`init` preserves existing documentation and pins the Noxroot version. `npx` downloads from
+[npm](https://www.npmjs.com/package/noxroot) into its cache; no global installation or clone is
+needed.
+
+Preview labels capabilities `create`, `reuse`, `adjacent`, `conflict`, or `not-assessed`. Noxroot
+fills confirmed gaps; existing systems stay in place. Another development coordinator keeps
+ownership of lifecycle, review, and learning; Noxroot can supply context and verification alongside
+it. A coordination ledger is adjacent, not a development coordinator. Noxroot does not import its
+log.
 
 Read-only work creates no task. In the same repository, branch, and worktree, a repeated `start`
 continues the active baseline. `finish` infers a single matching task; several matches require
@@ -105,9 +107,6 @@ When upgrading, inspect the managed instruction changes with
 `npx noxroot@latest sync --dry-run --diff`. Apply them with `npx noxroot@latest sync` after review.
 Starting a new chat does not require an upgrade or another initialization. See the
 [command reference](docs/commands.md) for manual tasks and sync limits.
-
-For the first change, continuation, and troubleshooting, read
-[Getting started](docs/getting-started.md).
 
 ### What setup can add
 

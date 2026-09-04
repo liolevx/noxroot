@@ -1,0 +1,3408 @@
+{
+  "startedAt": "2026-09-04T15:44:45.059Z",
+  "package": "noxroot@0.1.0",
+  "scope": "Published-package read-only preview/context only. No init, commits, dependency installation in target repos, agent calls, or native project checks. Distinct from the recorded thirty-repository manifest; earlier unrecorded coverage is not asserted.",
+  "results": [
+    {
+      "repo": "expressjs/express",
+      "stack": "JavaScript server",
+      "task": "preserve response headers when sending a file",
+      "failures": [],
+      "revision": "023767fe9872e029271df1418f73401bff20ff40",
+      "totalFiles": 213,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 234,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 0,
+          "netLines": 127,
+          "documentationNetLines": 51
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "lint",
+            "executable": "npm",
+            "args": ["run", "lint"],
+            "cwd": ".",
+            "source": "package.json scripts.lint",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "test",
+            "executable": "npm",
+            "args": ["run", "test"],
+            "cwd": ".",
+            "source": "package.json scripts.test",
+            "appliesTo": ["examples/**", "lib/**", "test/**", "*.js", "package.json"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 307,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 7226,
+          "estimatedTokens": 1807
+        },
+        "selected": [
+          "lib/response.js",
+          "test/express.static.js",
+          "test/res.sendFile.js",
+          "test/app.response.js",
+          "package.json"
+        ],
+        "owners": ["lib/response.js", "lib/application.js"],
+        "tests": ["test/express.static.js", "test/res.sendFile.js", "test/app.response.js"],
+        "unknowns": [
+          "Implementation not selected: lib/application.js",
+          "Partial implementation context: lib/response.js",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 25,
+        "bytes": 778,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve response headers when sending a file\nTask context\n  5 files · ~1,807 tokens\nRelevant files\n  lib/response.js (lines 327-339, 984-996; partial)\n  lib/application.js (not selected; inspect selectively)\nRelated tests\n  test/express.static.js (lines 544-556; partial)\n  test/res.sendFile.js (lines 503-515; partial)\nAlso selected\n  test/app.response.js\n  package.json\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: lib/application.js\n  Partial implementation context: lib/response.js\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "pallets/flask",
+      "stack": "Python web framework",
+      "task": "preserve request context during streamed responses",
+      "failures": [],
+      "revision": "d318b683471101618febed18996405ad26462110",
+      "totalFiles": 236,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 197,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 0,
+          "netLines": 134,
+          "documentationNetLines": 51
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "mypy",
+            "executable": "uv",
+            "args": ["run", "mypy", "."],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.mypy]",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "pytest",
+            "executable": "uv",
+            "args": ["run", "pytest"],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.pytest]",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "ruff",
+            "executable": "uv",
+            "args": ["run", "ruff", "check", "."],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.ruff]",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 290,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13549,
+          "estimatedTokens": 3388
+        },
+        "selected": [
+          "src/flask/app.py",
+          "tests/test_basic.py",
+          "docs/appcontext.rst",
+          "src/flask/helpers.py",
+          "src/flask/testing.py",
+          "src/flask/ctx.py",
+          "src/flask/sessions.py",
+          "tests/templates/context_template.html",
+          "docs/reqcontext.rst"
+        ],
+        "owners": [
+          "src/flask/app.py",
+          "src/flask/helpers.py",
+          "src/flask/testing.py",
+          "src/flask/ctx.py",
+          "src/flask/sansio/app.py"
+        ],
+        "tests": [
+          "tests/test_basic.py",
+          "tests/test_request.py",
+          "tests/templates/context_template.html"
+        ],
+        "unknowns": [
+          "Implementation not selected: src/flask/sansio/app.py",
+          "Partial implementation context: src/flask/app.py",
+          "Partial implementation context: src/flask/helpers.py",
+          "Partial implementation context: src/flask/testing.py",
+          "Partial implementation context: src/flask/ctx.py",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 27,
+        "bytes": 977,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve request context during streamed responses\nTask context\n  9 files · ~3,388 tokens\nRelevant files\n  src/flask/app.py (lines 1417-1429, 1585-1597, 1601-1613; partial)\n  src/flask/helpers.py (lines 85-97, 138-150; partial)\n  src/flask/testing.py (lines 183-195, 230-242; partial)\nRelated tests\n  tests/test_basic.py (lines 711-723, 1723-1735, 1930-1942; partial)\n  tests/test_request.py (not selected; inspect selectively)\nAlso selected\n  docs/appcontext.rst\n  src/flask/ctx.py (lines 124-136, 265-277; partial)\n  src/flask/sessions.py (lines 258-270; partial)\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: src/flask/sansio/app.py\n  Partial implementation context: src/flask/app.py\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "encode/starlette",
+      "stack": "Python ASGI",
+      "task": "handle client disconnects during a streaming response",
+      "failures": [],
+      "revision": "75735e144dca0551c2ff7eba3582355cda42da92",
+      "totalFiles": 149,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 189,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": ["docs/contributing.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 1,
+          "netLines": 137,
+          "documentationNetLines": 52
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "mypy",
+            "executable": "uv",
+            "args": ["run", "mypy", "."],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.mypy]",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "pytest",
+            "executable": "uv",
+            "args": ["run", "pytest"],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.pytest]",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "ruff",
+            "executable": "uv",
+            "args": ["run", "ruff", "check", "."],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.ruff]",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": "docs/contributing.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 273,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 15663,
+          "estimatedTokens": 3916
+        },
+        "selected": [
+          "starlette/responses.py",
+          "starlette/_exception_handler.py",
+          "starlette/testclient.py",
+          "benchmarks/streaming_response_benchmark.py",
+          "tests/test_responses.py",
+          "docs/responses.md"
+        ],
+        "owners": [
+          "starlette/responses.py",
+          "benchmarks/streaming_response_benchmark.py",
+          "starlette/middleware/base.py",
+          "starlette/testclient.py",
+          "starlette/requests.py"
+        ],
+        "tests": ["tests/test_responses.py", "tests/test_testclient.py"],
+        "unknowns": [
+          "Implementation not selected: starlette/middleware/base.py",
+          "Implementation not selected: starlette/requests.py",
+          "Partial implementation context: starlette/responses.py",
+          "Partial implementation context: starlette/testclient.py",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 27,
+        "bytes": 958,
+        "text": "NOXROOT  task brief\n\nOutcome\n  handle client disconnects during a streaming response\nTask context\n  6 files · ~3,916 tokens\nRelevant files\n  starlette/responses.py (lines 19-31, 242-254, 371-383; partial)\n  benchmarks/streaming_response_benchmark.py\n  starlette/middleware/base.py (not selected; inspect selectively)\nRelated tests\n  tests/test_responses.py (lines 593-605; partial)\n  tests/test_testclient.py (not selected; inspect selectively)\nAlso selected\n  starlette/_exception_handler.py\n  starlette/testclient.py (lines 86-98, 217-229; partial)\n  docs/responses.md\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: starlette/middleware/base.py\n  Implementation not selected: starlette/requests.py\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "encode/httpx",
+      "stack": "Python HTTP client",
+      "task": "preserve timeout settings when following redirects",
+      "failures": [],
+      "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+      "totalFiles": 125,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 167,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": [".github/CONTRIBUTING.md", "docs/contributing.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 2,
+          "netLines": 138,
+          "documentationNetLines": 53
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "mypy",
+            "executable": "python",
+            "args": ["-m", "mypy", "."],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.mypy]",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "pytest",
+            "executable": "python",
+            "args": ["-m", "pytest"],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.pytest]",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "ruff",
+            "executable": "python",
+            "args": ["-m", "ruff", "check", "."],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.ruff]",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".github/CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": "docs/contributing.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 260,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13314,
+          "estimatedTokens": 3329
+        },
+        "selected": [
+          "httpx/_client.py",
+          "tests/client/test_redirects.py",
+          "docs/advanced/timeouts.md",
+          "httpx/_status_codes.py",
+          "tests/test_timeouts.py",
+          "httpx/_api.py",
+          "httpx/_exceptions.py"
+        ],
+        "owners": [
+          "httpx/_client.py",
+          "httpx/_status_codes.py",
+          "httpx/_api.py",
+          "httpx/_exceptions.py",
+          "httpx/_main.py"
+        ],
+        "tests": ["tests/client/test_redirects.py", "tests/test_timeouts.py"],
+        "unknowns": [
+          "Implementation not selected: httpx/_main.py",
+          "Partial implementation context: httpx/_client.py",
+          "Partial implementation context: httpx/_api.py",
+          "Partial implementation context: httpx/_exceptions.py",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 26,
+        "bytes": 823,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve timeout settings when following redirects\nTask context\n  7 files · ~3,329 tokens\nRelevant files\n  httpx/_client.py (lines 95-107, 190-202; partial)\n  httpx/_status_codes.py\n  httpx/_api.py (lines 46-58; partial)\nRelated tests\n  tests/client/test_redirects.py (lines 304-316, 407-419; partial)\n  tests/test_timeouts.py\nAlso selected\n  docs/advanced/timeouts.md\n  httpx/_exceptions.py (lines 1-13, 59-71; partial)\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: httpx/_main.py\n  Partial implementation context: httpx/_client.py\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "psf/requests",
+      "stack": "Legacy Python HTTP client",
+      "task": "preserve session cookies when following redirects",
+      "failures": [],
+      "revision": "dae7ef63b4df6eded86637f251fc4e3a06c3b479",
+      "totalFiles": 130,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 187,
+        "initializationAllowed": true,
+        "conflicts": [
+          "2 symbolic link(s) were not followed: tests/certs/mtls/client/ca, tests/certs/valid/ca"
+        ],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": [".github/CONTRIBUTING.md", ".github/SECURITY.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 2,
+          "netLines": 129,
+          "documentationNetLines": 53
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "pytest",
+            "executable": "python",
+            "args": ["-m", "pytest"],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.pytest]",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "ruff",
+            "executable": "python",
+            "args": ["-m", "ruff", "check", "."],
+            "cwd": ".",
+            "source": "pyproject.toml [tool.ruff]",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".github/SECURITY.md",
+            "action": "reference"
+          },
+          {
+            "path": ".github/CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 264,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 12604,
+          "estimatedTokens": 3151
+        },
+        "selected": [
+          "src/requests/sessions.py",
+          "src/requests/cookies.py",
+          "tests/test_requests.py",
+          "docs/api.rst",
+          "tests/test_utils.py",
+          "docs/_themes/LICENSE"
+        ],
+        "owners": [
+          "src/requests/sessions.py",
+          "src/requests/cookies.py",
+          "src/requests/utils.py",
+          "src/requests/models.py",
+          "src/requests/adapters.py"
+        ],
+        "tests": ["tests/test_requests.py", "tests/test_utils.py"],
+        "unknowns": [
+          "Implementation not selected: src/requests/utils.py",
+          "Implementation not selected: src/requests/models.py",
+          "Implementation not selected: src/requests/adapters.py",
+          "Partial implementation context: src/requests/sessions.py",
+          "Partial implementation context: src/requests/cookies.py",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 26,
+        "bytes": 871,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve session cookies when following redirects\nTask context\n  6 files · ~3,151 tokens\nRelevant files\n  src/requests/sessions.py (lines 122-134; partial)\n  src/requests/cookies.py (lines 189-201; partial)\n  src/requests/utils.py (not selected; inspect selectively)\nRelated tests\n  tests/test_requests.py (lines 385-397, 492-504, 2284-2296; partial)\n  tests/test_utils.py (lines 479-491, 801-813; partial)\nAlso selected\n  docs/api.rst\n  docs/_themes/LICENSE\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: src/requests/utils.py\n  Implementation not selected: src/requests/models.py\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "django/django",
+      "stack": "Large Python framework",
+      "task": "validate allowed hosts before redirecting a request",
+      "failures": [],
+      "revision": "026b005f3dc43a98557ce5a546b5e4938d06fed1",
+      "totalFiles": 7087,
+      "existingInstructionPaths": [".github/copilot-instructions.md"],
+      "preview": {
+        "ms": 1650,
+        "initializationAllowed": true,
+        "conflicts": [
+          "4 symbolic link(s) were not followed: docs/_theme/djangodocs-epub/static/docicons-behindscenes.png, docs/_theme/djangodocs-epub/static/docicons-note.png, docs/_theme/djangodocs-epub/static/docicons-philosophy.png, docs/_theme/djangodocs-epub/static/docicons-warning.png"
+        ],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": [".github/SECURITY.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 1,
+          "netLines": 123,
+          "documentationNetLines": 52
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "test",
+            "executable": "npm",
+            "args": ["run", "test"],
+            "cwd": ".",
+            "source": "package.json scripts.test",
+            "appliesTo": [
+              "django/**",
+              "docs/**",
+              "js_tests/**",
+              "scripts/**",
+              "tests/**",
+              "*.js",
+              "package.json"
+            ]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".github/SECURITY.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 2046,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 7616,
+          "estimatedTokens": 1904
+        },
+        "selected": [
+          "django/http/request.py",
+          "tests/requests_tests/tests.py",
+          ".github/pull_request_template.md",
+          "django/contrib/sites/requests.py",
+          "tests/context_processors/templates/context_processors/request_attrs.html",
+          "tests/requests_tests/test_accept_header.py",
+          "tests/requests_tests/test_data_upload_settings.py",
+          "tests/template_loader/templates/template_loader/request.html",
+          "tests/test_client_regress/templates/request_context.html",
+          "package.json",
+          "pyproject.toml"
+        ],
+        "owners": [
+          "django/http/request.py",
+          "django/conf/__init__.py",
+          "django/conf/global_settings.py",
+          "django/contrib/admin/options.py",
+          "django/contrib/sites/requests.py"
+        ],
+        "tests": [
+          "tests/requests_tests/tests.py",
+          "tests/context_processors/templates/context_processors/request_attrs.html",
+          "tests/requests_tests/test_accept_header.py",
+          "tests/requests_tests/test_data_upload_settings.py",
+          "tests/template_loader/templates/template_loader/request.html"
+        ],
+        "unknowns": [
+          "Implementation not selected: django/conf/__init__.py",
+          "Implementation not selected: django/conf/global_settings.py",
+          "Implementation not selected: django/contrib/admin/options.py",
+          "Partial implementation context: django/http/request.py",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 27,
+        "bytes": 1021,
+        "text": "NOXROOT  task brief\n\nOutcome\n  validate allowed hosts before redirecting a request\nTask context\n  11 files · ~1,904 tokens\nRelevant files\n  django/http/request.py (lines 188-200, 415-427; partial)\n  django/conf/__init__.py (not selected; inspect selectively)\n  django/conf/global_settings.py (not selected; inspect selectively)\nRelated tests\n  tests/requests_tests/tests.py (lines 1486-1498; partial)\n  tests/context_processors/templates/context_processors/request_attrs.html\nAlso selected\n  .github/pull_request_template.md\n  django/contrib/sites/requests.py\n  tests/requests_tests/test_accept_header.py (lines 154-166; partial)\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: django/conf/__init__.py\n  Implementation not selected: django/conf/global_settings.py\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "sveltejs/kit",
+      "stack": "Svelte monorepo",
+      "task": "restore scroll position when navigating back",
+      "failures": [],
+      "revision": "a2ba146ae60f79cad8da5af750bbc06af47eeb82",
+      "totalFiles": 3400,
+      "existingInstructionPaths": [".github/copilot-instructions.md", "AGENTS.md", "CLAUDE.md"],
+      "preview": {
+        "ms": 2281,
+        "initializationAllowed": true,
+        "conflicts": [
+          "JavaScript package manager: .github/workflows/audit.yml, .github/workflows/autofix-lint.yml, .github/workflows/ci.yml, .github/workflows/platform-tests-all.yml, .github/workflows/platform-tests-bun.yml, .github/workflows/platform-tests-netlify.yml, .github/workflows/platform-tests-node.yml, .github/workflows/platform-tests-vercel.yml, .github/workflows/release.yml",
+          "3 symbolic link(s) were not followed: .github/copilot-instructions.md, CLAUDE.md, packages/kit/src/core/sync/create_manifest_data/test/samples/symlinks/routes/foo"
+        ],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": ["CONTRIBUTING.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": [
+              "Referenced path was not available: packages/kit/src/routes",
+              "Referenced path was not available: packages/kit/$app/manifest",
+              "Referenced path was not available: packages/kit/$app/manifest",
+              "Referenced path was not available: packages/kit/$app/manifest",
+              "Referenced path was not available: packages/kit/$app/manifest",
+              "Referenced path was not available: packages/kit/$app/manifest",
+              "Referenced path was not available: packages/kit/$app/manifest",
+              "Referenced path was not available: packages/kit/src/routes"
+            ]
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          }
+        ],
+        "growth": {
+          "createdFiles": 6,
+          "patchedFiles": 1,
+          "referencedFiles": 2,
+          "netLines": 121,
+          "documentationNetLines": 64
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "build",
+            "executable": "pnpm",
+            "args": ["run", "build"],
+            "cwd": ".",
+            "source": "package.json scripts.build",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "lint",
+            "executable": "pnpm",
+            "args": ["run", "lint"],
+            "cwd": ".",
+            "source": "package.json scripts.lint",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "patch"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": "CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": ".github/PULL_REQUEST_TEMPLATE.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/product-ux-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 2662,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13456,
+          "estimatedTokens": 3364
+        },
+        "selected": [
+          "packages/kit/src/exports/hooks/public.d.ts",
+          "AGENTS.md",
+          "packages/kit/test/apps/basics/src/routes/scroll/push-state/+page.svelte",
+          "packages/kit/test/apps/basics/src/routes/scroll/push-state/a/+page.svelte",
+          "packages/kit/test/apps/basics/src/routes/anchor-with-manual-scroll/anchor-afternavigate/+page.svelte",
+          "packages/kit/test/apps/basics/src/routes/anchor-with-manual-scroll/anchor-onmount/+page.svelte",
+          "packages/kit/test/apps/basics/src/routes/navigation-lifecycle/scroll-state/a/+page.svelte",
+          "packages/kit/test/apps/basics/src/routes/navigation-lifecycle/scroll-state/b/+page.svelte",
+          "package.json",
+          "packages/adapter-auto/package.json",
+          ".changeset/pre/rename-noscroll-keepfocus-reset.md"
+        ],
+        "owners": ["packages/kit/src/exports/hooks/public.d.ts"],
+        "tests": [
+          "packages/kit/test/apps/basics/src/routes/scroll/push-state/+page.svelte",
+          "packages/kit/test/apps/basics/src/routes/scroll/push-state/a/+page.svelte",
+          "packages/kit/test/apps/basics/src/routes/anchor-with-manual-scroll/anchor-afternavigate/+page.svelte",
+          "packages/kit/test/apps/basics/src/routes/anchor-with-manual-scroll/anchor-onmount/+page.svelte",
+          "packages/kit/test/apps/basics/src/routes/navigation-lifecycle/scroll-state/a/+page.svelte"
+        ],
+        "unknowns": [
+          "Partial implementation context: packages/kit/src/exports/hooks/public.d.ts",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 27,
+        "bytes": 1063,
+        "text": "NOXROOT  task brief\n\nOutcome\n  restore scroll position when navigating back\nTask context\n  11 files · ~3,364 tokens\nRelevant files\n  packages/kit/src/exports/hooks/public.d.ts (lines 66-78, 115-127; partial)\nRelated tests\n  packages/kit/test/apps/basics/src/routes/scroll/push-state/+page.svelte\n  packages/kit/test/apps/basics/src/routes/scroll/push-state/a/+page.svelte\nAlso selected\n  AGENTS.md\n  packages/kit/test/apps/basics/src/routes/anchor-with-manual-scroll/anchor-afternavigate/+page.svelte\n  packages/kit/test/apps/basics/src/routes/anchor-with-manual-scroll/anchor-onmount/+page.svelte\nChecks to run\n  No approved command is available.\nConflicts\n  JavaScript package manager\nConfidence  Partial\nMissing evidence\n  Partial implementation context: packages/kit/src/exports/hooks/public.d.ts\n  Content inspection was bounded; uninspected content may contain other owners or tests.\nExcluded\n  20 files left out\nNext  Resolve the reported conflicts before editing.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "withastro/astro",
+      "stack": "Astro monorepo",
+      "task": "preserve route parameters in server rendering",
+      "failures": [],
+      "revision": "09d7772a2f272b93942126d51ade74c438c9a770",
+      "totalFiles": 6776,
+      "existingInstructionPaths": ["AGENTS.md"],
+      "preview": {
+        "ms": 3168,
+        "initializationAllowed": true,
+        "conflicts": [
+          "JavaScript package manager: .github/workflows/check-merge.yml, .github/workflows/check.yml, .github/workflows/ci.yml, .github/workflows/cleanup-cache.yml, .github/workflows/congrats.yml, .github/workflows/continuous_benchmark.yml, .github/workflows/diff-dependencies.yml, .github/workflows/examples-deploy.yml, .github/workflows/factory-preview.yml, .github/workflows/format.yml, .github/workflows/issue-needs-repro.yml, .github/workflows/issue-state-issue.yml",
+          "2 symbolic link(s) were not followed: packages/astro/test/fixtures/content-collections/src/content/with-symlinked-content, packages/astro/test/fixtures/content-collections/src/content/with-symlinked-data"
+        ],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": [
+              ".agents/skills/astro-developer/architecture.md",
+              ".agents/skills/astro-developer/testing.md",
+              "CONTRIBUTING.md",
+              "SECURITY.md",
+              "packages/language-tools/CONTRIBUTING.md",
+              "reference/unit-testing.md"
+            ],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": [
+              "Referenced path was not available: packages/astro/src/pages/en/enterprise.astro",
+              "Referenced path was not available: packages/astro/@astrojs/cloudflare"
+            ]
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "reuse",
+            "evidence": [
+              "astro build (.agents/skills/astro-developer/SKILL.md)",
+              "astro check (packages/create-astro/CHANGELOG.md)",
+              "astro-scripts test (CONTRIBUTING.md)"
+            ],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "reuse",
+            "evidence": [
+              ".agents/skills/astro-code-review/SKILL.md",
+              ".agents/skills/astro-developer/SKILL.md"
+            ],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          }
+        ],
+        "growth": {
+          "createdFiles": 4,
+          "patchedFiles": 1,
+          "referencedFiles": 8,
+          "netLines": 93,
+          "documentationNetLines": 56
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "build",
+            "executable": "pnpm",
+            "args": ["run", "build"],
+            "cwd": ".",
+            "source": "package.json scripts.build",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "lint",
+            "executable": "pnpm",
+            "args": ["run", "lint"],
+            "cwd": ".",
+            "source": "package.json scripts.lint",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "test",
+            "executable": "pnpm",
+            "args": ["run", "test"],
+            "cwd": ".",
+            "source": "package.json scripts.test",
+            "appliesTo": [
+              ".agents/**",
+              ".github/**",
+              "benchmark/**",
+              "examples/**",
+              "packages/**",
+              "scripts/**",
+              "*.js",
+              "*.mjs",
+              "*.ts",
+              "package.json"
+            ]
+          },
+          {
+            "id": "typecheck",
+            "executable": "pnpm",
+            "args": ["run", "typecheck"],
+            "cwd": ".",
+            "source": "package.json scripts.typecheck",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "patch"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".agents/skills/astro-developer/architecture.md",
+            "action": "reference"
+          },
+          {
+            "path": ".agents/skills/astro-developer/testing.md",
+            "action": "reference"
+          },
+          {
+            "path": "SECURITY.md",
+            "action": "reference"
+          },
+          {
+            "path": "CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": "packages/language-tools/CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": ".agents/skills/writing-comments/SKILL.md",
+            "action": "reference"
+          },
+          {
+            "path": "reference/optimize-deps.md",
+            "action": "reference"
+          },
+          {
+            "path": "reference/unit-testing.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/product-ux-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 3988,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13579,
+          "estimatedTokens": 3395
+        },
+        "selected": [
+          "packages/astro/src/core/errors/errors-data.ts",
+          "packages/astro/src/vite-plugin-astro-server/route-guard.ts",
+          "packages/astro/src/runtime/server/render/component.ts",
+          "benchmark/make-project/rendering-perf.js",
+          "packages/astro/test/units/render/streaming-rendering.test.ts",
+          "packages/astro/src/actions/runtime/server.ts",
+          "packages/astro/src/runtime/server/render/astro/render.ts",
+          "packages/astro/src/vite-plugin-astro-server/server-state.ts",
+          "packages/astro/test/units/csp/rendering.test.ts",
+          "packages/astro/src/vite-plugin-routes/index.ts",
+          "packages/language-tools/language-server/test/check/fixture-references/src/hasError.astro",
+          "packages/language-tools/language-server/test/check/fixture-references/tsconfig.app.json"
+        ],
+        "owners": [
+          "packages/astro/src/core/errors/errors-data.ts",
+          "packages/astro/src/runtime/server/render/component.ts",
+          "packages/astro/src/vite-plugin-astro-server/route-guard.ts",
+          "packages/astro/src/actions/runtime/server.ts",
+          "packages/astro/src/runtime/server/render/astro/render.ts"
+        ],
+        "tests": [
+          "packages/astro/test/units/render/streaming-rendering.test.ts",
+          "packages/astro/test/units/cache/route-matching.test.ts",
+          "packages/astro/test/units/csp/rendering.test.ts",
+          "packages/astro/test/units/routing/route-matching.test.ts",
+          "packages/integrations/vercel/test/server-islands.test.ts"
+        ],
+        "unknowns": [
+          "Partial implementation context: packages/astro/src/core/errors/errors-data.ts",
+          "Partial implementation context: packages/astro/src/runtime/server/render/component.ts",
+          "Partial implementation context: packages/astro/src/actions/runtime/server.ts",
+          "Partial implementation context: packages/astro/src/runtime/server/render/astro/render.ts",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 29,
+        "bytes": 1288,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve route parameters in server rendering\nTask context\n  12 files · ~3,395 tokens\nRelevant files\n  packages/astro/src/core/errors/errors-data.ts (lines 353-365, 2118-2130; partial)\n  packages/astro/src/runtime/server/render/component.ts (lines 22-34, 531-543; partial)\n  packages/astro/src/vite-plugin-astro-server/route-guard.ts\nRelated tests\n  packages/astro/test/units/render/streaming-rendering.test.ts (lines 7-19, 115-127; partial)\n  packages/astro/test/units/cache/route-matching.test.ts (not selected; inspect selectively)\nAlso selected\n  benchmark/make-project/rendering-perf.js (lines 92-104, 334-346; partial)\n  packages/astro/src/actions/runtime/server.ts (lines 305-317, 506-518; partial)\n  packages/astro/src/runtime/server/render/astro/render.ts (lines 139-151; partial)\nChecks to run\n  No approved command is available.\nConflicts\n  JavaScript package manager\nConfidence  Partial\nMissing evidence\n  Partial implementation context: packages/astro/src/core/errors/errors-data.ts\n  Partial implementation context: packages/astro/src/runtime/server/render/component.ts\nExcluded\n  20 files left out\nNext  Resolve the reported conflicts before editing.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "nuxt/nuxt",
+      "stack": "Vue framework monorepo",
+      "task": "preserve route middleware order during navigation",
+      "failures": [],
+      "revision": "2cbde35ef654b272ce810c1ffe5ed1003ffb1622",
+      "totalFiles": 2040,
+      "existingInstructionPaths": ["AGENTS.md", "CLAUDE.md"],
+      "preview": {
+        "ms": 1548,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": [
+              "CONTRIBUTING.md",
+              "SECURITY.md",
+              "docs/3.guide/2.best-practices/accessibility.md"
+            ],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "reuse",
+            "evidence": ["docs/3.guide/2.best-practices/accessibility.md"],
+            "missingEvidence": []
+          }
+        ],
+        "growth": {
+          "createdFiles": 6,
+          "patchedFiles": 1,
+          "referencedFiles": 3,
+          "netLines": 248,
+          "documentationNetLines": 53
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "build",
+            "executable": "pnpm",
+            "args": ["run", "build"],
+            "cwd": ".",
+            "source": "package.json scripts.build",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "lint",
+            "executable": "pnpm",
+            "args": ["run", "lint"],
+            "cwd": ".",
+            "source": "package.json scripts.lint",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "packages-kit-build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": "packages/kit",
+            "source": "packages/kit/package.json scripts.build",
+            "appliesTo": ["packages/kit/**"]
+          },
+          {
+            "id": "packages-nitro-server-build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": "packages/nitro-server",
+            "source": "packages/nitro-server/package.json scripts.build",
+            "appliesTo": ["packages/nitro-server/**"]
+          },
+          {
+            "id": "packages-nuxt-build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": "packages/nuxt",
+            "source": "packages/nuxt/package.json scripts.build",
+            "appliesTo": ["packages/nuxt/**"]
+          },
+          {
+            "id": "packages-rspack-build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": "packages/rspack",
+            "source": "packages/rspack/package.json scripts.build",
+            "appliesTo": ["packages/rspack/**"]
+          },
+          {
+            "id": "packages-schema-build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": "packages/schema",
+            "source": "packages/schema/package.json scripts.build",
+            "appliesTo": ["packages/schema/**"]
+          },
+          {
+            "id": "packages-ui-templates-build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": "packages/ui-templates",
+            "source": "packages/ui-templates/package.json scripts.build",
+            "appliesTo": ["packages/ui-templates/**"]
+          },
+          {
+            "id": "packages-vite-build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": "packages/vite",
+            "source": "packages/vite/package.json scripts.build",
+            "appliesTo": ["packages/vite/**"]
+          },
+          {
+            "id": "packages-vite-server-build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": "packages/vite-server",
+            "source": "packages/vite-server/package.json scripts.build",
+            "appliesTo": ["packages/vite-server/**"]
+          },
+          {
+            "id": "packages-webpack-build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": "packages/webpack",
+            "source": "packages/webpack/package.json scripts.build",
+            "appliesTo": ["packages/webpack/**"]
+          },
+          {
+            "id": "test",
+            "executable": "pnpm",
+            "args": ["run", "test"],
+            "cwd": ".",
+            "source": "package.json scripts.test",
+            "appliesTo": [
+              "packages/**",
+              "playground/**",
+              "scripts/**",
+              "test/**",
+              "*.mjs",
+              "*.ts",
+              "package.json"
+            ]
+          },
+          {
+            "id": "typecheck",
+            "executable": "pnpm",
+            "args": ["run", "typecheck"],
+            "cwd": ".",
+            "source": "package.json scripts.typecheck",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "patch"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": "docs/3.guide/2.best-practices/accessibility.md",
+            "action": "reference"
+          },
+          {
+            "path": "SECURITY.md",
+            "action": "reference"
+          },
+          {
+            "path": "CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 1755,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13401,
+          "estimatedTokens": 3351
+        },
+        "selected": [
+          "packages/nuxt/src/app/middleware/route-rules.ts",
+          "packages/nuxt/src/app/diagnostics/navigation.ts",
+          "AGENTS.md",
+          "CLAUDE.md",
+          "test/nuxt/sensitive/route-rules.test.ts",
+          "docs/4.api/3.utils/define-nuxt-route-middleware.md",
+          "docs/4.api/3.utils/add-route-middleware.md",
+          "packages/nuxt/src/pages/runtime/plugins/router.ts",
+          "docs/4.api/3.utils/.navigation.yml",
+          "docs/4.api/5.kit/.navigation.yml",
+          "test/mocks/router-options.ts"
+        ],
+        "owners": [
+          "packages/nuxt/src/app/middleware/route-rules.ts",
+          "packages/nuxt/src/app/diagnostics/navigation.ts",
+          "packages/nuxt/src/pages/runtime/plugins/router.ts",
+          "packages/nitro-server/src/runtime/handlers/renderer.ts",
+          "packages/nuxt/src/app/composables/router.ts"
+        ],
+        "tests": [
+          "test/nuxt/sensitive/route-rules.test.ts",
+          "packages/nuxt/test/server-routes.test.ts",
+          "test/nuxt/insensitive/route-rules.test.ts",
+          "packages/nuxt/test/payload-route-rules.test.ts",
+          "packages/nuxt/test/route-coverage.test.ts"
+        ],
+        "unknowns": [
+          "Implementation not selected: packages/nitro-server/src/runtime/handlers/renderer.ts",
+          "Implementation not selected: packages/nuxt/src/app/composables/router.ts",
+          "Partial implementation context: packages/nuxt/src/pages/runtime/plugins/router.ts",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 27,
+        "bytes": 981,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve route middleware order during navigation\nTask context\n  11 files · ~3,351 tokens\nRelevant files\n  packages/nuxt/src/app/middleware/route-rules.ts\n  packages/nuxt/src/app/diagnostics/navigation.ts\n  packages/nuxt/src/pages/runtime/plugins/router.ts (lines 10-22, 186-198; partial)\nRelated tests\n  test/nuxt/sensitive/route-rules.test.ts\n  packages/nuxt/test/server-routes.test.ts (not selected; inspect selectively)\nAlso selected\n  AGENTS.md\n  CLAUDE.md\n  docs/4.api/3.utils/define-nuxt-route-middleware.md\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: packages/nitro-server/src/runtime/handlers/renderer.ts\n  Implementation not selected: packages/nuxt/src/app/composables/router.ts\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "honojs/hono",
+      "stack": "TypeScript server",
+      "task": "preserve response headers through error middleware",
+      "failures": [],
+      "revision": "dac5d5794c6134711e469c5e69d09cd6274e1fc1",
+      "totalFiles": 486,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 399,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": ["docs/CONTRIBUTING.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          }
+        ],
+        "growth": {
+          "createdFiles": 8,
+          "patchedFiles": 0,
+          "referencedFiles": 1,
+          "netLines": 162,
+          "documentationNetLines": 64
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "build",
+            "executable": "bun",
+            "args": ["run", "build"],
+            "cwd": ".",
+            "source": "package.json scripts.build",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "lint",
+            "executable": "bun",
+            "args": ["run", "lint"],
+            "cwd": ".",
+            "source": "package.json scripts.lint",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "test",
+            "executable": "bun",
+            "args": ["run", "test"],
+            "cwd": ".",
+            "source": "package.json scripts.test",
+            "appliesTo": [
+              "benchmarks/**",
+              "perf-measures/**",
+              "runtime-tests/**",
+              "src/**",
+              "*.mjs",
+              "*.ts",
+              "package.json"
+            ]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": "docs/CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/product-ux-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 550,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13571,
+          "estimatedTokens": 3393
+        },
+        "selected": [
+          "src/middleware/cache/index.ts",
+          "src/middleware/secure-headers/secure-headers.ts",
+          "src/middleware/cache/index.test.ts",
+          "docs/CONTRIBUTING.md",
+          "src/middleware/method-not-allowed/index.test.ts",
+          "src/middleware/bearer-auth/index.ts",
+          "src/middleware/jwk/index.test.ts",
+          "src/middleware/etag/index.test.ts",
+          "src/middleware/body-limit/index.test.ts",
+          "src/middleware/jwk/index.ts",
+          "benchmarks/fetch/package.json",
+          "benchmarks/utils/package.json"
+        ],
+        "owners": [
+          "src/middleware/cache/index.ts",
+          "src/middleware/bearer-auth/index.ts",
+          "src/middleware/etag/index.ts",
+          "src/middleware/jwk/jwk.ts",
+          "src/middleware/jwt/jwt.ts"
+        ],
+        "tests": [
+          "src/middleware/cache/index.test.ts",
+          "src/middleware/method-not-allowed/index.test.ts",
+          "src/middleware/jwk/index.test.ts",
+          "src/middleware/etag/index.test.ts",
+          "src/middleware/body-limit/index.test.ts"
+        ],
+        "unknowns": [
+          "Implementation not selected: src/middleware/etag/index.ts",
+          "Implementation not selected: src/middleware/jwk/jwk.ts",
+          "Implementation not selected: src/middleware/jwt/jwt.ts",
+          "Partial implementation context: src/middleware/cache/index.ts",
+          "Partial implementation context: src/middleware/bearer-auth/index.ts",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 27,
+        "bytes": 1086,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve response headers through error middleware\nTask context\n  12 files · ~3,393 tokens\nRelevant files\n  src/middleware/cache/index.ts (lines 158-170; partial)\n  src/middleware/bearer-auth/index.ts (lines 76-88; partial)\n  src/middleware/etag/index.ts (not selected; inspect selectively)\nRelated tests\n  src/middleware/cache/index.test.ts (lines 236-248, 308-320, 958-970; partial)\n  src/middleware/method-not-allowed/index.test.ts (lines 84-96, 191-203, 204-216; partial)\nAlso selected\n  src/middleware/secure-headers/secure-headers.ts (lines 142-154; partial)\n  docs/CONTRIBUTING.md\n  src/middleware/jwk/index.test.ts (lines 15-27, 101-113, 216-228; partial)\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: src/middleware/etag/index.ts\n  Implementation not selected: src/middleware/jwk/jwk.ts\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "expressjs/morgan",
+      "stack": "Small legacy JavaScript middleware",
+      "task": "skip request logging when a response matches the skip predicate",
+      "failures": [],
+      "revision": "286b000228cacba362bfa89791c6268663f86610",
+      "totalFiles": 18,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 168,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 0,
+          "netLines": 124,
+          "documentationNetLines": 51
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "lint",
+            "executable": "npm",
+            "args": ["run", "lint"],
+            "cwd": ".",
+            "source": "package.json scripts.lint",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "test",
+            "executable": "npm",
+            "args": ["run", "test"],
+            "cwd": ".",
+            "source": "package.json scripts.test",
+            "appliesTo": ["test/**", "*.js", "package.json"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 178,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13352,
+          "estimatedTokens": 3338
+        },
+        "selected": ["index.js", "test/morgan.js", "HISTORY.md", "test/noColor.js", "LICENSE"],
+        "owners": ["index.js"],
+        "tests": ["test/morgan.js", "test/noColor.js"],
+        "unknowns": [
+          "Partial implementation context: index.js",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 24,
+        "bytes": 669,
+        "text": "NOXROOT  task brief\n\nOutcome\n  skip request logging when a response matches the skip predicate\nTask context\n  5 files · ~3,338 tokens\nRelevant files\n  index.js (lines 135-147; partial)\nRelated tests\n  test/morgan.js (lines 1771-1783, 1787-1799; partial)\n  test/noColor.js\nAlso selected\n  HISTORY.md\n  LICENSE\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Partial implementation context: index.js\n  Applicable approved verification command\nExcluded\n  12 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "isaacs/node-lru-cache",
+      "stack": "TypeScript cache library",
+      "task": "evict expired entries without changing item ordering",
+      "failures": [],
+      "revision": "16b3a916662ab449d496b7b4b4f04132565d1d28",
+      "totalFiles": 85,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 163,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": ["CONTRIBUTING.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 1,
+          "netLines": 142,
+          "documentationNetLines": 52
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "build",
+            "executable": "npm",
+            "args": ["run", "build"],
+            "cwd": ".",
+            "source": "package.json scripts.build",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "lint",
+            "executable": "npm",
+            "args": ["run", "lint"],
+            "cwd": ".",
+            "source": "package.json scripts.lint",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "test",
+            "executable": "npm",
+            "args": ["run", "test"],
+            "cwd": ".",
+            "source": "package.json scripts.test",
+            "appliesTo": [
+              "benchmark/**",
+              "src/**",
+              "tap-snapshots/**",
+              "test/**",
+              "*.js",
+              "package.json"
+            ]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": "CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 215,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13545,
+          "estimatedTokens": 3387
+        },
+        "selected": ["src/index.ts", "test/dispose.ts", "CHANGELOG.md", "scripts/package.json"],
+        "owners": ["src/index.ts"],
+        "tests": ["test/dispose.ts"],
+        "unknowns": [
+          "Partial implementation context: src/index.ts",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 25,
+        "bytes": 692,
+        "text": "NOXROOT  task brief\n\nOutcome\n  evict expired entries\nTask context\n  4 files · ~3,387 tokens\nRelevant files\n  src/index.ts (lines 845-857, 2029-2041; partial)\nRelated tests\n  test/dispose.ts\nAlso selected\n  CHANGELOG.md\n  scripts/package.json\nChecks to run\n  No approved command is available.\nDo not\n  without changing item ordering\nConfidence  Partial\nMissing evidence\n  Partial implementation context: src/index.ts\n  Content inspection was bounded; uninspected content may contain other owners or tests.\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "markdown-it/markdown-it",
+      "stack": "JavaScript parser",
+      "task": "preserve escaped characters inside inline links",
+      "failures": [],
+      "revision": "924b203442f62cea128b5f2680294697621b416d",
+      "totalFiles": 162,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 176,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": ["CONTRIBUTING.md", "docs/architecture.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 2,
+          "netLines": 137,
+          "documentationNetLines": 53
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "lint",
+            "executable": "npm",
+            "args": ["run", "lint"],
+            "cwd": ".",
+            "source": "package.json scripts.lint",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "test",
+            "executable": "npm",
+            "args": ["run", "test"],
+            "cwd": ".",
+            "source": "package.json scripts.test",
+            "appliesTo": [
+              "benchmark/**",
+              "bin/**",
+              "src/**",
+              "support/**",
+              "test/**",
+              "*.mjs",
+              "package.json"
+            ]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": "docs/architecture.md",
+            "action": "reference"
+          },
+          {
+            "path": "CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 233,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 13599,
+          "estimatedTokens": 3400
+        },
+        "selected": [
+          "src/rules_inline/link.ts",
+          "test/markdown-it/misc.test.mjs",
+          "benchmark/samples/inline-links-flat.md",
+          "src/rules_inline/state_inline.ts",
+          "benchmark/samples/inline-links-nested.md",
+          "src/rules_inline/html_inline.ts",
+          "src/rules_core/inline.ts",
+          "benchmark/samples/inline-backticks.md",
+          "benchmark/samples/inline-newlines.md"
+        ],
+        "owners": [
+          "src/rules_inline/link.ts",
+          "src/rules_inline/state_inline.ts",
+          "src/parser_inline.ts",
+          "src/rules_inline/image.ts",
+          "src/rules_inline/linkify.ts"
+        ],
+        "tests": ["test/markdown-it/misc.test.mjs"],
+        "unknowns": [
+          "Implementation not selected: src/parser_inline.ts",
+          "Implementation not selected: src/rules_inline/image.ts",
+          "Implementation not selected: src/rules_inline/linkify.ts",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 26,
+        "bytes": 858,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve escaped characters inside inline links\nTask context\n  9 files · ~3,400 tokens\nRelevant files\n  src/rules_inline/link.ts\n  src/rules_inline/state_inline.ts\n  src/parser_inline.ts (not selected; inspect selectively)\nRelated tests\n  test/markdown-it/misc.test.mjs (lines 98-110, 128-140, 237-249; partial)\nAlso selected\n  benchmark/samples/inline-links-flat.md\n  benchmark/samples/inline-links-nested.md\n  src/rules_inline/html_inline.ts\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: src/parser_inline.ts\n  Implementation not selected: src/rules_inline/image.ts\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "chalk/chalk",
+      "stack": "JavaScript terminal library",
+      "task": "preserve nested styles when closing a color sequence",
+      "failures": [],
+      "revision": "661317e6f91fe7c90306c2c48ea9354562ee9146",
+      "totalFiles": 35,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 153,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": [".github/security.md", "contributing.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 2,
+          "netLines": 122,
+          "documentationNetLines": 53
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "test",
+            "executable": "npm",
+            "args": ["run", "test"],
+            "cwd": ".",
+            "source": "package.json scripts.test",
+            "appliesTo": ["examples/**", "source/**", "test/**", "*.js", "package.json"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".github/security.md",
+            "action": "reference"
+          },
+          {
+            "path": "contributing.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 168,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 8867,
+          "estimatedTokens": 2217
+        },
+        "selected": [
+          "benchmark.js",
+          "test/chalk.js",
+          "source/index.js",
+          "test/_force-color-fixture.js",
+          "test/force-color.js",
+          "test/no-color-support.js",
+          "source/index.d.ts",
+          "package.json"
+        ],
+        "owners": ["benchmark.js", "source/index.js", "source/index.d.ts"],
+        "tests": [
+          "test/chalk.js",
+          "test/_force-color-fixture.js",
+          "test/force-color.js",
+          "test/no-color-support.js"
+        ],
+        "unknowns": [
+          "Partial implementation context: source/index.js",
+          "Partial implementation context: source/index.d.ts",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 27,
+        "bytes": 784,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve nested styles when closing a color sequence\nTask context\n  8 files · ~2,217 tokens\nRelevant files\n  benchmark.js\n  source/index.js (lines 108-120, 210-222; partial)\n  source/index.d.ts (lines 1-9; partial)\nRelated tests\n  test/chalk.js (lines 48-60; partial)\n  test/_force-color-fixture.js\nAlso selected\n  test/force-color.js\n  test/no-color-support.js\n  package.json\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Partial implementation context: source/index.js\n  Partial implementation context: source/index.d.ts\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "gin-gonic/gin",
+      "stack": "Go server",
+      "task": "preserve route parameters through nested middleware",
+      "failures": [],
+      "revision": "dcaa4296d111981ffb31ac3eba90bb63e1eb5ab9",
+      "totalFiles": 130,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 178,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": ["CONTRIBUTING.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 1,
+          "netLines": 120,
+          "documentationNetLines": 52
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "go-test",
+            "executable": "go",
+            "args": ["test", "./..."],
+            "cwd": ".",
+            "source": "go.mod",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": "CONTRIBUTING.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 268,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 11776,
+          "estimatedTokens": 2944
+        },
+        "selected": [
+          "gin.go",
+          "routergroup.go",
+          "routes_test.go",
+          "middleware_test.go",
+          "gin_test.go",
+          "gin_integration_test.go",
+          "go.mod",
+          ".github/PULL_REQUEST_TEMPLATE.md"
+        ],
+        "owners": ["gin.go", "routergroup.go", "ginS/gins.go", "context.go", "tree.go"],
+        "tests": [
+          "routes_test.go",
+          "middleware_test.go",
+          "gin_test.go",
+          "routergroup_test.go",
+          "gin_integration_test.go"
+        ],
+        "unknowns": [
+          "Implementation not selected: ginS/gins.go",
+          "Implementation not selected: context.go",
+          "Implementation not selected: tree.go",
+          "Partial implementation context: gin.go",
+          "Partial implementation context: routergroup.go",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 27,
+        "bytes": 847,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve route parameters through nested middleware\nTask context\n  8 files · ~2,944 tokens\nRelevant files\n  gin.go (lines 89-101, 131-143, 331-343; partial)\n  routergroup.go (lines 59-71, 177-189; partial)\n  ginS/gins.go (not selected; inspect selectively)\nRelated tests\n  routes_test.go (lines 335-347, 671-683; partial)\n  middleware_test.go\nAlso selected\n  gin_test.go (lines 740-752; partial)\n  gin_integration_test.go (lines 592-604; partial)\n  go.mod\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: ginS/gins.go\n  Implementation not selected: context.go\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "jmoiron/sqlx",
+      "stack": "Go database library",
+      "task": "report missing named query parameters before execution",
+      "failures": [],
+      "revision": "41dac167fdad5e3fd81d66cafba0951dc6823a30",
+      "totalFiles": 25,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 142,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 0,
+          "netLines": 114,
+          "documentationNetLines": 51
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "go-test",
+            "executable": "go",
+            "args": ["test", "./..."],
+            "cwd": ".",
+            "source": "go.mod",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 173,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 10355,
+          "estimatedTokens": 2589
+        },
+        "selected": [
+          "named.go",
+          "named_test.go",
+          "named_context.go",
+          "named_context_test.go",
+          "go.mod"
+        ],
+        "owners": ["named.go", "sqlx.go", "named_context.go", "sqlx_context.go", "bind.go"],
+        "tests": ["named_test.go", "named_context_test.go"],
+        "unknowns": [
+          "Implementation not selected: sqlx.go",
+          "Implementation not selected: sqlx_context.go",
+          "Implementation not selected: bind.go",
+          "Partial implementation context: named.go",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 25,
+        "bytes": 723,
+        "text": "NOXROOT  task brief\n\nOutcome\n  report missing named query parameters before execution\nTask context\n  5 files · ~2,589 tokens\nRelevant files\n  named.go (lines 51-63, 443-455; partial)\n  sqlx.go (not selected; inspect selectively)\n  named_context.go\nRelated tests\n  named_test.go (lines 3-15, 84-96, 372-384; partial)\n  named_context_test.go\nAlso selected\n  go.mod\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: sqlx.go\n  Implementation not selected: sqlx_context.go\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "rust-lang/regex",
+      "stack": "Rust workspace",
+      "task": "preserve Unicode word boundaries when finding matches",
+      "failures": [],
+      "revision": "72d650cb0a880a01ab6dc2137c0888e8f89740f7",
+      "totalFiles": 451,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 225,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 0,
+          "netLines": 182,
+          "documentationNetLines": 51
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "cargo-check",
+            "executable": "cargo",
+            "args": ["check"],
+            "cwd": ".",
+            "source": "Cargo.toml",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "cargo-test",
+            "executable": "cargo",
+            "args": ["test"],
+            "cwd": ".",
+            "source": "Cargo.toml",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "run-regex-cli-tests",
+            "executable": "cargo",
+            "args": ["test", "--verbose", "-p", "regex-cli"],
+            "cwd": ".",
+            "source": ".github/workflows/ci.yml jobs.test.steps[11].run",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "run-regex-lite-tests",
+            "executable": "cargo",
+            "args": ["test", "--verbose", "-p", "regex-lite"],
+            "cwd": ".",
+            "source": ".github/workflows/ci.yml jobs.test.steps[10].run",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "run-subset-of-regex-automata-tests",
+            "executable": "cargo",
+            "args": ["test", "--verbose", "-p", "regex-automata"],
+            "cwd": ".",
+            "source": ".github/workflows/ci.yml jobs.test.steps[9].run",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "run-subset-of-regex-syntax-tests",
+            "executable": "cargo",
+            "args": ["test", "--verbose", "-p", "regex-syntax"],
+            "cwd": ".",
+            "source": ".github/workflows/ci.yml jobs.test.steps[7].run",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "run-subset-of-tests",
+            "executable": "cargo",
+            "args": ["test", "--verbose", "--test", "integration"],
+            "cwd": ".",
+            "source": ".github/workflows/ci.yml jobs.test.steps[5].run",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 306,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 12798,
+          "estimatedTokens": 3200
+        },
+        "selected": [
+          "regex-automata/src/dfa/automaton.rs",
+          "regex-cli/cmd/generate/unicode.rs",
+          "regex-automata/src/util/unicode_data/perl_word.rs",
+          "regex-automata/src/util/unicode_data/mod.rs",
+          "regex-syntax/src/unicode.rs",
+          "regex-syntax/src/unicode_tables/perl_word.rs",
+          "regex-syntax/src/unicode_tables/word_break.rs",
+          "regex-syntax/src/unicode_tables/mod.rs"
+        ],
+        "owners": [
+          "regex-automata/src/dfa/automaton.rs",
+          "regex-automata/src/dfa/regex.rs",
+          "regex-automata/src/dfa/dense.rs",
+          "regex-automata/src/dfa/mod.rs",
+          "regex-automata/src/hybrid/mod.rs"
+        ],
+        "tests": [],
+        "unknowns": [
+          "Implementation not selected: regex-automata/src/dfa/regex.rs",
+          "Implementation not selected: regex-automata/src/dfa/dense.rs",
+          "Implementation not selected: regex-automata/src/dfa/mod.rs",
+          "Implementation not selected: regex-automata/src/hybrid/mod.rs",
+          "Partial implementation context: regex-automata/src/dfa/automaton.rs",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Directly related test path",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 26,
+        "bytes": 963,
+        "text": "NOXROOT  task brief\n\nOutcome\n  preserve Unicode word boundaries when finding matches\nTask context\n  8 files · ~3,200 tokens\nRelevant files\n  regex-automata/src/dfa/automaton.rs (lines 548-560, 954-966, 1501-1513; partial)\n  regex-automata/src/dfa/regex.rs (not selected; inspect selectively)\n  regex-automata/src/dfa/dense.rs (not selected; inspect selectively)\nRelated tests\n  Not established\nAlso selected\n  regex-cli/cmd/generate/unicode.rs\n  regex-automata/src/util/unicode_data/perl_word.rs (lines 1-9; partial)\n  regex-automata/src/util/unicode_data/mod.rs\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: regex-automata/src/dfa/regex.rs\n  Implementation not selected: regex-automata/src/dfa/dense.rs\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "jqlang/jq",
+      "stack": "C command line parser",
+      "task": "report invalid JSON input with line and column information",
+      "failures": [],
+      "revision": "9d241e277204b83c4a7ddc7d733e5c72f99ef500",
+      "totalFiles": 428,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 316,
+        "initializationAllowed": true,
+        "conflicts": ["1 symbolic link(s) were not followed: docs/content/manual/manual.yml"],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": ["SECURITY.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": [
+              "No authoritative verification wrapper or candidate checks were found."
+            ]
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["Verification behavior was not assessed."]
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 5,
+          "patchedFiles": 0,
+          "referencedFiles": 1,
+          "netLines": 88,
+          "documentationNetLines": 38
+        },
+        "limits": [],
+        "commands": [],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": "SECURITY.md",
+            "action": "reference"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 366,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 12735,
+          "estimatedTokens": 3184
+        },
+        "selected": [
+          "docs/build_manpage.py",
+          "tests/shtest",
+          ".github/ISSUE_TEMPLATE/bug_report.md",
+          "docs/templates/manual.html.j2",
+          "sig/v1.8.2/jq-attestation.json.asc",
+          "docs/public/js/manual-search.js",
+          "tests/torture/input0.json",
+          "tests/modules/data.json"
+        ],
+        "owners": ["docs/build_manpage.py", "docs/public/js/manual-search.js"],
+        "tests": ["tests/shtest", "tests/torture/input0.json", "tests/modules/data.json"],
+        "unknowns": [
+          "Partial implementation context: docs/build_manpage.py",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 26,
+        "bytes": 878,
+        "text": "NOXROOT  task brief\n\nOutcome\n  report invalid JSON input with line and column information\nTask context\n  8 files · ~3,184 tokens\nRelevant files\n  docs/build_manpage.py (lines 25-37, 70-82, 227-239; partial)\n  docs/public/js/manual-search.js\nRelated tests\n  tests/shtest (lines 54-66, 71-83, 127-139; partial)\n  tests/torture/input0.json\nAlso selected\n  .github/ISSUE_TEMPLATE/bug_report.md\n  docs/templates/manual.html.j2\n  sig/v1.8.2/jq-attestation.json.asc\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Partial implementation context: docs/build_manpage.py\n  Content inspection was bounded; uninspected content may contain other owners or tests.\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "jedisct1/libsodium",
+      "stack": "C library with native build",
+      "task": "report the library version through the public version API",
+      "failures": [],
+      "revision": "403efe612e1c232399878e8070ceeb6a8129983a",
+      "totalFiles": 741,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 1022,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": [
+              "No authoritative verification wrapper or candidate checks were found."
+            ]
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["Verification behavior was not assessed."]
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "not-assessed",
+            "evidence": [],
+            "missingEvidence": ["No user-facing product surface was detected."]
+          }
+        ],
+        "growth": {
+          "createdFiles": 5,
+          "patchedFiles": 0,
+          "referencedFiles": 0,
+          "netLines": 88,
+          "documentationNetLines": 37
+        },
+        "limits": [],
+        "commands": [],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 1084,
+        "confidence": "insufficient",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 2152,
+          "estimatedTokens": 538
+        },
+        "selected": [
+          "test/check-version-consistency.sh",
+          "test/default/sodium_version.c",
+          "test/default/sodium_version.exp",
+          "builds/msvc/version.h",
+          "src/libsodium/include/sodium/version.h.in"
+        ],
+        "owners": [],
+        "tests": [
+          "test/check-version-consistency.sh",
+          "test/default/sodium_version.c",
+          "test/default/sodium_version.exp"
+        ],
+        "unknowns": [
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Owning source path",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 25,
+        "bytes": 769,
+        "text": "NOXROOT  task brief\n\nOutcome\n  report the library version through the public version API\nTask context\n  5 files · ~538 tokens\nRelevant files\n  Not established\nRelated tests\n  test/check-version-consistency.sh (lines 25-37; partial)\n  test/default/sodium_version.c\nAlso selected\n  test/default/sodium_version.exp\n  builds/msvc/version.h\n  src/libsodium/include/sodium/version.h.in\nChecks to run\n  No approved command is available.\nConfidence  Insufficient\nMissing evidence\n  Content inspection was bounded; uninspected content may contain other owners or tests.\n  Owning source path\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    },
+    {
+      "repo": "colinsurprenant/director",
+      "stack": "Existing agent coordinator",
+      "task": "show pending open items when resuming work in another session",
+      "failures": [],
+      "revision": "19042b9970470e1097202af63f7f4b42bd8f1cf0",
+      "totalFiles": 316,
+      "existingInstructionPaths": [],
+      "preview": {
+        "ms": 214,
+        "initializationAllowed": true,
+        "conflicts": [],
+        "capabilities": [
+          {
+            "id": "project-knowledge",
+            "label": "Project knowledge",
+            "decision": "reuse",
+            "evidence": ["docs/why-director.md"],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-routes",
+            "label": "Task routes",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-policy",
+            "label": "Verification",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "verification-skill",
+            "label": "Verification skill",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "task-orchestration",
+            "label": "Task orchestration",
+            "decision": "create",
+            "evidence": [],
+            "missingEvidence": []
+          },
+          {
+            "id": "coordination-ledger",
+            "label": "External work ledger",
+            "decision": "adjacent",
+            "evidence": [
+              "README.md (durable work state, cross-session continuity, coding-work coordination)"
+            ],
+            "missingEvidence": []
+          },
+          {
+            "id": "product-ux-guidance",
+            "label": "Product and UX guidance",
+            "decision": "reuse",
+            "evidence": ["docs/why-director.md"],
+            "missingEvidence": []
+          }
+        ],
+        "growth": {
+          "createdFiles": 7,
+          "patchedFiles": 0,
+          "referencedFiles": 0,
+          "netLines": 125,
+          "documentationNetLines": 51
+        },
+        "limits": [],
+        "commands": [
+          {
+            "id": "go-test",
+            "executable": "go",
+            "args": ["test", "./..."],
+            "cwd": ".",
+            "source": "go.mod",
+            "appliesTo": ["**/*"]
+          },
+          {
+            "id": "go-test-race",
+            "executable": "go",
+            "args": ["test", "./...", "-race"],
+            "cwd": ".",
+            "source": ".github/workflows/ci.yml jobs.gate.steps[5].run",
+            "appliesTo": ["**/*"]
+          }
+        ],
+        "proposals": [
+          {
+            "path": "AGENTS.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/config.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/knowledge/INDEX.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/routes.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/verification.yml",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/verify-change/SKILL.md",
+            "action": "create"
+          },
+          {
+            "path": ".noxroot/skills/independent-review/SKILL.md",
+            "action": "create"
+          }
+        ]
+      },
+      "repeatableProposal": true,
+      "context": {
+        "ms": 348,
+        "confidence": "partial",
+        "budget": {
+          "maximumBytes": 16000,
+          "selectedBytes": 14649,
+          "estimatedTokens": 3663
+        },
+        "selected": [
+          "internal/hook/sessionstart.go",
+          "cmd/director/show.go",
+          "internal/render/openitems.go",
+          "internal/identity/workstream.go",
+          "internal/render/fold_test.go",
+          "docs/dogfood.md"
+        ],
+        "owners": [
+          "internal/hook/sessionstart.go",
+          "internal/render/render.go",
+          "cmd/director/doctorcmd.go",
+          "internal/render/fold.go",
+          "cmd/director/show.go"
+        ],
+        "tests": [
+          "internal/render/fold_test.go",
+          "cmd/director/show_test.go",
+          "docs/specs/2026-08-26-handoff-supersession-design.md",
+          "internal/render/openitems_test.go",
+          "internal/identity/workstream_test.go"
+        ],
+        "unknowns": [
+          "Implementation not selected: internal/render/render.go",
+          "Implementation not selected: cmd/director/doctorcmd.go",
+          "Implementation not selected: internal/render/fold.go",
+          "Partial implementation context: internal/hook/sessionstart.go",
+          "Content inspection was bounded; uninspected content may contain other owners or tests.",
+          "Applicable approved verification command"
+        ]
+      },
+      "terminal": {
+        "lines": 27,
+        "bytes": 970,
+        "text": "NOXROOT  task brief\n\nOutcome\n  show pending open items when resuming work in another session\nTask context\n  6 files · ~3,663 tokens\nRelevant files\n  internal/hook/sessionstart.go (lines 47-59; partial)\n  internal/render/render.go (not selected; inspect selectively)\n  cmd/director/doctorcmd.go (not selected; inspect selectively)\nRelated tests\n  internal/render/fold_test.go (lines 46-58, 418-430, 657-669; partial)\n  cmd/director/show_test.go (not selected; inspect selectively)\nAlso selected\n  cmd/director/show.go\n  internal/render/openitems.go\n  internal/identity/workstream.go\nChecks to run\n  No approved command is available.\nConfidence  Partial\nMissing evidence\n  Implementation not selected: internal/render/render.go\n  Implementation not selected: cmd/director/doctorcmd.go\nExcluded\n  20 files left out\nNext  Inspect the relevant files, then build the requested change.\nDetails  Use --verbose for all selected paths and reasons; --json for structured context.\n"
+      },
+      "readOnly": true
+    }
+  ],
+  "retained": [],
+  "scratch": "/tmp/noxroot-adoption-Pd5Kwk",
+  "cleanup": true,
+  "integrity": "sha512-jM+1K5AGjErt50802lEW6OVnba5IafrebQE5W+Ug1DZ/js47Je0ppLpR7zqBcuh6BjhVr/xwe29RuvnYMP7kaA==",
+  "finishedAt": "2026-09-04T15:46:20.322Z"
+}

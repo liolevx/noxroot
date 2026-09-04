@@ -1,0 +1,41 @@
+[
+  {
+    "index": 1,
+    "args": [
+      "node_modules/mocha/bin/mocha.js",
+      "--require",
+      "test/support/env",
+      "--reporter",
+      "dot",
+      "--check-leaks",
+      "test/res.append.js"
+    ],
+    "expectedTests": ["test/res.append.js"],
+    "tasks": [
+      "Add regression coverage for res.append preserving ordered values across repeated calls and mixed-case field names. Include appending an empty string. Use the existing response-header tests and preserve behavior unless a test demonstrates a bug.",
+      "Add res.appendUnique(field, value), a chainable variant of res.append that avoids exact duplicate string values while preserving the order of the first occurrence. Accept a single string or an array of strings and compare values case-sensitively. Add failing tests first, implement it alongside the existing response helpers, and describe the contract in its JSDoc. Keep this local extension small.",
+      "Add regression cases for res.appendUnique covering duplicate values within an input array, existing scalar headers, empty-string values, and mixed-case header field names. Preserve the existing res.append behavior. Fix only demonstrated failures and keep documentation in the existing method."
+    ]
+  },
+  {
+    "index": 2,
+    "args": ["node_modules/ava/entrypoints/cli.js", "test/instance.js"],
+    "expectedTests": ["test/instance.js"],
+    "tasks": [
+      "Add regression coverage for two independent Chalk instances: changing one instance's level must not affect an already-created style chain belonging to the other. Use the existing instance tests. Do not change behavior unless you demonstrate a bug.",
+      "Extend the Chalk instance regression coverage to cached RGB and hex style builders when their owning instance changes from truecolor to disabled and back. Assert the emitted ANSI behavior, not just the level property. Reuse existing test patterns and fix only demonstrated failures.",
+      "Add regression coverage that assigning invalid color levels through a nested style chain throws without changing the owning instance or another independent instance. Cover fractional and out-of-range values. Keep tests in the existing location and avoid redundant documentation."
+    ]
+  },
+  {
+    "index": 3,
+    "omitDev": true,
+    "args": ["--test", "test/markdown-it/ruler.test.mjs"],
+    "expectedTests": ["test/markdown-it/ruler.test.mjs"],
+    "tasks": [
+      "Add regression coverage for Ruler: after getRules caches an enabled chain, disabling and re-enabling a rule must refresh that chain and preserve execution order. Use the existing ruler tests and preserve behavior unless a test reveals a bug.",
+      "Add Ruler.has(name), returning whether a rule with that exact name is registered, regardless of whether it is enabled. It must not change rule order, enablement, or the compiled chain cache. Add failing tests first, implement the small method, and document its behavior alongside the existing API.",
+      "Add regression cases for Ruler.has after before, after, and at operations; after enableOnly; and for a missing name. Verify that queries do not alter the resulting rule execution order. Fix only demonstrated failures and do not create a separate documentation file."
+    ]
+  }
+]

@@ -7,6 +7,7 @@ import type {
 import type { LearnResult } from "./knowledge/learn.js";
 import { cliCommand, VERSION } from "./invocation.js";
 import type { GuidedRunRecord } from "./orchestration/guided.js";
+import { failureDetail, TIMEOUT_NEXT } from "./verification/diagnostics.js";
 
 export function renderGuidedFinish(
   record: GuidedRunRecord,
@@ -27,6 +28,8 @@ export function renderGuidedFinish(
   let next = "Resolve the reported gap or review finding, then retry finish.";
   if (record.status === "failed")
     next = `Fix the failing check, then rerun ${cliCommand("finish")}.`;
+  if (checks.some((check) => check.status === "timed-out"))
+    next = `${TIMEOUT_NEXT} After resolving the cause, rerun ${cliCommand("finish")}.`;
   if (record.status === "incomplete" && checks.some((check) => check.status === "unavailable"))
     next = `Make the approved check runnable, then rerun ${cliCommand("finish")}.`;
   if (record.status === "review-pending")
@@ -39,7 +42,7 @@ export function renderGuidedFinish(
     `Changed  ${record.changedPaths?.length ?? 0} file${record.changedPaths?.length === 1 ? "" : "s"}`,
     ...checks.map(
       (check) =>
-        `Checks   ${commandText(check.command)} · cwd ${check.command.cwd} · ${check.status}${check.status === "passed" ? "" : `: ${(check.evidence.stderr || check.evidence.stdout).replace(/\s+/g, " ").trim().slice(0, 240)}`}`,
+        `Checks   ${commandText(check.command)} · cwd ${check.command.cwd} · ${check.status}${check.status === "passed" ? "" : `: ${failureDetail(check)}`}`,
     ),
     ...record.verificationGaps.map((gap) => `Gap      ${gap}`),
     `Review   ${reviewResult ? `${reviewResult.review?.decision ?? reviewResult.reviewDecision ?? reviewResult.status}: ${reviewResult.summary}` : record.reviewAssessment?.required ? `Pending ${record.reviewAssessment.kinds.join("/")} review` : "Not required for this change"}`,
@@ -545,7 +548,7 @@ export function renderVerification(
           .filter((result) => result.status === status)
           .map(
             (result) =>
-              `${result.command.id} · ${result.evidence.durationMs}ms · exit ${result.evidence.exitCode ?? "signal"}`,
+              `${result.command.id} · ${result.evidence.durationMs}ms · exit ${result.evidence.exitCode ?? "signal"}${result.status === "passed" ? "" : ` · ${commandText(result.command)} · cwd ${result.command.cwd} · ${failureDetail(result)}`}`,
           ),
         options,
         color,
@@ -558,7 +561,9 @@ export function renderVerification(
       [
         results.every((result) => result.status === "passed")
           ? "Continue with review or handoff."
-          : "Resolve the failed or unavailable checks, then run verification again.",
+          : results.some((result) => result.status === "timed-out")
+            ? `${TIMEOUT_NEXT} Then run verification again.`
+            : "Resolve the failed or unavailable checks, then run verification again.",
       ],
       options,
       ANSI.blue,

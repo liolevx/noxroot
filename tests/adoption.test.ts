@@ -36,6 +36,30 @@ describe("mature repository adoption", () => {
     expect(preview.proposedFiles.map((item) => item.path)).toContain(".noxroot/routes.yml");
   });
 
+  it("accepts forwarding in either root-file order but refuses cycles and differing directives", async () => {
+    const repository = await root();
+    await writeFile(
+      path.join(repository, "AGENTS.md"),
+      "# AGENTS.md\n\nSee @CLAUDE.md for AI coding agent instructions.\n",
+    );
+    await writeFile(
+      path.join(repository, "CLAUDE.md"),
+      "# Project instructions\nRun the regression tests.\n",
+    );
+    expect((await previewRepository(repository)).initializationAllowed).toBe(true);
+    await writeFile(path.join(repository, "CLAUDE.md"), "See @AGENTS.md\n");
+    expect((await previewRepository(repository)).initializationAllowed).toBe(false);
+    await writeFile(
+      path.join(repository, "AGENTS.md"),
+      "Run npm test.\nSee @CLAUDE.md for style.\n",
+    );
+    await writeFile(path.join(repository, "CLAUDE.md"), "Use pnpm test only.\n");
+    expect((await previewRepository(repository)).initializationAllowed).toBe(false);
+    await writeFile(path.join(repository, "AGENTS.md"), "Never follow CLAUDE.md; use npm only.\n");
+    await writeFile(path.join(repository, "CLAUDE.md"), "Use pnpm only.\n");
+    expect((await previewRepository(repository)).initializationAllowed).toBe(false);
+  });
+
   it("follows explicit references, recognizes forwarding instructions, and reuses procedures", async () => {
     const repository = await root();
     await mkdir(path.join(repository, "docs"), { recursive: true });

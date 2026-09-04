@@ -73,7 +73,9 @@ const TOKEN_ALIASES: Record<string, string> = {
   verification: "verify",
 };
 
-const SOURCE_EXTENSION = /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php)$/;
+const SOURCE_EXTENSION =
+  /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php|c|cc|cpp|cxx)$/;
+const DECLARATION_PATH = /(?:\.d\.(?:ts|mts|cts)|\.(?:h|hh|hpp|hxx))$/;
 const TEST_PATH =
   /(?:^|\/)(?:__tests__|tests?|e2e|specs?)(?:\/|$)|\.(?:test|spec)\.|(?:^|\/)(?:test_[^/]+|[^/]+_(?:test|spec))\.(?:go|py|rb)$|(?:^|\/)(?:test|spec)\.[^.]+$/;
 const DOCUMENT_PATH = /(?:^|\/)(?:docs?|adr|adrs)(?:\/|$)|\.(?:md|mdx)$/;
@@ -143,6 +145,7 @@ function category(file: string): Category {
   if (isAlwaysContext(file)) return "entrypoint";
   if (MANIFESTS.has(path.posix.basename(file))) return "manifest";
   if (TEST_PATH.test(file)) return "test";
+  if (DECLARATION_PATH.test(file)) return "document";
   if (SOURCE_EXTENSION.test(file)) return "source";
   if (DOCUMENT_PATH.test(file)) return "document";
   return "other";
@@ -306,7 +309,13 @@ async function addContentRelevance(
   let incomplete = false;
   const inspectable = candidates
     .filter((item) => ["source", "test", "document"].includes(item.category))
-    .sort((left, right) => right.score - left.score || left.file.localeCompare(right.file));
+    // Give implementations a chance before keyword-heavy declarations/docs exhaust the read budget.
+    .sort(
+      (left, right) =>
+        Number(right.category === "source") - Number(left.category === "source") ||
+        right.score - left.score ||
+        left.file.localeCompare(right.file),
+    );
   for (const item of inspectable) {
     const limit = Math.min(item.bytes, MAX_INSPECTED_FILE_BYTES);
     if (inspected >= MAX_CONTENT_INSPECTIONS || inspectedBytes + limit > MAX_CONTENT_BYTES) {
@@ -613,6 +622,18 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
   const excluded: Array<{ path: string; reason: string }> = [...scopeExcluded, ...outsidePool];
   let selectedBytes = 0;
   for (const item of selectionOrder) {
+    if (
+      item.file.startsWith(".noxroot/knowledge/") &&
+      !isAlwaysContext(item.file) &&
+      !hasTaskEvidence(item)
+    ) {
+      if (excluded.length < 20)
+        excluded.push({
+          path: item.file,
+          reason: "knowledge requires task relevance, not just an index reference",
+        });
+      continue;
+    }
     const adjacentToPriority = item.reasons.some((reason) => {
       const match = /^source\/test counterpart of (.+)$/.exec(reason);
       return Boolean(match?.[1] && priorityPaths.has(match[1]));
@@ -635,7 +656,7 @@ export async function buildContext(task: string, root = process.cwd()): Promise<
       directPathMatch[item.category] &&
       item.pathMatchedTerms.size === 0 &&
       !adjacentToPriority &&
-      !(item.excerpt && priorityPaths.has(item.file) && item.matchedTerms.size >= 2)
+      !(priorityPaths.has(item.file) && item.matchedTerms.size >= 2)
     ) {
       if (excluded.length < 20) {
         excluded.push({ path: item.file, reason: "weaker than a direct task-path match" });

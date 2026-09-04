@@ -94,19 +94,28 @@ function appendBounded(
   state: { bytes: number; truncated: boolean },
   limit: number,
 ): void {
-  if (state.bytes >= limit) {
+  chunks.push(chunk);
+  state.bytes += chunk.byteLength;
+  while (state.bytes > limit) {
     state.truncated = true;
-    return;
+    const first = chunks[0]!;
+    const excess = state.bytes - limit;
+    if (first.byteLength <= excess) {
+      chunks.shift();
+      state.bytes -= first.byteLength;
+    } else {
+      chunks[0] = first.subarray(excess);
+      state.bytes -= excess;
+    }
   }
-  const remaining = limit - state.bytes;
-  if (chunk.byteLength > remaining) {
-    chunks.push(chunk.subarray(0, remaining));
-    state.bytes += remaining;
-    state.truncated = true;
-  } else {
-    chunks.push(chunk);
-    state.bytes += chunk.byteLength;
-  }
+}
+
+function decodeTail(chunks: Buffer[]): string {
+  const buffer = Buffer.concat(chunks);
+  let start = 0;
+  // A byte-capped tail can start inside a UTF-8 character. Drop only the cut prefix/suffix.
+  while (start < buffer.length && (buffer[start]! & 0xc0) === 0x80) start++;
+  return new TextDecoder().decode(buffer.subarray(start), { stream: true });
 }
 
 export async function runProcess(request: ProcessRequest): Promise<ProcessEvidence> {
@@ -181,8 +190,8 @@ export async function runProcess(request: ProcessRequest): Promise<ProcessEviden
         exitCode,
         signal,
         timedOut,
-        stdout: Buffer.concat(stdout).toString("utf8"),
-        stderr: Buffer.concat(stderr).toString("utf8"),
+        stdout: decodeTail(stdout),
+        stderr: decodeTail(stderr),
         outputTruncated: stdoutState.truncated || stderrState.truncated,
       });
     });

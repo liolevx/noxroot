@@ -1,0 +1,6 @@
+{
+  "decision": "approved",
+  "summary": "The cleanup fix addresses the staged-file finding: checkpointing rejects staged, untracked, unexpected-path, and changed-content cases; the exporter additionally binds the checkpoint to the recorded session diff and preserves dirty copies and recovery state. The four synthetic tests cover success and the principal refusal cases. Independent read-only reconciliation confirms 50 distinct repositories: 30 plus 20, with all ten workflow repositories overlapping the latter group; results support 18 completed treatment tasks, one blocked treatment session, and two successful controls. The consolidated report preserves operator-assistance, verification, onboarding, and uncertainty caveats without inflating product claims. Syntax checks passed for all three changed cleanup modules. Workflow scripts and mutating tests were not executed during this review.",
+  "findings": [],
+  "learningCandidates": []
+}

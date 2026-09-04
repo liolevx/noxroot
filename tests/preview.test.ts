@@ -281,6 +281,59 @@ describe("read-only preview", () => {
     );
   });
 
+  it("uses the declared manager for workspace members, not unrelated CI tools", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(async () =>
+      (await import("node:fs/promises")).rm(root, { recursive: true, force: true }),
+    );
+    await mkdir(path.join(root, "packages/member"), { recursive: true });
+    await mkdir(path.join(root, "other/tool"), { recursive: true });
+    await mkdir(path.join(root, ".github/workflows"), { recursive: true });
+    await writeFile(
+      path.join(root, "package.json"),
+      JSON.stringify({ packageManager: "pnpm@10.0.0" }),
+    );
+    await writeFile(
+      path.join(root, "pnpm-workspace.yaml"),
+      "packages: ['packages/**/*', '!packages/excluded/**']\n",
+    );
+    await writeFile(
+      path.join(root, ".github/workflows/ci.yml"),
+      "jobs:\n  check:\n    steps:\n      - run: pnpm test\n      - run: npm audit\n",
+    );
+    for (const directory of ["packages/member", "other/tool"])
+      await writeFile(
+        path.join(root, directory, "package.json"),
+        JSON.stringify({ scripts: { test: "node --test" } }),
+      );
+    let result = await scanRepository(root);
+    expect(result.evidence.filter((item) => item.status === "conflicting")).toEqual([]);
+    expect(result.candidateCommands).toContainEqual(
+      expect.objectContaining({
+        cwd: "packages/member",
+        executable: "pnpm",
+        args: ["run", "test"],
+      }),
+    );
+    expect(result.candidateCommands.some((command) => command.cwd === "other/tool")).toBe(false);
+    for (const patterns of [
+      "['packages/*', '!packages/member']",
+      "['packages/*', '!packages/{member,legacy}']",
+    ]) {
+      await writeFile(path.join(root, "pnpm-workspace.yaml"), `packages: ${patterns}\n`);
+      const excluded = await scanRepository(root);
+      expect(excluded.candidateCommands.some((command) => command.cwd === "packages/member")).toBe(
+        false,
+      );
+    }
+    await writeFile(path.join(root, "packages/member/package-lock.json"), "{}");
+    result = await scanRepository(root);
+    // Local explicit evidence still wins; workspace inheritance must not override it.
+    expect(result.candidateCommands).toContainEqual(
+      expect.objectContaining({ cwd: "packages/member", executable: "npm" }),
+    );
+  });
+
   it("uses path-qualified command ids when nested project basenames repeat", async () => {
     const root = await temporaryDirectory();
     cleanup.push(async () =>

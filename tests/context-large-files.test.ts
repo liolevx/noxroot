@@ -24,6 +24,52 @@ async function repository(files: Record<string, string>): Promise<string> {
   return root;
 }
 
+it("selects a C parser implementation rather than JSON documentation tooling", async () => {
+  const root = await repository({
+    "src/jv_parse.c":
+      "// Report invalid JSON input with line and column information\nint parse_json(void) { return 0; }\n",
+    "docs/json.js": "// JSON search index for documentation\n",
+    "tests/json.test.c": "// invalid JSON line and column regression\n",
+  });
+  const context = await buildContext(
+    "report invalid JSON input with line and column information",
+    root,
+  );
+  expect(context.likelyOwningSource[0]).toBe("src/jv_parse.c");
+  expect(context.selected.map((item) => item.path)).toContain("src/jv_parse.c");
+});
+
+it("recognizes native version implementations and keeps declarations distinct", async () => {
+  const root = await repository({
+    "src/sodium/version.c": "const char *sodium_version_string(void) { return VERSION; }\n",
+    "include/sodium/version.h": "const char *sodium_version_string(void);\n",
+  });
+  const context = await buildContext(
+    "report the library version through the public version API",
+    root,
+  );
+  expect(context.likelyOwningSource).toContain("src/sodium/version.c");
+  expect(context.selected.map((item) => item.path)).toContain("src/sodium/version.c");
+  expect(context.budget.selectedBytes).toBeLessThanOrEqual(16000);
+});
+
+it("does not let declarations and docs exhaust inspection before a generic implementation", async () => {
+  const files: Record<string, string> = {
+    "types/scroll-position.d.ts": "export declare function restoreScrollPosition(): void;\n",
+    "packages/kit/src/runtime/client/client.js": `${"// unrelated\n".repeat(1200)}function restoreScrollPosition() { /* navigating back */ }\n`,
+  };
+  for (let i = 0; i < 12; i++)
+    files[`docs/scroll-position-${i}.md`] = "scroll position documentation\n".repeat(3300);
+  const root = await repository(files);
+  const context = await buildContext("restore scroll position when navigating back", root);
+  expect(context.likelyOwningSource).not.toContain("types/scroll-position.d.ts");
+  expect(context.selected.map((item) => item.path)).toContain(
+    "packages/kit/src/runtime/client/client.js",
+  );
+  expect(context.budget.selectedBytes).toBeLessThanOrEqual(16000);
+  expect(context.confidence).not.toBe("high");
+});
+
 it("finds a large generically named implementation and budgets exact line ranges", async () => {
   const lines = [
     ...Array.from({ length: 700 }, () => "// unrelated padding é\r\n"),
