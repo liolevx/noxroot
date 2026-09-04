@@ -10,14 +10,14 @@ without changing JSON.
 
 Exit codes:
 
-| Code | Meaning                                           |
-| ---- | ------------------------------------------------- |
-| 0    | Requested operation completed                     |
-| 2    | Usage, configuration, or validation error         |
-| 3    | Required confirmation was refused or unavailable  |
-| 4    | Verification failed, timed out, or is incomplete  |
-| 5    | Connected agent or required review did not finish |
-| 130  | Interrupted                                       |
+| Code | Meaning                                                |
+| ---- | ------------------------------------------------------ |
+| 0    | Requested operation completed                          |
+| 2    | Usage, configuration, or validation error              |
+| 3    | Required confirmation or task-state access unavailable |
+| 4    | Verification failed, timed out, or is incomplete       |
+| 5    | Connected agent or required review did not finish      |
+| 130  | Interrupted                                            |
 
 ## `preview`
 
@@ -70,10 +70,26 @@ does not broadly rewrite the repository.
 
 ## `context`
 
-`context "task"` shows the outcome, selected paths, likely source and tests, approved checks, an
-exclusion count, and estimated tokens. `--verbose` adds selection reasons, individual exclusions,
-constraints, conflicts, unknowns, and byte counts. It stores paths and evidence, not copied source
-files.
+`context "task"` shows the outcome, a bounded selection of paths, likely source and tests, approved
+checks with their working directories, an exclusion count, and estimated tokens. Exclusions and
+conflicts remain visible. `--verbose` adds every selected path, selection reasons, individual
+exclusions, unknowns, and byte counts. JSON retains the complete bounded context package.
+
+Routine `start`, continuation, and `finish` output separates the result from supporting evidence.
+The short finish view still shows failures, verification gaps, pending review, and a path to the
+full local record. Passing tests alone never turn a pending review into approval.
+
+### Local task-state access
+
+New Git repositories use `.noxroot/local/runs/`, inside the writable worktree rather than Git's
+metadata. Its managed `.gitignore` contains `*`; never force-add task records to Git. Inspection and
+read-only conversation create no state. Retention rules are unchanged.
+
+Existing `.git/noxroot` state remains authoritative. Noxroot does not move active tasks during an
+upgrade. If this legacy directory is sandbox-protected, approve access only to the reported state
+directory, or run the lifecycle command yourself in a trusted terminal. Do not disable the sandbox
+or create another store. A blocked start means stop before editing; a blocked finish means the task
+is not complete. Sync updates the managed instructions with these rules after you review its diff.
 
 ## `status`
 

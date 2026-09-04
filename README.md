@@ -109,18 +109,21 @@ Instruction discovery varies by coding tool, so the commands remain available fo
 
 ### What setup can add
 
-| Surface                           | Actual path or command                                                                                      | Purpose                                                                    |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Agent entrypoint and config       | `AGENTS.md`, `.noxroot/config.yml`                                                                          | Connect compatible agents to the project workflow                          |
-| Project-memory index              | `.noxroot/knowledge/INDEX.md`                                                                               | Route agents to relevant existing documentation                            |
-| Task-context routes               | `.noxroot/routes.yml`                                                                                       | Select relevant files, rules, tests, decisions, and skills                 |
-| Verification policy and skill     | `.noxroot/verification.yml`, `.noxroot/skills/verify-change/SKILL.md`                                       | Define approved checks and the procedure for checking a change             |
-| Review skills                     | `.noxroot/skills/independent-review/SKILL.md`, `.noxroot/skills/product-ux-review/SKILL.md` when applicable | Provide fresh review procedures when the change requires them              |
-| Learning procedure after finish   | `finish`, then `learn` through the pinned `npx` command                                                     | Propose a small knowledge update when something reusable was validated     |
-| Local task state created by start | `.git/noxroot/runs/*.json` in a standard checkout                                                           | Store baselines and results without treating them as project documentation |
+| Surface                           | Actual path or command                                                                                      | Purpose                                                                  |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Agent entrypoint and config       | `AGENTS.md`, `.noxroot/config.yml`                                                                          | Connect compatible agents to the project workflow                        |
+| Project-memory index              | `.noxroot/knowledge/INDEX.md`                                                                               | Route agents to relevant existing documentation                          |
+| Task-context routes               | `.noxroot/routes.yml`                                                                                       | Select relevant files, rules, tests, decisions, and skills               |
+| Verification policy and skill     | `.noxroot/verification.yml`, `.noxroot/skills/verify-change/SKILL.md`                                       | Define approved checks and the procedure for checking a change           |
+| Review skills                     | `.noxroot/skills/independent-review/SKILL.md`, `.noxroot/skills/product-ux-review/SKILL.md` when applicable | Provide fresh review procedures when the change requires them            |
+| Learning procedure after finish   | `finish`, then `learn` through the pinned `npx` command                                                     | Propose a small knowledge update when something reusable was validated   |
+| Local task state created by start | `.noxroot/local/runs/*.json` in a new Git checkout                                                          | Store ignored baselines and results, separate from project documentation |
 
 Only missing capabilities are proposed. Mature repositories may need nothing. Existing documentation
 remains discoverable without being copied.
+
+Existing `.git/noxroot` records stay in place, without a second store. If an agent cannot write task
+state, it must stop and request access before continuing.
 
 `SKILL.md` files are portable, on-demand instructions. The generated verification skill tells an
 agent how to check a change; the independent-review and optional product/UX skills describe their

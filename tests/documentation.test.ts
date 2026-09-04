@@ -108,7 +108,7 @@ describe("documentation examples", () => {
     expect(readme).toContain('src="docs/assets/noxroot-terminal.png"');
     expect(readme).toContain('width="594"');
     expect(readme).toContain(".noxroot/skills/verify-change/SKILL.md");
-    expect(readme).toContain(".git/noxroot/runs/*.json");
+    expect(readme).toContain(".noxroot/local/runs/*.json");
     expect(readme).not.toContain("—");
     expect(readme).not.toMatch(
       /auto-documenting|self-training|autonomous team|Obsidian integration|vault system|self-improving AI/i,

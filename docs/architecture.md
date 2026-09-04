@@ -35,8 +35,12 @@ evidence.
 
 The orchestrator accepts adapter, verification, and diff interfaces. This permits a deterministic
 fake in tests and keeps worker/reviewer invocations distinct. Delegated Git runs create `noxroot/*`
-branches and worktrees; local evidence is stored under the Git common directory, not
-`.noxroot/knowledge/`.
+branches and worktrees. New Git repositories store local evidence under `.noxroot/local/`, with a
+self-contained ignore rule. Detection excludes this directory even if Git ignores are bypassed. New
+worktrees have separate local state; repository, branch, and baseline checks still apply. Existing
+Git-common-directory state is preserved, including shared worktree records. If both stores exist,
+Noxroot refuses to choose. Non-Git repositories retain their application-state location. No task
+evidence belongs in `.noxroot/knowledge/`.
 
 Guided orchestration is a two-command lifecycle. Start persists repository identity, clean revision,
 bounded context, effective autonomy, and a hash of the approved verification policy. Finish derives
