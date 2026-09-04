@@ -70,7 +70,7 @@ export async function prepareStateRoot(root: string): Promise<string> {
   const directory = await localStateRoot(root);
   try {
     await mkdir(directory, { recursive: true });
-    if (directory === path.join(root, ".noxroot", "local")) {
+    if (directory === path.resolve(root, ".noxroot", "local")) {
       const ignore = await setupDestination(root, ".noxroot/local/.gitignore");
       try {
         await writeFile(ignore, "*\n", { flag: "wx", mode: 0o600 });
@@ -131,20 +131,23 @@ export async function replaceRunRecord(root: string, id: string, value: unknown)
   const target = await setupDestination(stateRoot, `runs/${id}.json`);
   await stat(target);
   const temporary = `${target}.tmp-${randomUUID()}`;
+  let created = false;
   try {
     await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, {
       encoding: "utf8",
       flag: "wx",
       mode: 0o600,
     });
+    created = true;
     await rename(temporary, target);
     return target;
   } catch (error) {
-    stateError(error, stateRoot);
+    return stateError(error, stateRoot);
   } finally {
-    await unlink(temporary).catch((error: NodeJS.ErrnoException) => {
-      if (error.code !== "ENOENT") throw error;
-    });
+    if (created)
+      await unlink(temporary).catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== "ENOENT") throw error;
+      });
   }
 }
 

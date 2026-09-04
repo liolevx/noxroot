@@ -25,6 +25,8 @@ function managedBlock(mode: WorkflowMode, hasKnowledgeIndex = true): string {
 
 If start fails, stop before editing and report the error. If finish fails, do not report the task complete. Request only the access needed to retry; do not disable the sandbox or create a second task-state store.
 
+For unfinished work, use \`${cliCommand("status")}\` before opening raw task records. Keep routine output brief; use \`--verbose\` or \`--json\` when supporting detail is needed.
+
 When \`.noxroot/skills/\` exists, load only the task-relevant \`SKILL.md\`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.`
       : mode === "companion"
         ? `The existing repository coordinator remains authoritative for code-changing work. Noxroot does not add a second task lifecycle, reviewer, or learning loop.

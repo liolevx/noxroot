@@ -320,7 +320,9 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
     const tests = context.likelyTests.filter((file) => !owners.includes(file)).slice(0, 2);
     const guidance = context.selected
       .map((item) => item.path)
-      .filter((file) => !owners.includes(file) && !tests.includes(file))
+      .filter(
+        (file) => file !== ".noxroot/config.yml" && !owners.includes(file) && !tests.includes(file),
+      )
       .slice(0, 3);
     return (
       [
