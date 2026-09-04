@@ -205,6 +205,40 @@ function slug(value: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function workspaceMember(contents: ContentMap, directory: string): boolean {
+  try {
+    const manifest = JSON.parse(contents["package.json"] ?? "{}") as { workspaces?: unknown };
+    const pnpm = parseYaml(contents["pnpm-workspace.yaml"] ?? "{}") as {
+      packages?: unknown;
+    } | null;
+    const patterns = pnpm?.packages ?? manifest.workspaces;
+    if (
+      !Array.isArray(patterns) ||
+      !patterns.every((value): value is string => typeof value === "string")
+    )
+      return false;
+    if (!patterns.every((value) => /^!?[\w./*-]+$/.test(value))) return false;
+    const match = (value: string): boolean => {
+      // Deliberately support only ordinary workspace globs; do not guess brace/extglob semantics.
+      if (!/^[\w./*-]+$/.test(value)) return false;
+      const expression = value
+        .replace(/[.+]/g, "\\$&")
+        .replaceAll("**/", "\0")
+        .replaceAll("**", "\x01")
+        .replaceAll("*", "[^/]*")
+        .replaceAll("\0", "(?:.*/)?")
+        .replaceAll("\x01", ".*");
+      return new RegExp(`^${expression}$`).test(directory);
+    };
+    return (
+      patterns.some((value) => !value.startsWith("!") && match(value)) &&
+      !patterns.some((value) => value.startsWith("!") && match(value.slice(1)))
+    );
+  } catch {
+    return false;
+  }
+}
+
 function packageManagerEvidence(
   files: string[],
   contents: ContentMap,
@@ -269,6 +303,23 @@ function packageManagerEvidence(
       status: "conflicting",
       sources: lockEvidence.map((candidate) => candidate.source),
       detail: "Multiple package-manager lockfiles are present.",
+    };
+  }
+  if (directory !== ".") {
+    if (workspaceMember(contents, directory)) {
+      const rootManifest = JSON.parse(contents["package.json"] ?? "{}") as PackageManifest;
+      const workspaceManager = packageManagerEvidence(files, contents, rootManifest);
+      if (workspaceManager.name && workspaceManager.status === "confirmed")
+        return {
+          ...workspaceManager,
+          detail: `Workspace member ${directory} uses ${workspaceManager.name} from the repository root.`,
+        };
+    }
+    return {
+      status: "unknown",
+      sources: [manifestPath],
+      detail:
+        "No local package-manager evidence or confirmed workspace membership; repository-wide CI commands are not evidence for this package.",
     };
   }
   const ciSources = Object.entries(contents).filter(([file]) =>

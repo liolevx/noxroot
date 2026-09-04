@@ -364,11 +364,30 @@ export async function inspectRepositoryAdoption(
     const source = sources.get(file);
     if (!source || source.length > 400) continue;
     const targets = references.filter(
-      (item) => item.from === file && INSTRUCTION_NAME.test(path.posix.basename(item.path)),
+      (item) =>
+        item.from === file &&
+        item.path !== file &&
+        INSTRUCTION_NAME.test(path.posix.basename(item.path)),
     );
     const containsIndependentDirective =
       /\b(?:do not|don't|must not|never|override|ignore|instead of|only follow)\b/i.test(source);
-    if (targets.length === 1 && !containsIndependentDirective) {
+    const stub = source
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(
+        (line) =>
+          line &&
+          line.replace(/^#+\s*/, "").toLowerCase() !== path.posix.basename(file).toLowerCase(),
+      )
+      .join(" ");
+    const targetPath = targets[0]?.path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pureForward =
+      targetPath !== undefined &&
+      new RegExp(
+        `^(?:(?:see|read|follow|refer to)\\s+)?(?:@?${targetPath}|\\[[^\\]\\n]+\\]\\(${targetPath}\\))(?:\\s+for\\s+(?:(?:AI )?coding agent |repository |project )?(?:instructions|guidance))?\\.?$`,
+        "i",
+      ).test(stub);
+    if (targets.length === 1 && !containsIndependentDirective && pureForward) {
       forwarding.push({ from: file, to: targets[0]!.path });
     }
   }
@@ -376,13 +395,22 @@ export async function inspectRepositoryAdoption(
   const rootInstructions = instructionFiles.filter((file) => !file.includes("/"));
   const normalizedInstruction = (file: string): string =>
     (sources.get(file) ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  const canonicalInstruction = (file: string): string | undefined => {
+    const visited = new Set<string>();
+    let current = file;
+    while (!visited.has(current)) {
+      visited.add(current);
+      const target = forwarding.find((item) => item.from === current)?.to;
+      if (!target) return normalizedInstruction(current);
+      current = target;
+    }
+    return undefined; // A forwarding cycle cannot establish an authoritative entrypoint.
+  };
+  const canonicalInstructions = rootInstructions.map(canonicalInstruction);
   const genuineInstructionConflict =
     rootInstructions.length > 1 &&
-    !rootInstructions.every(
-      (file, index, all) =>
-        index === 0 ||
-        normalizedInstruction(file) === normalizedInstruction(all[0]!) ||
-        forwarding.some((item) => item.from === file && rootInstructions.includes(item.to)),
+    !canonicalInstructions.every(
+      (value) => value !== undefined && value === canonicalInstructions[0],
     );
 
   const referencedPaths = [...new Set(references.map((item) => item.path))].sort();
@@ -686,7 +714,7 @@ export async function inspectRepositoryAdoption(
     ...(projectCollection ? collectionGap : []),
     ...(genuineInstructionConflict
       ? [
-          `Multiple root agent instruction sources require reconciliation: ${rootInstructions.join(", ")}`,
+          `Multiple root agent instruction sources require reconciliation: ${rootInstructions.join(", ")}. Choose one canonical entrypoint and make the others forward to it; Noxroot will not merge differing instructions automatically.`,
         ]
       : []),
     ...coordinators.map(
