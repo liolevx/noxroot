@@ -8,6 +8,7 @@ import { ManualAgentAdapter } from "../src/adapters/agents.js";
 import { runProcess } from "../src/adapters/process.js";
 import { temporaryDirectory } from "./helpers.js";
 import { createProgram } from "../src/cli.js";
+import { renderGuidedFinish, renderVerification } from "../src/output.js";
 
 const cleanup: string[] = [];
 afterEach(async () => {
@@ -163,6 +164,10 @@ commands:
 `,
     );
     await writeFile(path.join(root, ".noxroot", "knowledge", "INDEX.md"), "# Index\n");
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      "Start with [.noxroot knowledge](.noxroot/knowledge/INDEX.md).\n",
+    );
     await git(root, ["add", "."]);
     await git(root, ["commit", "-m", "noxroot fixture"]);
 
@@ -223,6 +228,13 @@ commands:
     const learning = JSON.parse(learned.stdout) as { proposals: Array<{ kind: string }> };
     expect(learning.proposals).toEqual([expect.objectContaining({ kind: "procedure" })]);
 
+    const beforeLearning = JSON.parse(
+      (await cli(["context", "change another value under src", "--json", "--root", root])).stdout,
+    ) as { selected: Array<{ path: string }> };
+    expect(beforeLearning.selected.map((item) => item.path)).not.toContain(
+      ".noxroot/knowledge/learnings.md",
+    );
+
     const applied = await cli([
       "learn",
       "--task",
@@ -245,6 +257,17 @@ commands:
     ) as { selected: Array<{ path: string }> };
     expect(later.selected.map((item) => item.path)).toContain(".noxroot/knowledge/learnings.md");
     expect(later.selected.some((item) => item.path.includes(".noxroot/local/"))).toBe(false);
+    const unrelated = JSON.parse(
+      (await cli(["context", "adjust invoice currency formatting", "--json", "--root", root]))
+        .stdout,
+    ) as { selected: Array<{ path: string }> };
+    expect(unrelated.selected.map((item) => item.path)).not.toContain(
+      ".noxroot/knowledge/learnings.md",
+    );
+    const repeated = JSON.parse(
+      (await cli(["learn", "--task", startValue.record.id, "--json", "--root", root])).stdout,
+    ) as { proposals: unknown[] };
+    expect(repeated.proposals).toEqual([]);
   });
 
   it("requires an explicit id when multiple guided tasks are active", async () => {
@@ -688,6 +711,51 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     expect(finished.handoff).toContain("node-check: passed");
     expect(finished.handoff).not.toContain("exit 0 | harmless warning");
     expect(finished.verification[0]?.[0]?.evidence.stderr).toContain("harmless warning");
+  });
+
+  it("keeps a timed-out task failed with bounded final output and safe recovery guidance", async () => {
+    const root = await repository();
+    const record = await startGuidedRun({
+      id: "timeout-regression",
+      task: "change value",
+      root,
+      context,
+      effectiveAutonomy: effectiveAutonomy(undefined),
+      trustedVerificationPolicy: [
+        {
+          id: "async-check",
+          executable: process.execPath,
+          args: [
+            "-e",
+            "process.stdout.write('x'.repeat(80000) + '\\nwaiting for cleanup'); setInterval(() => {}, 1000)",
+          ],
+          cwd: ".",
+          timeoutMs: 1000,
+          appliesTo: ["src/**"],
+        },
+      ],
+    });
+    await writeFile(path.join(root, "src/value.ts"), "export const value = 2;\n");
+    const finished = await finishGuidedRun({
+      root,
+      record,
+      adapter: new ManualAgentAdapter(),
+      reviewAuthorized: false,
+    });
+    expect(finished.status).toBe("failed");
+    const checks = finished.verification.at(-1)!;
+    for (const output of [
+      finished.handoff,
+      renderGuidedFinish(finished, 0, "record.json", {}),
+      renderVerification(checks, {}),
+    ]) {
+      expect(output).toContain("limit 1000ms");
+      expect(output).toContain("waiting for cleanup");
+      expect(output).toContain("truncated");
+      expect(output).toContain("cwd .");
+      expect(output).toContain("do not disable sandboxing");
+      expect(output.length).toBeLessThan(2000);
+    }
   });
 
   it("shows an unavailable command, cwd, failure, and retry in the human handoff", async () => {

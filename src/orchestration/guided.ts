@@ -11,6 +11,7 @@ import { changedFiles, executeVerification, selectVerification } from "../verifi
 import type { EffectiveAutonomy } from "./autonomy.js";
 import type { RunRecord } from "./run.js";
 import { assessReviewNeed, type ReviewAssessment } from "./review.js";
+import { failureDetail, TIMEOUT_NEXT } from "../verification/diagnostics.js";
 
 export interface GuidedRunRecord extends RunRecord {
   mode: "guided";
@@ -129,13 +130,7 @@ function guidedHandoff(
 ): string {
   const checked = checks.map((result) => {
     const invocation = [result.command.executable, ...result.command.args].join(" ");
-    const detail =
-      result.status === "passed"
-        ? ""
-        : (result.evidence.stderr || result.evidence.stdout)
-            .replace(/\s+/g, " ")
-            .trim()
-            .slice(0, 300);
+    const detail = failureDetail(result);
     return `${result.command.id}: ${result.status} | ${invocation} | cwd ${result.command.cwd} | exit ${result.evidence.exitCode ?? "not started"}${detail ? ` | ${detail}` : ""}`;
   });
   const unavailable = checks.find((result) => result.status === "unavailable");
@@ -171,7 +166,9 @@ function guidedHandoff(
         ? unavailable
           ? `Make the approved check runnable (${unavailable.command.executable} from ${unavailable.command.cwd}: ${unavailable.evidence.stderr || "could not start"}), then rerun ${cliCommand(`finish --task ${record.id}`)}.`
           : "Review the unverified change and add or approve an applicable project check if one exists."
-        : "Review the resulting change; apply any learning only after confirmation.",
+        : checks.some((check) => check.status === "timed-out")
+          ? `${TIMEOUT_NEXT} After resolving the cause, rerun ${cliCommand(`finish --task ${record.id}`)}.`
+          : "Review the resulting change; apply any learning only after confirmation.",
   ].join("\n");
 }
 

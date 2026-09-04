@@ -31,6 +31,27 @@ describe("safe process execution and verification trust", () => {
     expect(result.args).toEqual(["-e", "process.stdout.write('x'.repeat(5000))"]);
   });
 
+  it("retains the final diagnostic within the output byte cap", async () => {
+    const root = await temporaryDirectory();
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const result = await runProcess({
+      executable: process.execPath,
+      args: [
+        "-e",
+        "process.stdout.write('é'.repeat(5000) + '\\nwaiting for async cleanup'); process.stderr.write('x'.repeat(5000) + '\\nlast error');",
+      ],
+      cwd: root,
+      repositoryRoot: root,
+      timeoutMs: 5000,
+      outputLimitBytes: 101,
+    });
+    expect(result.stdout).toContain("waiting for async cleanup");
+    expect(result.stderr).toContain("last error");
+    expect(Buffer.byteLength(result.stdout)).toBeLessThanOrEqual(101);
+    expect(result.stdout).not.toContain("�");
+    expect(result.outputTruncated).toBe(true);
+  });
+
   it.runIf(process.platform === "win32")(
     "invokes npm through its JavaScript CLI without a command shell on Windows",
     async () => {
