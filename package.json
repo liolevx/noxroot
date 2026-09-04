@@ -1,6 +1,6 @@
 {
   "name": "noxroot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Noxroot gives coding agents relevant repository context, checks each change, and proposes validated lessons as reusable project documentation.",
   "type": "module",
   "bin": {
@@ -13,6 +13,7 @@
     "dist",
     "docs",
     "README.md",
+    "CHANGELOG.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
     "LICENSE"

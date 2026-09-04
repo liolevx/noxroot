@@ -9,6 +9,7 @@ import { previewRepository } from "../src/core/preview.js";
 import { inspectRepositoryAdoption } from "../src/detection/adoption.js";
 import { scanRepository } from "../src/detection/scan.js";
 import { assessModules, buildProposals } from "../src/core/proposals.js";
+import { VERSION } from "../src/invocation.js";
 import { planVerification } from "../src/verification/index.js";
 import { fixtureCopy, hashTree, temporaryDirectory } from "./helpers.js";
 
@@ -222,8 +223,8 @@ describe("mature repository adoption", () => {
     expect(config.modules).not.toContain("learning");
     const instructions = await readFile(path.join(repository, "AGENTS.md"), "utf8");
     expect(instructions).toContain("existing repository coordinator remains authoritative");
-    expect(instructions).toContain('npx --yes noxroot@0.1.0 context "<task>"');
-    expect(instructions).not.toContain("noxroot@0.1.0 start");
+    expect(instructions).toContain(`npx --yes noxroot@${VERSION} context "<task>"`);
+    expect(instructions).not.toContain(`noxroot@${VERSION} start`);
     expect(await hashTree(repository)).not.toBe(before);
   });
 

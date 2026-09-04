@@ -41,10 +41,24 @@ adapter, add a realistic fixture and failure-path coverage.
 When working inside the Noxroot source checkout, use `node dist/cli.js` after building. `npx` can
 resolve this checkout's package instead of the registry package, without an installed command shim.
 
-`noxroot@0.1.0` is published on npm. Publication is not part of ordinary development. Future
+Published versions are available on npm. Publication is not part of ordinary development. Future
 automated releases require the owner to configure npm trusted publishing for the exact GitHub
 repository and workflow, and authorize a publish workflow with `id-token: write` on a GitHub-hosted
 runner. That workflow is not configured yet. Do not create or store a long-lived npm publication
 token. Trusted publishing supplies provenance for eligible public packages; the first manual release
 does not have that provenance. npm's displayed README updates only when a new package version is
 published.
+
+## Release checklist
+
+1. Choose the smallest valid semver increment. An npm version cannot be replaced after publication.
+2. Update package metadata, the runtime version, version-bound tests, and `CHANGELOG.md` together.
+3. Run `npm ci`, `npm run check`, and `npm run package:check` from a clean release branch.
+4. Inspect the dry-run file list, package size, executable entrypoint, documentation, and dependency
+   set. The packed-install smoke must pass from the produced tarball.
+5. Push the candidate and require the complete GitHub matrix before merging.
+6. Publish only with explicit owner approval. Then verify the registry version, `latest` tag,
+   package integrity, README, and a clean `npx noxroot@<version> --version` invocation.
+
+If publication succeeds but post-publish verification fails, fix forward with another patch version;
+never attempt to replace the published artifact.

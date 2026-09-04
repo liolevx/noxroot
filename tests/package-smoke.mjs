@@ -18,6 +18,9 @@ const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const fixtureRoot = path.join(repositoryRoot, "tests", "fixtures", "typescript");
 const temporaryRoot = await mkdtemp(path.join(tmpdir(), "noxroot-package-smoke-"));
 const npmCache = path.join(temporaryRoot, "npm-cache");
+const packageVersion = JSON.parse(
+  await readFile(path.join(repositoryRoot, "package.json"), "utf8"),
+).version;
 
 async function snapshot(root) {
   const files = {};
@@ -124,6 +127,7 @@ try {
   const installedPackage = path.join(installRoot, "node_modules", "noxroot");
   for (const requiredFile of [
     "README.md",
+    "CHANGELOG.md",
     "docs/commands.md",
     "docs/configuration.md",
     "docs/architecture.md",
@@ -146,7 +150,7 @@ try {
 
   const binary = installedBinary(installRoot);
   const version = invokeBinary(binary, ["--version"], installRoot).trim();
-  if (version !== "0.1.0") throw new Error(`Unexpected installed CLI version: ${version}`);
+  if (version !== packageVersion) throw new Error(`Unexpected installed CLI version: ${version}`);
   const preview = JSON.parse(
     invokeBinary(binary, ["preview", "--root", fixtureRoot, "--json"], installRoot),
   );
@@ -161,10 +165,10 @@ try {
   );
   invokeBinary(binary, ["init", "--yes", "--root", initializedRoot], installRoot);
   const generatedInstructions = await readFile(path.join(initializedRoot, "AGENTS.md"), "utf8");
-  if (!generatedInstructions.includes('npx --yes noxroot@0.1.0 start "<task>"')) {
+  if (!generatedInstructions.includes(`npx --yes noxroot@${packageVersion} start "<task>"`)) {
     throw new Error("Packed CLI initialization did not pin its executable lifecycle command.");
   }
-  if (!generatedInstructions.includes("npx --yes noxroot@0.1.0 finish")) {
+  if (!generatedInstructions.includes(`npx --yes noxroot@${packageVersion} finish`)) {
     throw new Error("Packed CLI initialization did not pin its finish command.");
   }
   const initialized = await snapshot(initializedRoot);
@@ -176,7 +180,10 @@ try {
   const userPrefix = "# Repository instructions\n\nKeep changes focused.\n\n";
   const userSuffix = "\n## User-owned notes\n\nUse existing documentation.\n";
   const currentInstructions = userPrefix + generatedInstructions + userSuffix;
-  await writeFile(agentsPath, currentInstructions.replaceAll("noxroot@0.1.0", "noxroot@0.0.9"));
+  await writeFile(
+    agentsPath,
+    currentInstructions.replaceAll(`noxroot@${packageVersion}`, "noxroot@0.0.9"),
+  );
   await writeFile(path.join(initializedRoot, "user-notes.md"), "Preserve this document.\n");
   const beforeSync = await snapshot(initializedRoot);
   const dryRun = JSON.parse(
@@ -188,7 +195,7 @@ try {
   );
   assert.deepEqual(dryRun.summary, {
     repositoryVersion: "0.0.9",
-    runningVersion: "0.1.0",
+    runningVersion: packageVersion,
     managedChanges: 1,
   });
   const changes = dryRun.preview.proposedFiles.filter((file) => file.action !== "reference");
@@ -196,7 +203,7 @@ try {
   assert.equal(changes[0].path, "AGENTS.md");
   assert.equal(changes[0].action, "patch");
   assert.ok(changes[0].patch.includes("noxroot@0.0.9"));
-  assert.ok(changes[0].patch.includes("noxroot@0.1.0"));
+  assert.ok(changes[0].patch.includes(`noxroot@${packageVersion}`));
   assert.deepEqual(await snapshot(initializedRoot), beforeSync, "Sync preview must not write");
   assert.throws(
     () => invokeBinary(binary, ["sync", "--json", "--root", initializedRoot], installRoot),
