@@ -1,7 +1,7 @@
 import { lstat, mkdir, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { runProcess } from "./process.js";
-import { localStateRoot } from "../state/local.js";
+import { prepareStateRoot } from "../state/local.js";
 import { isSuspectedSecret, resolveWithin } from "../security/paths.js";
 
 export interface IsolatedWorktree {
@@ -166,7 +166,7 @@ export async function prepareIsolatedWorktree(
   }
   const status = await git(root, ["status", "--porcelain=v1"]);
   if (status.exitCode !== 0) throw new Error("Git status could not be inspected safely.");
-  const stateRoot = await localStateRoot(root);
+  const stateRoot = await prepareStateRoot(root);
   const worktreesRoot = path.join(stateRoot, "worktrees");
   await mkdir(worktreesRoot, { recursive: true });
   const worktreePath = path.join(worktreesRoot, id);

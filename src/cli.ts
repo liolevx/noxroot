@@ -46,6 +46,8 @@ import {
   type RenderOptions,
 } from "./output.js";
 import {
+  assertTaskStateWritable,
+  TaskStateError,
   enforceRunRetention,
   listRunRecords,
   localStateRoot,
@@ -733,6 +735,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
       if (refuseDisabledModule(io, common.json, config, "orchestration")) return;
       const continuation = await findGuidedContinuation(root, task);
       if (continuation) {
+        await assertTaskStateWritable(root);
         const continuationState = await inspectGuidedContinuation(
           root,
           continuation,
@@ -1016,6 +1019,7 @@ export function createProgram(customIo?: Partial<Io>): Command {
       if (refuseDisabledModule(io, common.json, config, "orchestration")) return;
       const taskId = await inferGuidedTaskId(root, options.task);
       const record = await readRunRecord<GuidedRunRecord>(root, taskId);
+      await assertTaskStateWritable(root);
       const autonomy = effectiveAutonomy(config);
       const adapter = configuredAgent(config);
       const controller = new AbortController();
@@ -1121,6 +1125,13 @@ export async function main(argv = process.argv): Promise<void> {
       return;
     }
     const message = error instanceof Error ? error.message : String(error);
+    if (error instanceof TaskStateError) {
+      if (argv.includes("--json"))
+        process.stdout.write(`${JSON.stringify({ error: "task-state-unavailable", message })}\n`);
+      else process.stderr.write(`NOXROOT  task incomplete\n${message}\n`);
+      process.exitCode = EXIT.refused;
+      return;
+    }
     process.stderr.write(
       `Noxroot could not complete the request: ${message}\nWhy it matters: the requested operation stopped before unsafe assumptions were made.\nNext: correct the reported input or run noxroot doctor.\n`,
     );

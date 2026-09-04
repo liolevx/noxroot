@@ -135,7 +135,7 @@ commands:
     expect(pendingValue.completion.documentation.status).toBe("not-assessed");
     expect(pendingValue.completion.learning.status).toBe("no-candidate");
 
-    const reviewPath = path.join(root, ".git", "noxroot", "external-review.json");
+    const reviewPath = path.join(root, ".noxroot", "local", "external-review.json");
     await writeFile(
       reviewPath,
       JSON.stringify({
@@ -159,7 +159,7 @@ commands:
       "--task",
       startValue.record.id,
       "--review-file",
-      ".git/noxroot/external-review.json",
+      ".noxroot/local/external-review.json",
       "--json",
       "--root",
       root,
@@ -197,7 +197,7 @@ commands:
       (await cli(["context", "change another value under src", "--json", "--root", root])).stdout,
     ) as { selected: Array<{ path: string }> };
     expect(later.selected.map((item) => item.path)).toContain(".noxroot/knowledge/learnings.md");
-    expect(later.selected.some((item) => item.path.includes(".git/noxroot/runs"))).toBe(false);
+    expect(later.selected.some((item) => item.path.includes(".noxroot/local/"))).toBe(false);
   });
 
   it("requires an explicit id when multiple guided tasks are active", async () => {
@@ -268,7 +268,7 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     );
     const records = await (
       await import("node:fs/promises")
-    ).readdir(path.join(root, ".git", "noxroot", "runs"));
+    ).readdir(path.join(root, ".noxroot", "local", "runs"));
     expect(records.filter((name) => name.endsWith(".json"))).toHaveLength(1);
   });
 
@@ -423,7 +423,7 @@ agents: {default: manual, adapters: {manual: {type: manual}}}
     const started = JSON.parse(
       (await cli(["start", "change value", "--json", "--root", root])).stdout,
     ) as { record: { id: string } };
-    const recordPath = path.join(root, ".git", "noxroot", "runs", `${started.record.id}.json`);
+    const recordPath = path.join(root, ".noxroot", "local", "runs", `${started.record.id}.json`);
     const persisted = JSON.parse(await readFile(recordPath, "utf8")) as {
       baseline: { revision: string };
     };

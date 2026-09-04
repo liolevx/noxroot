@@ -834,7 +834,7 @@ export async function scanRepository(
         continue;
       }
       if (entry.isDirectory()) {
-        if (EXCLUDED_DIRECTORIES.has(entry.name)) continue;
+        if (EXCLUDED_DIRECTORIES.has(entry.name) || relative === ".noxroot/local") continue;
         if (current.depth + 1 > limits.maxDepth) {
           incompleteReasons.push(`depth limit reached at ${relative}`);
           continue;

@@ -23,6 +23,8 @@ function managedBlock(mode: WorkflowMode, hasKnowledgeIndex = true): string {
     mode === "full"
       ? `For a code-changing task, run \`${cliCommand('start "<task>"')}\` before editing and \`${cliCommand("finish")}\` when the change is ready to check. A repeated start for the same active task continues its existing baseline. Do not start a task for questions, explanations, reviews, or other read-only work.
 
+If start fails, stop before editing and report the error. If finish fails, do not report the task complete. Request only the access needed to retry; do not disable the sandbox or create a second task-state store.
+
 When \`.noxroot/skills/\` exists, load only the task-relevant \`SKILL.md\`: verification for changed-code checks, independent review for fresh review, and product/UX review only for applicable user-facing work.`
       : mode === "companion"
         ? `The existing repository coordinator remains authoritative for code-changing work. Noxroot does not add a second task lifecycle, reviewer, or learning loop.
