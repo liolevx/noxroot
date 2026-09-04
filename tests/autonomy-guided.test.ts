@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CommanderError } from "commander";
 import { afterEach, describe, expect, it } from "vitest";
@@ -80,6 +80,53 @@ const context = {
 };
 
 describe("enforced autonomy and guided completion", () => {
+  it("uses one canonical repository through an aliased CLI root", async () => {
+    const root = await repository();
+    const holder = await temporaryDirectory("noxroot-alias-");
+    cleanup.push(holder);
+    const alias = path.join(holder, "repository");
+    await symlink(root, alias, process.platform === "win32" ? "junction" : "dir");
+    await cli(["init", "--yes", "--root", alias]);
+    await writeFile(path.join(root, "src/value.cjs"), "exports.value = 1;\n");
+    await writeFile(
+      path.join(root, ".noxroot/verification.yml"),
+      JSON.stringify({
+        version: 1,
+        commands: [
+          {
+            id: "syntax",
+            executable: process.execPath,
+            args: ["--check", "src/value.cjs"],
+            cwd: ".",
+            timeoutMs: 10000,
+            appliesTo: ["src/**"],
+          },
+        ],
+      }),
+    );
+    await git(root, ["add", "."]);
+    await git(root, ["commit", "-m", "configured alias fixture"]);
+    const started = JSON.parse(
+      (await cli(["start", "change value", "--root", alias, "--json"])).stdout,
+    ) as { record: { id: string; repository: { root: string } } };
+    expect(started.record.repository.root).toBe(await realpath(root));
+    const status = JSON.parse((await cli(["status", "--root", alias, "--json"])).stdout) as {
+      active: Array<{ record: { id: string } }>;
+    };
+    expect(status.active.map((item) => item.record.id)).toEqual([started.record.id]);
+    await writeFile(path.join(root, "src/value.cjs"), "exports.value = 2;\n");
+    const continued = JSON.parse(
+      (await cli(["start", "change value", "--root", alias, "--json"])).stdout,
+    ) as { continued: boolean; record: { id: string } };
+    expect(continued.continued).toBe(true);
+    expect(continued.record.id).toBe(started.record.id);
+    const finished = JSON.parse((await cli(["finish", "--root", alias, "--json"])).stdout) as {
+      record: { id: string; status: string };
+    };
+    expect(finished.record.id).toBe(started.record.id);
+    expect(finished.record.status).toBe("completed");
+    expect(await readFile(path.join(root, ".noxroot/local/.gitignore"), "utf8")).toBe("*\n");
+  });
   it("caps effective authority and permanently disables merge and delivery", () => {
     const autonomy = effectiveAutonomy({
       autonomy: { default: 5, implementation: 5, review: 5, merge: 3, delivery: 3 },

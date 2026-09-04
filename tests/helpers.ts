@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
-import { cp, mkdtemp, mkdir, readdir, readFile, rm, stat } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, readdir, readFile, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 export const fixtures = path.resolve(import.meta.dirname, "fixtures");
 
 export async function temporaryDirectory(prefix = "noxroot-test-"): Promise<string> {
-  return mkdtemp(path.join(tmpdir(), prefix));
+  return realpath(await mkdtemp(path.join(tmpdir(), prefix)));
 }
 
 export async function fixtureCopy(
