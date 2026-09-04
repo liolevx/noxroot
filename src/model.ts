@@ -146,6 +146,9 @@ export interface ContextSelection {
   bytes: number;
   estimatedTokens: number;
   reasons: string[];
+  /** Present only for partial files; one-based inclusive ranges, not a full-file read. */
+  lineRanges?: Array<{ start: number; end: number }>;
+  sourceBytes?: number;
 }
 
 export interface TaskIntent {

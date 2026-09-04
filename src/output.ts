@@ -319,6 +319,14 @@ export function renderPreview(
 }
 
 export function renderContext(context: ContextPackage, options: RenderOptions = {}): string {
+  const selectedPaths = new Map(context.selected.map((item) => [item.path, item]));
+  const candidatePath = (pathname: string): string => {
+    const item = selectedPaths.get(pathname);
+    if (!item) return `${pathname} (not selected; inspect selectively)`;
+    return item.lineRanges
+      ? `${pathname} (lines ${item.lineRanges.map((range) => `${range.start}-${range.end}`).join(", ")}; partial)`
+      : pathname;
+  };
   if (!options.verbose) {
     const owners = context.likelyOwningSource.slice(0, 3);
     const tests = context.likelyTests.filter((file) => !owners.includes(file)).slice(0, 2);
@@ -346,9 +354,17 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
           ],
           options,
         ),
-        ...section("Likely owner", owners.length ? owners : ["Not established"], options),
-        ...section("Likely tests", tests.length ? tests : ["Not established"], options),
-        ...section("Also selected", guidance, options),
+        ...section(
+          "Likely owner",
+          owners.length ? owners.map(candidatePath) : ["Not established"],
+          options,
+        ),
+        ...section(
+          "Likely tests",
+          tests.length ? tests.map(candidatePath) : ["Not established"],
+          options,
+        ),
+        ...section("Also selected", guidance.map(candidatePath), options),
         ...section(
           "Checks",
           context.requiredVerification.length
@@ -363,6 +379,7 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
         ...(context.confidence === "high"
           ? []
           : [`Confidence  ${sentenceCase(context.confidence)}`]),
+        ...section("Missing evidence", context.unknowns.slice(0, 2), options),
         ...section("Excluded", [`${context.excluded.length} files left out`], options),
         `Next  ${context.conflicts.length ? "Resolve the reported conflicts before editing." : "Inspect the relevant files, then build the requested change."}`,
         "Details  Use --verbose for all selected paths and reasons; --json for structured context.",
@@ -371,9 +388,6 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
         .join("\n") + "\n"
     );
   }
-  const selectedPaths = new Set(context.selected.map((item) => item.path));
-  const candidatePath = (pathname: string): string =>
-    selectedPaths.has(pathname) ? pathname : `${pathname} (path match; inspect selectively)`;
   const selectedSummary = options.verbose
     ? `${context.selected.length} of ${context.repositoryFileCount} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`
     : `${context.selected.length} files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`;
@@ -395,7 +409,7 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
       : []),
     ...section(
       "Task context",
-      [selectedSummary, ...context.selected.map((item) => item.path)],
+      [selectedSummary, ...context.selected.map((item) => candidatePath(item.path))],
       options,
       ANSI.green,
     ),
@@ -427,7 +441,7 @@ export function renderContext(context: ContextPackage, options: RenderOptions = 
       ...section(
         "Selection reasons",
         context.selected.flatMap((item) => [
-          `${item.path} (${item.bytes} bytes)`,
+          `${candidatePath(item.path)} (${item.bytes} selected bytes${item.sourceBytes === undefined ? "" : ` of ${item.sourceBytes}`})`,
           ...item.reasons.map((reason) => `  ${reason}`),
         ]),
         options,

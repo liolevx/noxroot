@@ -320,6 +320,17 @@ function routesContent(
   const testRoots = ["tests/**", "test/**", "e2e/**"].filter((glob) =>
     profile.files.some((file) => file.startsWith(glob.replace("/**", "/"))),
   );
+  const rootSourceGlobs = [
+    ...new Set(
+      profile.files
+        .filter(
+          (file) =>
+            !file.includes("/") &&
+            /\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cs|rb|php)$/.test(file),
+        )
+        .map((file) => `*${path.posix.extname(file)}`),
+    ),
+  ];
   return stringify({
     version: 1,
     routes: [
@@ -335,6 +346,7 @@ function routesContent(
             ...projectRoots,
             ...sourceRoots,
             ...discoveredSourceRoots,
+            ...rootSourceGlobs,
             ...testRoots,
           ]),
         ],

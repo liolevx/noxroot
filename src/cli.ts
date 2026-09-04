@@ -350,6 +350,11 @@ function renderStart(
       ? [`  Exclusions: ${context.intent.explicitExclusions.join("; ")}`]
       : []),
     `  Context: ${context.selected.length} relevant files · ~${context.budget.estimatedTokens.toLocaleString("en-US")} tokens`,
+    ...(context.confidence === "high"
+      ? []
+      : [
+          `  Confidence: ${context.confidence} · ${context.unknowns[0] ?? "ownership evidence needs inspection"}`,
+        ]),
     `  Likely area: ${context.applicableAreas.join(", ") || "not yet established"}`,
     `  Checks: ${checks.map((check) => check.id).join(", ") || "none approved yet"}`,
     ...(verbose ? ["  Coding agent: not invoked (manual mode)", `Task: ${id}`] : []),

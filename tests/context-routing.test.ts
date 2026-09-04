@@ -87,7 +87,7 @@ describe("bounded relevance routing", () => {
     }
   });
 
-  it("names an oversized direct owner without exceeding the selected context budget", async () => {
+  it("selects line ranges from an oversized direct owner without exceeding the context budget", async () => {
     const root = await temporaryDirectory("noxroot-context-oversized-owner-");
     try {
       await mkdir(path.join(root, "src"));
@@ -99,7 +99,10 @@ describe("bounded relevance routing", () => {
 
       const context = await buildContext("improve context ranking", root);
       expect(context.likelyOwningSource[0]).toBe("src/context-ranking.ts");
-      expect(context.selected.map((item) => item.path)).not.toContain("src/context-ranking.ts");
+      expect(
+        context.selected.find((item) => item.path === "src/context-ranking.ts")?.lineRanges?.length,
+      ).toBeGreaterThan(0);
+      expect(context.confidence).toBe("partial");
       expect(context.budget.selectedBytes).toBeLessThanOrEqual(context.budget.maximumBytes);
     } finally {
       await rm(root, { recursive: true, force: true });
