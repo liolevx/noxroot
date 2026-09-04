@@ -12,7 +12,12 @@ import {
 import type { ContextPackage, VerificationCommand, VerificationResult } from "../model.js";
 import { cliCommand } from "../invocation.js";
 import { resolveWithin } from "../security/paths.js";
-import { changedFiles, executeVerification, selectVerification } from "../verification/index.js";
+import {
+  changedFiles,
+  executeVerification,
+  selectVerification,
+  unmatchedVerificationPaths,
+} from "../verification/index.js";
 import type { EffectiveAutonomy } from "./autonomy.js";
 import type { RunRecord } from "./run.js";
 import { assessReviewNeed, type ReviewAssessment } from "./review.js";
@@ -29,6 +34,8 @@ export interface GuidedRunRecord extends RunRecord {
   startedAt: string;
   finishedAt?: string;
   changedPaths?: string[];
+  unmatchedChangedPaths?: string[];
+  reviewEvidencePath?: string;
   changeIdentity?: ChangeIdentity;
   /** @deprecated Read-only compatibility with 0.1 task records. */
   diffHash?: string;
@@ -94,7 +101,9 @@ export async function inspectGuidedContinuation(
   record: GuidedRunRecord,
   sensitivePaths: string[] = [],
 ): Promise<GuidedContinuationState> {
-  const changedPaths = await changedFiles(root, record.baseline.revision);
+  const changedPaths = (await changedFiles(root, record.baseline.revision)).filter(
+    (changedPath) => changedPath !== record.reviewEvidencePath,
+  );
   const currentIdentity = await identifyChange(root, record.baseline.revision, changedPaths);
   const latestChecks = record.verification.at(-1) ?? [];
   let status: ContinuationVerificationStatus;
@@ -237,24 +246,35 @@ export async function finishGuidedRun(input: {
   if (policyHash(record.trustedVerificationPolicy) !== record.verificationPolicyHash) {
     throw new Error("The recorded verification policy snapshot is invalid.");
   }
-  const changedPaths = await changedFiles(input.root, record.baseline.revision);
+  const reviewEvidencePath = input.reviewFile
+    ? path.relative(input.root, resolveWithin(input.root, input.reviewFile)).replaceAll("\\", "/")
+    : undefined;
+  const changedPaths = (await changedFiles(input.root, record.baseline.revision)).filter(
+    (changedPath) => changedPath !== reviewEvidencePath,
+  );
   for (const changedPath of changedPaths) resolveWithin(input.root, changedPath);
   const diff = await diffFromRevision(
     input.root,
     record.baseline.revision,
     input.sensitivePaths ?? [],
+    reviewEvidencePath ? [reviewEvidencePath] : [],
   );
   const changeIdentity = await identifyChange(input.root, record.baseline.revision, changedPaths);
   const reviewAssessment = assessReviewNeed(changedPaths, diff, record.task);
   const commands = selectVerification(record.trustedVerificationPolicy, changedPaths);
+  const unmatchedChangedPaths = unmatchedVerificationPaths(
+    record.trustedVerificationPolicy,
+    changedPaths,
+  );
   const checks = await executeVerification(input.root, commands, {
     ...(input.signal === undefined ? {} : { signal: input.signal }),
   });
   const next: GuidedRunRecord = {
     ...record,
     changedPaths,
+    unmatchedChangedPaths,
+    ...(reviewEvidencePath === undefined ? {} : { reviewEvidencePath }),
     changeIdentity,
-    diffHash: undefined,
     reviewAssessment,
     verification: [...record.verification, checks],
     verificationGaps: [],
@@ -269,6 +289,12 @@ export async function finishGuidedRun(input: {
   if (checks.length === 0) {
     next.status = "incomplete";
     next.verificationGaps = ["No approved deterministic checks matched the actual change."];
+    next.handoff = guidedHandoff(next, checks);
+    return next;
+  }
+  if (unmatchedChangedPaths.length > 0) {
+    next.status = "incomplete";
+    next.verificationGaps = [`No approved check applies to: ${unmatchedChangedPaths.join(", ")}.`];
     next.handoff = guidedHandoff(next, checks);
     return next;
   }

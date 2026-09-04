@@ -84,7 +84,9 @@ export async function identifyChange(
   baselineRevision: string,
   changedPaths: string[],
 ): Promise<ChangeIdentity> {
-  const normalizedPaths = [...new Set(changedPaths.map((value) => value.replaceAll("\\", "/")))].sort();
+  const normalizedPaths = [
+    ...new Set(changedPaths.map((value) => value.replaceAll("\\", "/"))),
+  ].sort();
   const hash = createHash("sha256");
   hash.update("noxroot-change-identity-v1\0");
   hash.update(baselineRevision);
@@ -112,7 +114,7 @@ export async function identifyChange(
       hash.update("\0file\0");
       await new Promise<void>((resolve, reject) => {
         const stream = createReadStream(absolute);
-        stream.on("data", (chunk: Buffer) => hash.update(chunk));
+        stream.on("data", (chunk) => hash.update(chunk));
         stream.on("error", reject);
         stream.on("end", resolve);
       });
@@ -149,6 +151,7 @@ export async function diffFromRevision(
   root: string,
   revision: string,
   sensitivePaths: string[] = [],
+  excludedPaths: string[] = [],
 ): Promise<string> {
   const tracked = await git(root, ["diff", "--name-only", "-z", revision, "--"], 100_000);
   if (tracked.exitCode !== 0) return `Diff unavailable: ${tracked.stderr.trim()}`;
@@ -175,6 +178,7 @@ export async function diffFromRevision(
       "--",
       ".",
       ...protectedTracked.map((entry) => `:(top,exclude,literal)${entry.path}`),
+      ...excludedPaths.map((entry) => `:(top,exclude,literal)${entry}`),
     ],
     100_000,
   );
@@ -191,6 +195,7 @@ export async function diffFromRevision(
     remaining -= Buffer.byteLength(bounded);
   }
   for (const relative of untracked.stdout.split("\0").filter(Boolean).sort()) {
+    if (excludedPaths.includes(relative)) continue;
     if (remaining <= 0) break;
     const absolute = resolveWithin(root, relative);
     const file = await lstat(absolute);

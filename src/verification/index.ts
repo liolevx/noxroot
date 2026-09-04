@@ -5,10 +5,13 @@ import { scanRepository } from "../detection/scan.js";
 import type { VerificationCommand, VerificationResult } from "../model.js";
 import { runProcess, type ProcessRequest } from "../adapters/process.js";
 
-function matches(pattern: string, changedPath: string): boolean {
+export function matchesVerificationPath(pattern: string, changedPath: string): boolean {
   const normalized = changedPath.replaceAll("\\", "/");
   if (pattern === "**/*" || pattern === "**") return true;
-  if (pattern.endsWith("/**")) return normalized.startsWith(pattern.slice(0, -3));
+  if (pattern.endsWith("/**")) {
+    const directory = pattern.slice(0, -3).replace(/\/$/, "");
+    return normalized === directory || normalized.startsWith(`${directory}/`);
+  }
   if (pattern.startsWith("**/*.")) return normalized.endsWith(pattern.slice(4));
   if (!pattern.includes("*")) return normalized === pattern;
   const escaped = pattern
@@ -26,8 +29,20 @@ export function selectVerification(
   if (changedPaths.length === 0) return [];
   return commands.filter((command) =>
     command.appliesTo.some((pattern) =>
-      changedPaths.some((changedPath) => matches(pattern, changedPath)),
+      changedPaths.some((changedPath) => matchesVerificationPath(pattern, changedPath)),
     ),
+  );
+}
+
+export function unmatchedVerificationPaths(
+  commands: VerificationCommand[],
+  changedPaths: string[],
+): string[] {
+  return changedPaths.filter(
+    (changedPath) =>
+      !commands.some((command) =>
+        command.appliesTo.some((pattern) => matchesVerificationPath(pattern, changedPath)),
+      ),
   );
 }
 

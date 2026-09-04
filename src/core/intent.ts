@@ -1,12 +1,18 @@
 import type { TaskIntent } from "../model.js";
 
-const EXCLUSION = /\b(?:do not|don't|must not|never|without|except(?:ing)?|exclude|avoid)\b/i;
+const EXCLUSION =
+  /\b(?:do not|don't|must not|never|without|except(?:ing)?|exclude|avoid(?:ing)?)\b/i;
 const ACCEPTANCE = /\b(?:acceptance|must|should|when|so that|ensure|verify)\b/i;
 const AUTHORITY = /\b(push|merge|deploy|publish|release)\b/gi;
 
 function clauses(task: string): string[] {
   return task
     .split(/(?:\r?\n|[.;](?:\s|$))/)
+    .flatMap((value) =>
+      value.split(
+        /\s+(?:but|while)\s+|\s+and\s+(?=(?:do not|don't|must not|never|avoid|exclude)\b)/i,
+      ),
+    )
     .flatMap((value) => {
       const trimmed = value.trim();
       const without = /\bwithout\b/i.exec(trimmed);
