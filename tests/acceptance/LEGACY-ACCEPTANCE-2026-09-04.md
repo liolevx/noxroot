@@ -100,6 +100,22 @@ command output and final summaries were retained in the isolated test directory.
 
 ## Reproduction and retained evidence
 
+Final local validation at `3b8b20a`: full `npm run check` passed on Windows and in a clean Linux
+copy. Each ran 204 tests with two platform-specific skips, formatting, lint, typecheck, build,
+permission-confined preview, and installed-package smoke. The 600-record retention regression also
+passed. An intermediate test-only lint failure was corrected before these final runs.
+
+Product changes since `9602dcd`: three source files, ten added lines and three removed. Eight tests
+were added and existing continuation/initialization assertions extended. No runtime dependencies
+were added. The README changed from 1,461 to 1,451 whitespace-separated words, preserving its intro
+and existing visual assets. Final package size: 124,307 bytes, up 258 bytes from the preceding
+124,049-byte candidate; unpacked size 399,858 bytes. Reproduction scripts and reports are not
+shipped in the npm package.
+
+The validated branch is pushed as [PR #9](https://github.com/liolevx/noxroot/pull/9). Its checks are
+the source of truth for GitHub Windows/macOS/Linux, Node 22/24/26, and package validation. This pass
+does not authorize merging or npm publication.
+
 `legacy-workflows.mjs` takes an explicitly prepared `/tmp/noxroot-legacy-acceptance-*` directory
 containing inspected pinned `underscore/`, `bottle/`, and built `old-source/` directories. It
 installs the packed CLIs and runs the three workflows. `live-legacy-denial.mjs` takes that directory
@@ -120,6 +136,9 @@ Scratch evidence root: `/tmp/noxroot-legacy-acceptance-4KcWWC`. Preserve dirty r
 - `live-legacy-retry`: managed instruction update only; no edits by the agent.
 
 No worktrees were added to the Noxroot project and no workspace-parent artifacts were created.
-Package installs, caches, tarballs, and the extracted old source are disposable. Dirty checkouts and
-small evidence reports must remain until their removal is explicitly reconciled with workspace
-policy.
+Package installs, caches, tarballs, and the extracted old source were removed. The isolated Linux
+validation trees were removed by the runner. The five dirty checkouts and small reports remain in
+the single 4.7 MB evidence directory until their removal is reconciled with workspace policy.
+
+Noxroot repository: `C:/Users/lione/Documents/ChatGPT/noxroot`. Branch:
+`agent/sandbox-lifecycle-quiet-output`; kept for PR review, not merged.
